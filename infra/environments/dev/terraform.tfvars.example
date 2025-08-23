@@ -1,0 +1,17 @@
+# Example Terraform variables for development environment
+# Copy this file to terraform.tfvars and customize as needed
+
+aws_region = "us-west-2"
+
+# VPC Configuration
+vpc_cidr              = "10.0.0.0/16"
+public_subnet_count   = 2
+private_subnet_count  = 2
+enable_nat_gateway    = true
+
+# EKS Configuration
+kubernetes_version         = "1.28"
+node_group_instance_types  = ["t3.medium"]
+node_group_desired_size    = 2
+node_group_max_size        = 3
+node_group_min_size        = 1
