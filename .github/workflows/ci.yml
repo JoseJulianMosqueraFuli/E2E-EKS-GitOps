@@ -1,0 +1,161 @@
+name: CI Pipeline
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+
+env:
+  AWS_REGION: us-west-2
+  ECR_REGISTRY: ${{ secrets.ECR_REGISTRY }}
+
+jobs:
+  # Infrastructure validation
+  terraform-validate:
+    name: Terraform Validate
+    runs-on: ubuntu-latest
+    if: contains(github.event.head_commit.modified, 'infra/') || github.event_name == 'pull_request'
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup Terraform
+      uses: hashicorp/setup-terraform@v3
+      with:
+        terraform_version: 1.6.0
+        
+    - name: Terraform Format Check
+      run: terraform fmt -check -recursive infra/
+      
+    - name: Terraform Init
+      run: |
+        cd infra/environments/dev
+        terraform init -backend=false
+        
+    - name: Terraform Validate
+      run: |
+        cd infra/environments/dev
+        terraform validate
+
+  # Kubernetes manifest validation
+  k8s-validate:
+    name: Kubernetes Validate
+    runs-on: ubuntu-latest
+    if: contains(github.event.head_commit.modified, 'k8s/') || github.event_name == 'pull_request'
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup kubectl
+      uses: azure/setup-kubectl@v3
+      
+    - name: Validate Kubernetes manifests
+      run: |
+        find k8s/ -name "*.yaml" -o -name "*.yml" | xargs -I {} kubectl --dry-run=client apply -f {}
+
+  # ML Training Application
+  trainer-build:
+    name: Build Trainer
+    runs-on: ubuntu-latest
+    if: contains(github.event.head_commit.modified, 'apps/trainer/') || github.event_name == 'pull_request'
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.9'
+        
+    - name: Install dependencies
+      run: |
+        cd apps/trainer
+        pip install -r requirements.txt
+        
+    - name: Run tests
+      run: |
+        cd apps/trainer
+        python -m pytest tests/ -v
+        
+    - name: Build Docker image
+      run: |
+        cd apps/trainer
+        docker build -t trainer:${{ github.sha }} .
+
+  # ML Inference Application
+  inference-build:
+    name: Build Inference
+    runs-on: ubuntu-latest
+    if: contains(github.event.head_commit.modified, 'apps/inference/') || github.event_name == 'pull_request'
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.9'
+        
+    - name: Install dependencies
+      run: |
+        cd apps/inference
+        pip install -r requirements.txt
+        
+    - name: Run tests
+      run: |
+        cd apps/inference
+        python -m pytest tests/ -v
+        
+    - name: Build Docker image
+      run: |
+        cd apps/inference
+        docker build -t inference:${{ github.sha }} .
+
+  # Workflow validation
+  workflow-validate:
+    name: Validate Workflows
+    runs-on: ubuntu-latest
+    if: contains(github.event.head_commit.modified, 'workflows/') || github.event_name == 'pull_request'
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup Argo CLI
+      run: |
+        curl -sLO https://github.com/argoproj/argo-workflows/releases/latest/download/argo-linux-amd64.gz
+        gunzip argo-linux-amd64.gz
+        chmod +x argo-linux-amd64
+        sudo mv argo-linux-amd64 /usr/local/bin/argo
+        
+    - name: Validate workflow templates
+      run: |
+        find workflows/templates/ -name "*.yaml" -o -name "*.yml" | xargs -I {} argo lint {}
+
+  # Security scanning
+  security-scan:
+    name: Security Scan
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Run Trivy vulnerability scanner
+      uses: aquasecurity/trivy-action@master
+      with:
+        scan-type: 'fs'
+        scan-ref: '.'
+        format: 'sarif'
+        output: 'trivy-results.sarif'
+        
+    - name: Upload Trivy scan results
+      uses: github/codeql-action/upload-sarif@v2
+      if: always()
+      with:
+        sarif_file: 'trivy-results.sarif'
