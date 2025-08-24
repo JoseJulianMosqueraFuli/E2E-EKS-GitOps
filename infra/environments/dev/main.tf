@@ -13,7 +13,7 @@ terraform {
     # Configure backend in terraform init
     # bucket = "mlops-terraform-state-dev"
     # key    = "dev/terraform.tfstate"
-    # region = "us-west-2"
+    # region = "us-east-1"
   }
 }
 
@@ -146,25 +146,171 @@ module "s3" {
   tags = local.common_tags
 }
 
-# ECR Repositories
-resource "aws_ecr_repository" "trainer" {
-  name                 = "${local.name_prefix}-trainer"
-  image_tag_mutability = "MUTABLE"
+# ECR Module
+module "ecr" {
+  source = "../../modules/ecr"
 
-  image_scanning_configuration {
-    scan_on_push = true
+  kms_key_arn = aws_kms_key.main.arn
+  
+  repositories = {
+    trainer = {
+      name                 = "${local.name_prefix}-trainer"
+      image_tag_mutability = "MUTABLE"
+      scan_on_push         = true
+      tags                 = { Purpose = "ml-training" }
+    }
+    inference = {
+      name                 = "${local.name_prefix}-inference"
+      image_tag_mutability = "MUTABLE"
+      scan_on_push         = true
+      tags                 = { Purpose = "ml-inference" }
+    }
+    feature_transformer = {
+      name                 = "${local.name_prefix}-feature-transformer"
+      image_tag_mutability = "MUTABLE"
+      scan_on_push         = true
+      tags                 = { Purpose = "feature-processing" }
+    }
   }
+
+  allowed_principals = [
+    "arn:aws:iam::${data.aws_caller_identity.current.account_id}:root"
+  ]
+
+  enable_registry_scanning = true
 
   tags = local.common_tags
 }
 
-resource "aws_ecr_repository" "inference" {
-  name                 = "${local.name_prefix}-inference"
-  image_tag_mutability = "MUTABLE"
+# Glue Data Catalog Module
+module "glue" {
+  source = "../../modules/glue"
 
-  image_scanning_configuration {
-    scan_on_push = true
+  name_prefix = local.name_prefix
+
+  databases = {
+    mlops_raw = {
+      name        = "${local.name_prefix}-raw-data"
+      description = "Raw data catalog for MLOps pipeline"
+    }
+    mlops_curated = {
+      name        = "${local.name_prefix}-curated-data"
+      description = "Curated data catalog for MLOps pipeline"
+    }
+    mlops_features = {
+      name        = "${local.name_prefix}-features"
+      description = "Feature store catalog for MLOps pipeline"
+    }
   }
+
+  tables = {
+    raw_training_data = {
+      name          = "training_data"
+      database_name = "${local.name_prefix}-raw-data"
+      description   = "Raw training data table"
+      table_type    = "EXTERNAL_TABLE"
+      storage_descriptor = {
+        location      = "s3://${module.s3.bucket_ids["raw_data"]}/training-data/"
+        input_format  = "org.apache.hadoop.mapred.TextInputFormat"
+        output_format = "org.apache.hadoop.hive.ql.io.HiveIgnoreKeyTextOutputFormat"
+        ser_de_info = {
+          serialization_library = "org.apache.hadoop.hive.serde2.lazy.LazySimpleSerDe"
+          parameters = {
+            "field.delim" = ","
+          }
+        }
+        columns = [
+          {
+            name = "feature_1"
+            type = "double"
+          },
+          {
+            name = "feature_2"
+            type = "double"
+          },
+          {
+            name = "target"
+            type = "double"
+          }
+        ]
+      }
+    }
+  }
+
+  crawlers = {
+    raw_data_crawler = {
+      name          = "${local.name_prefix}-raw-data-crawler"
+      database_name = "${local.name_prefix}-raw-data"
+      description   = "Crawler for raw ML data"
+      schedule      = "cron(0 2 * * ? *)"  # Daily at 2 AM
+      s3_targets = [
+        {
+          path = "s3://${module.s3.bucket_ids["raw_data"]}/"
+        }
+      ]
+      schema_change_policy = {
+        update_behavior = "UPDATE_IN_DATABASE"
+        delete_behavior = "LOG"
+      }
+      tags = { Purpose = "raw-data-discovery" }
+    }
+    curated_data_crawler = {
+      name          = "${local.name_prefix}-curated-data-crawler"
+      database_name = "${local.name_prefix}-curated-data"
+      description   = "Crawler for curated ML data"
+      schedule      = "cron(0 3 * * ? *)"  # Daily at 3 AM
+      s3_targets = [
+        {
+          path = "s3://${module.s3.bucket_ids["curated_data"]}/"
+        }
+      ]
+      schema_change_policy = {
+        update_behavior = "UPDATE_IN_DATABASE"
+        delete_behavior = "LOG"
+      }
+      tags = { Purpose = "curated-data-discovery" }
+    }
+  }
+
+  data_quality_rulesets = {
+    training_data_quality = {
+      name        = "${local.name_prefix}-training-data-quality"
+      description = "Data quality rules for training data"
+      ruleset = jsonencode([
+        {
+          Name = "Completeness"
+          Rules = [
+            "ColumnCount > 0",
+            "IsComplete \"feature_1\"",
+            "IsComplete \"feature_2\"",
+            "IsComplete \"target\""
+          ]
+        },
+        {
+          Name = "Validity"
+          Rules = [
+            "ColumnDataType \"feature_1\" = \"NUMERIC\"",
+            "ColumnDataType \"feature_2\" = \"NUMERIC\"",
+            "ColumnDataType \"target\" = \"NUMERIC\""
+          ]
+        }
+      ])
+      target_table = {
+        database_name = "${local.name_prefix}-raw-data"
+        table_name    = "training_data"
+      }
+      tags = { Purpose = "data-quality-validation" }
+    }
+  }
+
+  s3_bucket_arns = [
+    module.s3.bucket_arns["raw_data"],
+    module.s3.bucket_arns["curated_data"],
+    module.s3.bucket_arns["model_artifacts"]
+  ]
 
   tags = local.common_tags
 }
+
+# Data sources
+data "aws_caller_identity" "current" {}
