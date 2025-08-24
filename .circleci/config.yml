@@ -1,0 +1,178 @@
+# CircleCI Configuration for MLOps Pipeline
+version: 2.1
+
+orbs:
+  aws-cli: circleci/aws-cli@3.1.4
+  kubernetes: circleci/kubernetes@1.3.1
+  terraform: circleci/terraform@3.2.0
+
+parameters:
+  ci_provider:
+    type: string
+    default: "circleci"
+  
+executors:
+  terraform-executor:
+    docker:
+      - image: hashicorp/terraform:1.6.0
+    working_directory: ~/project
+  
+  mlops-executor:
+    docker:
+      - image: python:3.11-slim
+    working_directory: ~/project
+
+jobs:
+  # Infrastructure Testing
+  terraform-test:
+    executor: terraform-executor
+    steps:
+      - checkout
+      - setup_remote_docker
+      - run:
+          name: Install Go for Terratest
+          command: |
+            apk add --no-cache go git
+            export GOPATH=/go
+            export PATH=$PATH:/go/bin
+      - run:
+          name: Run Infrastructure Tests
+          command: |
+            cd infra/modules/vpc/test
+            go mod download
+            go test -v -timeout 30m
+      - run:
+          name: Run EKS Tests
+          command: |
+            cd infra/modules/eks/test
+            go test -v -timeout 45m
+
+  # Terraform Plan
+  terraform-plan:
+    executor: terraform-executor
+    steps:
+      - checkout
+      - terraform/install:
+          terraform_version: "1.6.0"
+      - run:
+          name: Terraform Plan Dev
+          command: |
+            cd infra/environments/dev
+            terraform init
+            terraform plan -out=tfplan
+
+  # Terraform Apply
+  terraform-apply:
+    executor: terraform-executor
+    steps:
+      - checkout
+      - terraform/install:
+          terraform_version: "1.6.0"
+      - run:
+          name: Terraform Apply Dev
+          command: |
+            cd infra/environments/dev
+            terraform init
+            terraform apply -auto-approve
+
+  # MLOps Pipeline Tests
+  mlops-tests:
+    executor: mlops-executor
+    steps:
+      - checkout
+      - run:
+          name: Install Dependencies
+          command: |
+            pip install -r ml-platform/requirements.txt
+            pip install pytest mlflow kubeflow-pipelines
+      - run:
+          name: Run ML Pipeline Tests
+          command: |
+            cd ml-platform
+            pytest tests/ -v
+      - run:
+          name: Validate Kubeflow Pipelines
+          command: |
+            python scripts/validate-pipelines.py
+
+  # Model Training
+  model-training:
+    executor: mlops-executor
+    steps:
+      - checkout
+      - kubernetes/install-kubectl
+      - run:
+          name: Deploy Training Pipeline
+          command: |
+            kubectl apply -f k8s/ml-pipelines/training-pipeline.yaml
+      - run:
+          name: Monitor Training Job
+          command: |
+            python scripts/monitor-training.py
+
+  # Model Deployment
+  model-deployment:
+    executor: mlops-executor
+    steps:
+      - checkout
+      - kubernetes/install-kubectl
+      - run:
+          name: Deploy Model to Staging
+          command: |
+            kubectl apply -f k8s/model-serving/staging/
+      - run:
+          name: Run Model Validation Tests
+          command: |
+            python scripts/validate-model-deployment.py --env staging
+
+workflows:
+  version: 2
+  
+  # Infrastructure Workflow
+  infrastructure:
+    jobs:
+      - terraform-test:
+          filters:
+            branches:
+              only: [main, develop, /feature\/.*/]
+      - terraform-plan:
+          requires: [terraform-test]
+          filters:
+            branches:
+              only: [main, develop]
+      - terraform-apply:
+          requires: [terraform-plan]
+          filters:
+            branches:
+              only: [main]
+
+  # MLOps Workflow
+  mlops-pipeline:
+    jobs:
+      - mlops-tests:
+          filters:
+            branches:
+              only: [main, develop, /feature\/.*/]
+      - model-training:
+          requires: [mlops-tests]
+          filters:
+            branches:
+              only: [main, develop]
+      - model-deployment:
+          requires: [model-training]
+          filters:
+            branches:
+              only: [main]
+
+  # Scheduled Model Retraining
+  scheduled-training:
+    triggers:
+      - schedule:
+          cron: "0 2 * * 1"  # Every Monday at 2 AM
+          filters:
+            branches:
+              only: [main]
+    jobs:
+      - model-training
+      - model-deployment:
+          requires: [model-training]

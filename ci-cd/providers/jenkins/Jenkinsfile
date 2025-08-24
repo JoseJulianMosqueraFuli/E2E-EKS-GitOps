@@ -1,0 +1,154 @@
+// Jenkins Pipeline for MLOps
+pipeline {
+    agent any
+    
+    parameters {
+        choice(
+            name: 'ENVIRONMENT',
+            choices: ['dev', 'staging', 'prod'],
+            description: 'Target environment'
+        )
+        booleanParam(
+            name: 'RUN_TESTS',
+            defaultValue: true,
+            description: 'Run infrastructure tests'
+        )
+        booleanParam(
+            name: 'DEPLOY_INFRASTRUCTURE',
+            defaultValue: false,
+            description: 'Deploy infrastructure changes'
+        )
+        booleanParam(
+            name: 'TRAIN_MODEL',
+            defaultValue: false,
+            description: 'Trigger model training'
+        )
+    }
+    
+    environment {
+        AWS_DEFAULT_REGION = 'us-west-2'
+        KUBECONFIG = credentials('kubeconfig')
+        AWS_CREDENTIALS = credentials('aws-credentials')
+    }
+    
+    stages {
+        stage('Checkout') {
+            steps {
+                checkout scm
+            }
+        }
+        
+        stage('Infrastructure Tests') {
+            when {
+                expression { params.RUN_TESTS }
+            }
+            parallel {
+                stage('Terraform Tests') {
+                    steps {
+                        script {
+                            sh '''
+                                cd infra/modules/vpc/test
+                                go mod download
+                                go test -v -timeout 30m
+                            '''
+                        }
+                    }
+                }
+                stage('Security Scan') {
+                    steps {
+                        sh '''
+                            # Run Checkov security scan
+                            checkov -d infra/ --framework terraform
+                        '''
+                    }
+                }
+            }
+        }
+        
+        stage('Infrastructure Deployment') {
+            when {
+                expression { params.DEPLOY_INFRASTRUCTURE }
+            }
+            steps {
+                script {
+                    sh """
+                        cd infra/environments/${params.ENVIRONMENT}
+                        terraform init
+                        terraform plan -out=tfplan
+                        terraform apply tfplan
+                    """
+                }
+            }
+        }
+        
+        stage('MLOps Pipeline') {
+            parallel {
+                stage('Data Validation') {
+                    steps {
+                        sh '''
+                            cd ml-platform
+                            python scripts/validate-data.py
+                        '''
+                    }
+                }
+                stage('Model Training') {
+                    when {
+                        expression { params.TRAIN_MODEL }
+                    }
+                    steps {
+                        sh '''
+                            kubectl apply -f k8s/ml-pipelines/training-pipeline.yaml
+                            python scripts/monitor-training.py
+                        '''
+                    }
+                }
+            }
+        }
+        
+        stage('Model Deployment') {
+            when {
+                allOf {
+                    expression { params.TRAIN_MODEL }
+                    expression { currentBuild.result == null || currentBuild.result == 'SUCCESS' }
+                }
+            }
+            steps {
+                script {
+                    sh """
+                        kubectl apply -f k8s/model-serving/${params.ENVIRONMENT}/
+                        python scripts/validate-model-deployment.py --env ${params.ENVIRONMENT}
+                    """
+                }
+            }
+        }
+    }
+    
+    post {
+        always {
+            // Archive artifacts
+            archiveArtifacts artifacts: 'infra/**/*.tfplan', allowEmptyArchive: true
+            
+            // Publish test results
+            publishTestResults testResultsPattern: 'test-results/*.xml'
+            
+            // Clean workspace
+            cleanWs()
+        }
+        success {
+            // Notify success
+            slackSend(
+                channel: '#mlops-notifications',
+                color: 'good',
+                message: "MLOps Pipeline succeeded for ${params.ENVIRONMENT}"
+            )
+        }
+        failure {
+            // Notify failure
+            slackSend(
+                channel: '#mlops-notifications',
+                color: 'danger',
+                message: "MLOps Pipeline failed for ${params.ENVIRONMENT}"
+            )
+        }
+    }
+}
