@@ -49,3 +49,23 @@ output "node_group_status" {
   description = "Status of the EKS Node Group"
   value       = aws_eks_node_group.main.status
 }
+
+output "cluster_autoscaler_role_arn" {
+  description = "ARN of the cluster autoscaler IAM role"
+  value       = aws_iam_role.cluster_autoscaler.arn
+}
+
+output "aws_load_balancer_controller_role_arn" {
+  description = "ARN of the AWS Load Balancer Controller IAM role"
+  value       = aws_iam_role.aws_load_balancer_controller.arn
+}
+
+output "ebs_csi_driver_role_arn" {
+  description = "ARN of the EBS CSI driver IAM role"
+  value       = aws_iam_role.ebs_csi_driver.arn
+}
+
+output "oidc_provider_url" {
+  description = "URL of the OIDC Provider"
+  value       = replace(aws_iam_openid_connect_provider.cluster.url, "https://", "")
+}

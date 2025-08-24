@@ -123,3 +123,123 @@ resource "aws_s3_bucket_notification" "buckets" {
     }
   }
 }
+
+# S3 Bucket Policy
+resource "aws_s3_bucket_policy" "buckets" {
+  for_each = { for k, v in var.buckets : k => v if v.bucket_policy != null }
+
+  bucket = aws_s3_bucket.buckets[each.key].id
+  policy = each.value.bucket_policy
+}
+
+# Default bucket policy for secure access
+resource "aws_s3_bucket_policy" "default_security" {
+  for_each = { for k, v in var.buckets : k => v if v.bucket_policy == null }
+
+  bucket = aws_s3_bucket.buckets[each.key].id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Sid       = "DenyInsecureConnections"
+        Effect    = "Deny"
+        Principal = "*"
+        Action    = "s3:*"
+        Resource = [
+          aws_s3_bucket.buckets[each.key].arn,
+          "${aws_s3_bucket.buckets[each.key].arn}/*"
+        ]
+        Condition = {
+          Bool = {
+            "aws:SecureTransport" = "false"
+          }
+        }
+      },
+      {
+        Sid       = "DenyUnencryptedObjectUploads"
+        Effect    = "Deny"
+        Principal = "*"
+        Action    = "s3:PutObject"
+        Resource  = "${aws_s3_bucket.buckets[each.key].arn}/*"
+        Condition = {
+          StringNotEquals = {
+            "s3:x-amz-server-side-encryption" = "aws:kms"
+          }
+        }
+      }
+    ]
+  })
+}
+
+# S3 Bucket Logging
+resource "aws_s3_bucket_logging" "buckets" {
+  for_each = { for k, v in var.buckets : k => v if v.logging_config != null }
+
+  bucket = aws_s3_bucket.buckets[each.key].id
+
+  target_bucket = each.value.logging_config.target_bucket
+  target_prefix = each.value.logging_config.target_prefix
+}
+
+# S3 Bucket CORS Configuration
+resource "aws_s3_bucket_cors_configuration" "buckets" {
+  for_each = { for k, v in var.buckets : k => v if v.cors_rules != null }
+
+  bucket = aws_s3_bucket.buckets[each.key].id
+
+  dynamic "cors_rule" {
+    for_each = each.value.cors_rules
+    content {
+      allowed_headers = cors_rule.value.allowed_headers
+      allowed_methods = cors_rule.value.allowed_methods
+      allowed_origins = cors_rule.value.allowed_origins
+      expose_headers  = cors_rule.value.expose_headers
+      max_age_seconds = cors_rule.value.max_age_seconds
+    }
+  }
+}
+
+# S3 Bucket Replication Configuration
+resource "aws_s3_bucket_replication_configuration" "buckets" {
+  for_each = { for k, v in var.buckets : k => v if v.replication_config != null }
+
+  role   = each.value.replication_config.role_arn
+  bucket = aws_s3_bucket.buckets[each.key].id
+
+  dynamic "rule" {
+    for_each = each.value.replication_config.rules
+    content {
+      id     = rule.value.id
+      status = rule.value.status
+
+      dynamic "filter" {
+        for_each = rule.value.filter != null ? [rule.value.filter] : []
+        content {
+          prefix = filter.value.prefix
+          dynamic "tag" {
+            for_each = filter.value.tags != null ? filter.value.tags : {}
+            content {
+              key   = tag.key
+              value = tag.value
+            }
+          }
+        }
+      }
+
+      destination {
+        bucket        = rule.value.destination.bucket
+        storage_class = rule.value.destination.storage_class
+
+        dynamic "encryption_configuration" {
+          for_each = rule.value.destination.kms_key_id != null ? [1] : []
+          content {
+            replica_kms_key_id = rule.value.destination.kms_key_id
+          }
+        }
+      }
+    }
+  }
+
+  depends_on = [aws_s3_bucket_versioning.buckets]
+}

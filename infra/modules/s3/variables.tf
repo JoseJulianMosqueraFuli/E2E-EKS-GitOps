@@ -7,6 +7,7 @@ variable "buckets" {
     versioning_enabled  = bool
     force_destroy       = bool
     tags                = map(string)
+    bucket_policy       = optional(string)
     lifecycle_rules = optional(list(object({
       id                                    = string
       enabled                              = bool
@@ -30,6 +31,33 @@ variable "buckets" {
         filter_prefix = optional(string)
         filter_suffix = optional(string)
       })))
+    }))
+    logging_config = optional(object({
+      target_bucket = string
+      target_prefix = string
+    }))
+    cors_rules = optional(list(object({
+      allowed_headers = optional(list(string))
+      allowed_methods = list(string)
+      allowed_origins = list(string)
+      expose_headers  = optional(list(string))
+      max_age_seconds = optional(number)
+    })))
+    replication_config = optional(object({
+      role_arn = string
+      rules = list(object({
+        id     = string
+        status = string
+        filter = optional(object({
+          prefix = optional(string)
+          tags   = optional(map(string))
+        }))
+        destination = object({
+          bucket        = string
+          storage_class = optional(string)
+          kms_key_id    = optional(string)
+        })
+      }))
     }))
   }))
 }
