@@ -39,8 +39,8 @@ A production-ready, enterprise-grade MLOps platform built on Amazon EKS with Git
 brew install terraform kubectl helm aws-cli go
 
 # Or using package managers
-# Ubuntu/Debian: apt-get install terraform kubectl helm awscli golang
-# CentOS/RHEL: yum install terraform kubectl helm awscli golang
+Ubuntu/Debian: apt-get install terraform kubectl helm awscli golang
+CentOS/RHEL: yum install terraform kubectl helm awscli golang
 
 # Configure AWS credentials
 aws configure
@@ -49,8 +49,8 @@ aws configure
 ### 1. Deploy Infrastructure
 ```bash
 # Clone and setup
-git clone <repository-url>
-cd mlops-e2e-eks-gitops
+git clone git@github.com:JoseJulianMosqueraFuli/E2E-EKS-GitOps.git
+cd e2e-eks-gitops
 
 # Quick start for development
 make quickstart-dev
@@ -267,9 +267,7 @@ cd tests/e2e && python -m pytest -v
 ## 📚 Documentation
 
 - [MLOps Enterprise Recommendations](docs/mlops-enterprise-recommendations.md)
-- [Infrastructure Architecture](docs/infrastructure-architecture.md)
 - [Security Best Practices](docs/security-best-practices.md)
-- [Troubleshooting Guide](docs/troubleshooting.md)
 
 ## 🤝 Contributing
 
@@ -316,4 +314,4 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ---
 
-**Built with ❤️ for the MLOps community**
+**Built with ❤️ for the MLOps community by JJMF**
