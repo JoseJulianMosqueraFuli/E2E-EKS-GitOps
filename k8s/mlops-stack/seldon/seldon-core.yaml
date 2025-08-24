@@ -1,0 +1,287 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: seldon-system
+  labels:
+    name: seldon-system
+
+---
+# Seldon Core Operator
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: seldon-controller-manager
+  namespace: seldon-system
+  labels:
+    app: seldon-controller-manager
+    app.kubernetes.io/name: seldon-core
+    app.kubernetes.io/component: seldon-controller-manager
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: seldon-controller-manager
+  template:
+    metadata:
+      labels:
+        app: seldon-controller-manager
+    spec:
+      serviceAccountName: seldon-manager
+      containers:
+      - name: manager
+        image: seldonio/seldon-core-operator:1.17.1
+        command:
+        - /manager
+        args:
+        - --enable-leader-election
+        - --webhook-port=4443
+        - --create-resources=true
+        env:
+        - name: WATCH_NAMESPACE
+          value: ""
+        - name: RELATED_IMAGE_EXECUTOR
+          value: seldonio/seldon-core-executor:1.17.1
+        - name: RELATED_IMAGE_ENGINE
+          value: seldonio/seldon-core-engine:1.17.1
+        - name: RELATED_IMAGE_STORAGE_INITIALIZER
+          value: seldonio/rclone-storage-initializer:1.17.1
+        - name: MANAGER_CREATE_RESOURCES
+          value: "true"
+        - name: POD_NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+        - name: CONTROLLER_ID
+          value: seldon-controller-manager
+        - name: AMBASSADOR_ENABLED
+          value: "true"
+        - name: AMBASSADOR_SINGLE_NAMESPACE
+          value: "false"
+        - name: ENGINE_CONTAINER_IMAGE_AND_VERSION
+          value: seldonio/seldon-core-engine:1.17.1
+        - name: ENGINE_CONTAINER_SERVICE_ACCOUNT_NAME
+          value: default
+        - name: ENGINE_CONTAINER_USER
+          value: "8888"
+        - name: ENGINE_LOG_MESSAGES_EXTERNALLY
+          value: "false"
+        - name: PREDICTIVE_UNIT_SERVICE_PORT
+          value: "9000"
+        - name: ENGINE_SERVER_GRPC_PORT
+          value: "9500"
+        - name: ENGINE_SERVER_PORT
+          value: "8000"
+        - name: ENGINE_PROMETHEUS_PATH
+          value: /prometheus
+        ports:
+        - containerPort: 4443
+          name: webhook-server
+          protocol: TCP
+        - containerPort: 8080
+          name: metrics
+          protocol: TCP
+        resources:
+          limits:
+            cpu: 500m
+            memory: 300Mi
+          requests:
+            cpu: 100m
+            memory: 200Mi
+        volumeMounts:
+        - mountPath: /tmp/k8s-webhook-server/serving-certs
+          name: cert
+          readOnly: true
+      terminationGracePeriodSeconds: 10
+      volumes:
+      - name: cert
+        secret:
+          defaultMode: 420
+          secretName: seldon-webhook-server-cert
+
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: seldon-manager
+  namespace: seldon-system
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: seldon-manager-role
+rules:
+- apiGroups:
+  - ""
+  resources:
+  - configmaps
+  - events
+  - secrets
+  - services
+  - serviceaccounts
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - ""
+  resources:
+  - namespaces
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - ""
+  resources:
+  - pods
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - apps
+  resources:
+  - deployments
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - autoscaling
+  resources:
+  - horizontalpodautoscalers
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - machinelearning.seldon.io
+  resources:
+  - seldondeployments
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - machinelearning.seldon.io
+  resources:
+  - seldondeployments/finalizers
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - machinelearning.seldon.io
+  resources:
+  - seldondeployments/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - networking.k8s.io
+  resources:
+  - ingresses
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - policy
+  resources:
+  - poddisruptionbudgets
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: seldon-manager-rolebinding
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: seldon-manager-role
+subjects:
+- kind: ServiceAccount
+  name: seldon-manager
+  namespace: seldon-system
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: seldon-webhook-service
+  namespace: seldon-system
+spec:
+  ports:
+  - name: webhook-server
+    port: 443
+    targetPort: 4443
+  selector:
+    app: seldon-controller-manager
+
+---
+# Example Model Deployment
+apiVersion: machinelearning.seldon.io/v1
+kind: SeldonDeployment
+metadata:
+  name: sklearn-iris-deployment
+  namespace: seldon-system
+spec:
+  name: sklearn-iris
+  predictors:
+  - name: default
+    replicas: 1
+    graph:
+      name: classifier
+      implementation: SKLEARN_SERVER
+      modelUri: s3://mlops-dev-model-artifacts/sklearn-iris/model
+      serviceAccountName: seldon-sa
+    componentSpecs:
+    - spec:
+        containers:
+        - name: classifier
+          resources:
+            requests:
+              memory: "64Mi"
+              cpu: "100m"
+            limits:
+              memory: "128Mi"
+              cpu: "200m"
+
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: seldon-sa
+  namespace: seldon-system
+  annotations:
+    eks.amazonaws.com/role-arn: arn:aws:iam::ACCOUNT_ID:role/mlops-dev-seldon-role

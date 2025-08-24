@@ -1,0 +1,41 @@
+# Kubeflow Pipelines Installation
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+# Kubeflow Pipelines v2.0.1
+resources:
+- https://github.com/kubeflow/pipelines/manifests/kustomize/env/platform-agnostic?ref=2.0.1
+
+# Namespace
+namespace: kubeflow
+
+# Custom patches for AWS integration
+patchesStrategicMerge:
+- patches/pipeline-runner-patch.yaml
+- patches/metadata-grpc-deployment-patch.yaml
+- patches/ml-pipeline-ui-patch.yaml
+
+# ConfigMap generators
+configMapGenerator:
+- name: pipeline-install-config
+  literals:
+  - CACHE_IMAGE=gcr.io/ml-pipeline/cache-server:2.0.1
+  - MOVERESULTS_IMAGE=gcr.io/ml-pipeline/api-server:2.0.1
+  - WORKFLOW_CONTROLLER_IMAGE=gcr.io/ml-pipeline/workflow-controller:v3.3.10-license-compliance
+
+# Images
+images:
+- name: gcr.io/ml-pipeline/api-server
+  newTag: 2.0.1
+- name: gcr.io/ml-pipeline/persistenceagent
+  newTag: 2.0.1
+- name: gcr.io/ml-pipeline/scheduledworkflow
+  newTag: 2.0.1
+- name: gcr.io/ml-pipeline/frontend
+  newTag: 2.0.1
+- name: gcr.io/ml-pipeline/viewer-crd-controller
+  newTag: 2.0.1
+- name: gcr.io/ml-pipeline/visualization-server
+  newTag: 2.0.1
+- name: gcr.io/ml-pipeline/metadata-writer
+  newTag: 2.0.1
