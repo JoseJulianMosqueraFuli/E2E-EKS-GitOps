@@ -1,0 +1,81 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+metadata:
+  name: kserve
+  namespace: kserve-system
+
+resources:
+  # Core KServe components
+  - namespace.yaml
+  - crds.yaml
+  - rbac.yaml
+  - configmap.yaml
+  - controller-deployment.yaml
+  - webhook.yaml
+  - service.yaml
+  - cert-manager.yaml
+  - storage-config.yaml
+  
+  # Serving runtimes
+  - serving-runtimes/sklearn-runtime.yaml
+  - serving-runtimes/pytorch-runtime.yaml
+  - serving-runtimes/tensorflow-runtime.yaml
+  
+  # Monitoring and networking
+  - monitoring.yaml
+  - network-policy.yaml
+  - istio-config.yaml
+
+commonLabels:
+  app.kubernetes.io/name: kserve
+  app.kubernetes.io/instance: mlops-kserve
+  app.kubernetes.io/version: "v0.11.0"
+  app.kubernetes.io/component: model-serving
+  app.kubernetes.io/part-of: mlops-platform
+
+images:
+  - name: kserve/kserve-controller
+    newTag: v0.11.0
+  - name: kserve/sklearnserver
+    newTag: v0.11.0
+  - name: kserve/torchserve
+    newTag: 0.7.0
+  - name: tensorflow/serving
+    newTag: 2.6.2
+
+configMapGenerator:
+  - name: kserve-environment-config
+    literals:
+      - ENVIRONMENT=production
+      - LOG_LEVEL=INFO
+      - KSERVE_VERSION=v0.11.0
+      - DEFAULT_DEPLOYMENT_MODE=Serverless
+
+patchesStrategicMerge:
+  # Add environment-specific patches here
+
+patchesJson6902:
+  # Patch webhook certificates with proper CA bundle
+  - target:
+      group: admissionregistration.k8s.io
+      version: v1
+      kind: MutatingAdmissionWebhook
+      name: inferenceservice.serving.kserve.io
+    patch: |-
+      - op: add
+        path: /webhooks/0/clientConfig/caBundle
+        value: ""
+  - target:
+      group: admissionregistration.k8s.io
+      version: v1
+      kind: ValidatingAdmissionWebhook
+      name: inferenceservice.serving.kserve.io
+    patch: |-
+      - op: add
+        path: /webhooks/0/clientConfig/caBundle
+        value: ""
+
+replicas:
+  - name: kserve-controller-manager
+    count: 1

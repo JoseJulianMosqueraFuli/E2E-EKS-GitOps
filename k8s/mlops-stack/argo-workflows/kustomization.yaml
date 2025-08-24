@@ -1,0 +1,46 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+metadata:
+  name: argo-workflows
+  namespace: argo-workflows
+
+resources:
+  # Core Argo Workflows components
+  - namespace.yaml
+  - crds.yaml
+  - rbac.yaml
+  - configmap.yaml
+  - controller-deployment.yaml
+  - server-deployment.yaml
+  - service.yaml
+  - artifact-repository-secret.yaml
+  
+  # Workflow templates
+  - workflow-templates/data-validation-template.yaml
+  - workflow-templates/model-training-template.yaml
+  - workflow-templates/model-deployment-template.yaml
+  - workflow-templates/ml-pipeline-template.yaml
+
+commonLabels:
+  app.kubernetes.io/name: argo-workflows
+  app.kubernetes.io/instance: mlops-argo-workflows
+  app.kubernetes.io/version: v3.5.2
+  app.kubernetes.io/component: workflow-engine
+  app.kubernetes.io/part-of: mlops-platform
+
+images:
+  - name: quay.io/argoproj/workflow-controller
+    newTag: v3.5.2
+  - name: quay.io/argoproj/argocli
+    newTag: v3.5.2
+
+patchesStrategicMerge:
+  # Add any environment-specific patches here
+
+configMapGenerator:
+  - name: argo-workflows-config
+    literals:
+      - ARGO_NAMESPACE=argo-workflows
+      - ARGO_SERVER_PORT=2746
+      - WORKFLOW_CONTROLLER_METRICS_PORT=9090

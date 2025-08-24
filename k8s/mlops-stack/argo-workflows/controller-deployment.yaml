@@ -1,0 +1,51 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: workflow-controller
+  namespace: argo-workflows
+  labels:
+    app.kubernetes.io/name: argo-workflows
+    app.kubernetes.io/component: workflow-controller
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: argo-workflows
+      app.kubernetes.io/component: workflow-controller
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: argo-workflows
+        app.kubernetes.io/component: workflow-controller
+    spec:
+      serviceAccountName: argo-workflow-controller
+      containers:
+      - name: workflow-controller
+        image: quay.io/argoproj/workflow-controller:v3.5.2
+        command:
+        - workflow-controller
+        args:
+        - --configmap=workflow-controller-configmap
+        - --executor-image=quay.io/argoproj/argoexec:v3.5.2
+        env:
+        - name: LEADER_ELECTION_NAMESPACE
+          valueFrom:
+            fieldRef:
+              apiVersion: v1
+              fieldPath: metadata.namespace
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 500m
+            memory: 512Mi
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          readOnlyRootFilesystem: true
+          runAsNonRoot: true
+      nodeSelector:
+        kubernetes.io/os: linux

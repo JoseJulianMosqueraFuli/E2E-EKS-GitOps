@@ -1,0 +1,198 @@
+apiVersion: argoproj.io/v1alpha1
+kind: WorkflowTemplate
+metadata:
+  name: model-training-template
+  namespace: argo-workflows
+  labels:
+    app.kubernetes.io/name: argo-workflows
+    app.kubernetes.io/component: workflow-template
+spec:
+  entrypoint: model-training
+  serviceAccountName: argo-workflow
+  arguments:
+    parameters:
+    - name: data-path
+      value: "s3://mlops-curated-data/"
+    - name: model-name
+      value: "default-model"
+    - name: experiment-name
+      value: "default-experiment"
+    - name: mlflow-tracking-uri
+      value: "http://mlflow-server.mlflow:5000"
+  templates:
+  - name: model-training
+    dag:
+      tasks:
+      - name: feature-engineering
+        template: feature-engineering-step
+        arguments:
+          parameters:
+          - name: data-path
+            value: "{{workflow.parameters.data-path}}"
+      - name: train-model
+        template: train-model-step
+        dependencies: [feature-engineering]
+        arguments:
+          parameters:
+          - name: features-path
+            value: "{{tasks.feature-engineering.outputs.parameters.features-path}}"
+          - name: model-name
+            value: "{{workflow.parameters.model-name}}"
+          - name: experiment-name
+            value: "{{workflow.parameters.experiment-name}}"
+          - name: mlflow-tracking-uri
+            value: "{{workflow.parameters.mlflow-tracking-uri}}"
+      - name: evaluate-model
+        template: evaluate-model-step
+        dependencies: [train-model]
+        arguments:
+          parameters:
+          - name: model-uri
+            value: "{{tasks.train-model.outputs.parameters.model-uri}}"
+          - name: test-data-path
+            value: "{{tasks.feature-engineering.outputs.parameters.test-data-path}}"
+          - name: mlflow-tracking-uri
+            value: "{{workflow.parameters.mlflow-tracking-uri}}"
+      - name: register-model
+        template: register-model-step
+        dependencies: [evaluate-model]
+        when: "{{tasks.evaluate-model.outputs.parameters.model-approved}} == true"
+        arguments:
+          parameters:
+          - name: model-uri
+            value: "{{tasks.train-model.outputs.parameters.model-uri}}"
+          - name: model-name
+            value: "{{workflow.parameters.model-name}}"
+          - name: mlflow-tracking-uri
+            value: "{{workflow.parameters.mlflow-tracking-uri}}"
+  
+  - name: feature-engineering-step
+    inputs:
+      parameters:
+      - name: data-path
+    outputs:
+      parameters:
+      - name: features-path
+        valueFrom:
+          path: /tmp/features-path.txt
+      - name: test-data-path
+        valueFrom:
+          path: /tmp/test-data-path.txt
+    container:
+      image: mlops/feature-engineer:latest
+      command: [python]
+      args: ["/app/feature_engineering.py", "--input", "{{inputs.parameters.data-path}}"]
+      env:
+      - name: AWS_DEFAULT_REGION
+        value: "us-west-2"
+      resources:
+        requests:
+          memory: "2Gi"
+          cpu: "1000m"
+        limits:
+          memory: "4Gi"
+          cpu: "2000m"
+  
+  - name: train-model-step
+    inputs:
+      parameters:
+      - name: features-path
+      - name: model-name
+      - name: experiment-name
+      - name: mlflow-tracking-uri
+    outputs:
+      parameters:
+      - name: model-uri
+        valueFrom:
+          path: /tmp/model-uri.txt
+      - name: run-id
+        valueFrom:
+          path: /tmp/run-id.txt
+    container:
+      image: mlops/model-trainer:latest
+      command: [python]
+      args: [
+        "/app/train_model.py",
+        "--features", "{{inputs.parameters.features-path}}",
+        "--model-name", "{{inputs.parameters.model-name}}",
+        "--experiment-name", "{{inputs.parameters.experiment-name}}"
+      ]
+      env:
+      - name: MLFLOW_TRACKING_URI
+        value: "{{inputs.parameters.mlflow-tracking-uri}}"
+      - name: AWS_DEFAULT_REGION
+        value: "us-west-2"
+      resources:
+        requests:
+          memory: "4Gi"
+          cpu: "2000m"
+        limits:
+          memory: "8Gi"
+          cpu: "4000m"
+  
+  - name: evaluate-model-step
+    inputs:
+      parameters:
+      - name: model-uri
+      - name: test-data-path
+      - name: mlflow-tracking-uri
+    outputs:
+      parameters:
+      - name: model-approved
+        valueFrom:
+          path: /tmp/model-approved.txt
+      - name: evaluation-metrics
+        valueFrom:
+          path: /tmp/evaluation-metrics.json
+    container:
+      image: mlops/model-evaluator:latest
+      command: [python]
+      args: [
+        "/app/evaluate_model.py",
+        "--model-uri", "{{inputs.parameters.model-uri}}",
+        "--test-data", "{{inputs.parameters.test-data-path}}"
+      ]
+      env:
+      - name: MLFLOW_TRACKING_URI
+        value: "{{inputs.parameters.mlflow-tracking-uri}}"
+      - name: AWS_DEFAULT_REGION
+        value: "us-west-2"
+      resources:
+        requests:
+          memory: "2Gi"
+          cpu: "1000m"
+        limits:
+          memory: "4Gi"
+          cpu: "2000m"
+  
+  - name: register-model-step
+    inputs:
+      parameters:
+      - name: model-uri
+      - name: model-name
+      - name: mlflow-tracking-uri
+    outputs:
+      parameters:
+      - name: model-version
+        valueFrom:
+          path: /tmp/model-version.txt
+    container:
+      image: mlops/model-registry:latest
+      command: [python]
+      args: [
+        "/app/register_model.py",
+        "--model-uri", "{{inputs.parameters.model-uri}}",
+        "--model-name", "{{inputs.parameters.model-name}}"
+      ]
+      env:
+      - name: MLFLOW_TRACKING_URI
+        value: "{{inputs.parameters.mlflow-tracking-uri}}"
+      - name: AWS_DEFAULT_REGION
+        value: "us-west-2"
+      resources:
+        requests:
+          memory: "512Mi"
+          cpu: "250m"
+        limits:
+          memory: "1Gi"
+          cpu: "500m"

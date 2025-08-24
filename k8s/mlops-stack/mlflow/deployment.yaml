@@ -13,10 +13,18 @@ kind: ConfigMap
 metadata:
   name: mlflow-config
   namespace: mlflow
+  labels:
+    app.kubernetes.io/name: mlflow
+    app.kubernetes.io/component: config
 data:
-  MLFLOW_S3_ENDPOINT_URL: ""
+  MLFLOW_S3_ENDPOINT_URL: "https://s3.us-west-2.amazonaws.com"
   MLFLOW_TRACKING_URI: "postgresql://mlflow:password@postgres:5432/mlflow"
   AWS_DEFAULT_REGION: "us-west-2"
+  MLFLOW_ARTIFACT_ROOT: "s3://mlops-model-artifacts/mlflow-artifacts"
+  MLFLOW_SERVER_HOST: "0.0.0.0"
+  MLFLOW_SERVER_PORT: "5000"
+  MLFLOW_SERVER_WORKERS: "4"
+  MLFLOW_BACKEND_STORE_URI: "postgresql://mlflow:password@postgres:5432/mlflow"
 
 ---
 apiVersion: v1
@@ -24,11 +32,34 @@ kind: Secret
 metadata:
   name: mlflow-secrets
   namespace: mlflow
+  labels:
+    app.kubernetes.io/name: mlflow
+    app.kubernetes.io/component: secrets
 type: Opaque
 stringData:
-  postgres-password: "your-secure-password"
+  postgres-password: "mlflow-secure-password-change-me"
+  postgres-user: "mlflow"
+  postgres-db: "mlflow"
+  # AWS credentials - use IRSA in production instead
   aws-access-key-id: ""
   aws-secret-access-key: ""
+---
+# Additional secret for MLflow authentication
+apiVersion: v1
+kind: Secret
+metadata:
+  name: mlflow-auth-secrets
+  namespace: mlflow
+  labels:
+    app.kubernetes.io/name: mlflow
+    app.kubernetes.io/component: auth
+type: Opaque
+stringData:
+  # Basic auth credentials for MLflow UI (optional)
+  auth-username: "mlflow-admin"
+  auth-password: "change-me-secure-password"
+  # JWT secret for token-based auth
+  jwt-secret: "change-me-jwt-secret-key"
 
 ---
 apiVersion: apps/v1
@@ -38,6 +69,8 @@ metadata:
   namespace: mlflow
   labels:
     app: postgres
+    app.kubernetes.io/name: mlflow
+    app.kubernetes.io/component: database
 spec:
   replicas: 1
   selector:
@@ -47,32 +80,73 @@ spec:
     metadata:
       labels:
         app: postgres
+        app.kubernetes.io/name: mlflow
+        app.kubernetes.io/component: database
     spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 999
+        fsGroup: 999
       containers:
       - name: postgres
-        image: postgres:15
+        image: postgres:15-alpine
         ports:
         - containerPort: 5432
+          name: postgres
         env:
         - name: POSTGRES_DB
-          value: mlflow
+          valueFrom:
+            secretKeyRef:
+              name: mlflow-secrets
+              key: postgres-db
         - name: POSTGRES_USER
-          value: mlflow
+          valueFrom:
+            secretKeyRef:
+              name: mlflow-secrets
+              key: postgres-user
         - name: POSTGRES_PASSWORD
           valueFrom:
             secretKeyRef:
               name: mlflow-secrets
               key: postgres-password
+        - name: PGDATA
+          value: /var/lib/postgresql/data/pgdata
         volumeMounts:
         - name: postgres-storage
           mountPath: /var/lib/postgresql/data
         resources:
           requests:
-            memory: "256Mi"
+            memory: "512Mi"
             cpu: "250m"
           limits:
-            memory: "512Mi"
+            memory: "1Gi"
             cpu: "500m"
+        livenessProbe:
+          exec:
+            command:
+            - pg_isready
+            - -U
+            - mlflow
+            - -d
+            - mlflow
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          exec:
+            command:
+            - pg_isready
+            - -U
+            - mlflow
+            - -d
+            - mlflow
+          initialDelaySeconds: 5
+          periodSeconds: 5
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          readOnlyRootFilesystem: false
       volumes:
       - name: postgres-storage
         persistentVolumeClaim:
@@ -84,12 +158,15 @@ kind: PersistentVolumeClaim
 metadata:
   name: postgres-pvc
   namespace: mlflow
+  labels:
+    app.kubernetes.io/name: mlflow
+    app.kubernetes.io/component: database-storage
 spec:
   accessModes:
     - ReadWriteOnce
   resources:
     requests:
-      storage: 10Gi
+      storage: 20Gi
   storageClassName: gp3
 
 ---
@@ -98,12 +175,18 @@ kind: Service
 metadata:
   name: postgres
   namespace: mlflow
+  labels:
+    app.kubernetes.io/name: mlflow
+    app.kubernetes.io/component: database
 spec:
   selector:
     app: postgres
   ports:
-  - port: 5432
+  - name: postgres
+    port: 5432
     targetPort: 5432
+    protocol: TCP
+  type: ClusterIP
 
 ---
 apiVersion: apps/v1
@@ -113,6 +196,8 @@ metadata:
   namespace: mlflow
   labels:
     app: mlflow-server
+    app.kubernetes.io/name: mlflow
+    app.kubernetes.io/component: server
 spec:
   replicas: 2
   selector:
@@ -122,8 +207,31 @@ spec:
     metadata:
       labels:
         app: mlflow-server
+        app.kubernetes.io/name: mlflow
+        app.kubernetes.io/component: server
     spec:
       serviceAccountName: mlflow-sa
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        fsGroup: 1000
+      initContainers:
+      - name: wait-for-postgres
+        image: postgres:15-alpine
+        command:
+        - /bin/sh
+        - -c
+        - |
+          until pg_isready -h postgres -p 5432 -U mlflow; do
+            echo "Waiting for PostgreSQL to be ready..."
+            sleep 2
+          done
+        env:
+        - name: PGPASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: mlflow-secrets
+              key: postgres-password
       containers:
       - name: mlflow-server
         image: python:3.11-slim
@@ -131,47 +239,106 @@ spec:
         - /bin/bash
         - -c
         - |
-          pip install mlflow[extras]==2.5.0 psycopg2-binary boto3
-          mlflow server \
-            --backend-store-uri postgresql://mlflow:${POSTGRES_PASSWORD}@postgres:5432/mlflow \
-            --default-artifact-root s3://${S3_BUCKET}/mlflow-artifacts \
-            --host 0.0.0.0 \
-            --port 5000 \
-            --workers 4
+          set -e
+          # Install dependencies
+          pip install --no-cache-dir \
+            mlflow[extras]==2.8.1 \
+            psycopg2-binary \
+            boto3 \
+            cryptography
+          
+          # Create non-root user
+          useradd -m -u 1000 mlflow || true
+          
+          # Start MLflow server
+          exec mlflow server \
+            --backend-store-uri "${MLFLOW_BACKEND_STORE_URI}" \
+            --default-artifact-root "${MLFLOW_ARTIFACT_ROOT}" \
+            --host "${MLFLOW_SERVER_HOST}" \
+            --port "${MLFLOW_SERVER_PORT}" \
+            --workers "${MLFLOW_SERVER_WORKERS}" \
+            --gunicorn-opts "--timeout 120 --keep-alive 2 --max-requests 1000"
         ports:
-        - containerPort: 5000
+        - name: http
+          containerPort: 5000
+          protocol: TCP
         env:
+        - name: MLFLOW_BACKEND_STORE_URI
+          value: "postgresql://$(POSTGRES_USER):$(POSTGRES_PASSWORD)@postgres:5432/$(POSTGRES_DB)"
+        - name: POSTGRES_USER
+          valueFrom:
+            secretKeyRef:
+              name: mlflow-secrets
+              key: postgres-user
         - name: POSTGRES_PASSWORD
           valueFrom:
             secretKeyRef:
               name: mlflow-secrets
               key: postgres-password
-        - name: S3_BUCKET
-          value: "mlops-dev-model-artifacts"  # From Terraform output
+        - name: POSTGRES_DB
+          valueFrom:
+            secretKeyRef:
+              name: mlflow-secrets
+              key: postgres-db
+        - name: MLFLOW_ARTIFACT_ROOT
+          valueFrom:
+            configMapKeyRef:
+              name: mlflow-config
+              key: MLFLOW_ARTIFACT_ROOT
+        - name: MLFLOW_SERVER_HOST
+          valueFrom:
+            configMapKeyRef:
+              name: mlflow-config
+              key: MLFLOW_SERVER_HOST
+        - name: MLFLOW_SERVER_PORT
+          valueFrom:
+            configMapKeyRef:
+              name: mlflow-config
+              key: MLFLOW_SERVER_PORT
+        - name: MLFLOW_SERVER_WORKERS
+          valueFrom:
+            configMapKeyRef:
+              name: mlflow-config
+              key: MLFLOW_SERVER_WORKERS
         - name: AWS_DEFAULT_REGION
           valueFrom:
             configMapKeyRef:
               name: mlflow-config
               key: AWS_DEFAULT_REGION
+        - name: MLFLOW_S3_ENDPOINT_URL
+          valueFrom:
+            configMapKeyRef:
+              name: mlflow-config
+              key: MLFLOW_S3_ENDPOINT_URL
         resources:
           requests:
-            memory: "512Mi"
+            memory: "1Gi"
             cpu: "500m"
           limits:
-            memory: "1Gi"
+            memory: "2Gi"
             cpu: "1000m"
         livenessProbe:
           httpGet:
             path: /health
-            port: 5000
-          initialDelaySeconds: 30
-          periodSeconds: 10
+            port: http
+          initialDelaySeconds: 60
+          periodSeconds: 30
+          timeoutSeconds: 10
+          failureThreshold: 3
         readinessProbe:
           httpGet:
             path: /health
-            port: 5000
-          initialDelaySeconds: 5
-          periodSeconds: 5
+            port: http
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          readOnlyRootFilesystem: false
 
 ---
 apiVersion: v1
@@ -181,12 +348,20 @@ metadata:
   namespace: mlflow
   labels:
     app: mlflow-server
+    app.kubernetes.io/name: mlflow
+    app.kubernetes.io/component: server
+  annotations:
+    prometheus.io/scrape: "true"
+    prometheus.io/port: "5000"
+    prometheus.io/path: "/metrics"
 spec:
   selector:
     app: mlflow-server
   ports:
-  - port: 5000
-    targetPort: 5000
+  - name: http
+    port: 5000
+    targetPort: http
+    protocol: TCP
   type: ClusterIP
 
 ---
@@ -220,8 +395,11 @@ kind: ServiceAccount
 metadata:
   name: mlflow-sa
   namespace: mlflow
+  labels:
+    app.kubernetes.io/name: mlflow
+    app.kubernetes.io/component: service-account
   annotations:
-    eks.amazonaws.com/role-arn: arn:aws:iam::ACCOUNT_ID:role/mlops-dev-mlflow-role
+    eks.amazonaws.com/role-arn: arn:aws:iam::ACCOUNT_ID:role/mlops-mlflow-s3-role
 
 ---
 apiVersion: rbac.authorization.k8s.io/v1
@@ -229,9 +407,18 @@ kind: Role
 metadata:
   namespace: mlflow
   name: mlflow-role
+  labels:
+    app.kubernetes.io/name: mlflow
+    app.kubernetes.io/component: rbac
 rules:
 - apiGroups: [""]
   resources: ["pods", "services", "configmaps", "secrets"]
+  verbs: ["get", "list", "watch"]
+- apiGroups: [""]
+  resources: ["events"]
+  verbs: ["create", "patch"]
+- apiGroups: ["apps"]
+  resources: ["deployments", "replicasets"]
   verbs: ["get", "list", "watch"]
 
 ---
@@ -240,6 +427,9 @@ kind: RoleBinding
 metadata:
   name: mlflow-rolebinding
   namespace: mlflow
+  labels:
+    app.kubernetes.io/name: mlflow
+    app.kubernetes.io/component: rbac
 subjects:
 - kind: ServiceAccount
   name: mlflow-sa

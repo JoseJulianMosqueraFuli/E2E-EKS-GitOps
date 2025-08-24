@@ -1,0 +1,42 @@
+apiVersion: serving.kserve.io/v1alpha1
+kind: ClusterServingRuntime
+metadata:
+  name: kserve-torchserve
+  labels:
+    app.kubernetes.io/name: kserve
+    app.kubernetes.io/component: serving-runtime
+spec:
+  supportedModelFormats:
+  - name: pytorch
+    version: "1"
+    autoSelect: true
+  containers:
+  - name: kserve-container
+    image: kserve/torchserve:0.7.0
+    env:
+    - name: STORAGE_URI
+      value: "{{.StorageUri}}"
+    - name: TS_SERVICE_ENVELOPE
+      value: "{{.ServiceEnvelope}}"
+    resources:
+      requests:
+        cpu: 100m
+        memory: 256Mi
+      limits:
+        cpu: 2000m
+        memory: 4Gi
+    readinessProbe:
+      httpGet:
+        path: /ping
+        port: 8080
+      initialDelaySeconds: 15
+      periodSeconds: 10
+    livenessProbe:
+      httpGet:
+        path: /ping
+        port: 8080
+      initialDelaySeconds: 30
+      periodSeconds: 30
+  protocolVersions:
+  - v1
+  - v2

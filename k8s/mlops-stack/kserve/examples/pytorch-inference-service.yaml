@@ -1,0 +1,42 @@
+apiVersion: serving.kserve.io/v1beta1
+kind: InferenceService
+metadata:
+  name: pytorch-sentiment-model
+  namespace: models
+  labels:
+    app.kubernetes.io/name: kserve
+    app.kubernetes.io/component: inference-service
+  annotations:
+    serving.kserve.io/deploymentMode: "Serverless"
+    autoscaling.knative.dev/minScale: "0"
+    autoscaling.knative.dev/maxScale: "5"
+    autoscaling.knative.dev/target: "5"
+spec:
+  predictor:
+    serviceAccountName: models-sa
+    pytorch:
+      storageUri: s3://mlops-model-artifacts/pytorch-models/sentiment-model/
+      resources:
+        requests:
+          cpu: 200m
+          memory: 512Mi
+        limits:
+          cpu: 1000m
+          memory: 2Gi
+      env:
+      - name: TS_SERVICE_ENVELOPE
+        value: "kserve"
+      - name: TS_DEFAULT_WORKERS_PER_MODEL
+        value: "1"
+    # Canary deployment for A/B testing
+    canary:
+      trafficPercent: 20
+      pytorch:
+        storageUri: s3://mlops-model-artifacts/pytorch-models/sentiment-model-v2/
+        resources:
+          requests:
+            cpu: 200m
+            memory: 512Mi
+          limits:
+            cpu: 1000m
+            memory: 2Gi

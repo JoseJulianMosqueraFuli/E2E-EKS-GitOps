@@ -1,0 +1,124 @@
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: inferenceservices.serving.kserve.io
+  labels:
+    app.kubernetes.io/name: kserve
+    app.kubernetes.io/component: crd
+spec:
+  group: serving.kserve.io
+  versions:
+  - name: v1beta1
+    served: true
+    storage: true
+    schema:
+      openAPIV3Schema:
+        type: object
+        properties:
+          spec:
+            type: object
+            properties:
+              predictor:
+                type: object
+              transformer:
+                type: object
+              explainer:
+                type: object
+          status:
+            type: object
+    subresources:
+      status: {}
+  scope: Namespaced
+  names:
+    plural: inferenceservices
+    singular: inferenceservice
+    kind: InferenceService
+    shortNames:
+    - isvc
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: servingruntimes.serving.kserve.io
+  labels:
+    app.kubernetes.io/name: kserve
+    app.kubernetes.io/component: crd
+spec:
+  group: serving.kserve.io
+  versions:
+  - name: v1alpha1
+    served: true
+    storage: true
+    schema:
+      openAPIV3Schema:
+        type: object
+        properties:
+          spec:
+            type: object
+          status:
+            type: object
+    subresources:
+      status: {}
+  scope: Namespaced
+  names:
+    plural: servingruntimes
+    singular: servingruntime
+    kind: ServingRuntime
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: clusterservingruntimes.serving.kserve.io
+  labels:
+    app.kubernetes.io/name: kserve
+    app.kubernetes.io/component: crd
+spec:
+  group: serving.kserve.io
+  versions:
+  - name: v1alpha1
+    served: true
+    storage: true
+    schema:
+      openAPIV3Schema:
+        type: object
+        properties:
+          spec:
+            type: object
+          status:
+            type: object
+    subresources:
+      status: {}
+  scope: Cluster
+  names:
+    plural: clusterservingruntimes
+    singular: clusterservingruntime
+    kind: ClusterServingRuntime
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: trainedmodels.serving.kserve.io
+  labels:
+    app.kubernetes.io/name: kserve
+    app.kubernetes.io/component: crd
+spec:
+  group: serving.kserve.io
+  versions:
+  - name: v1alpha1
+    served: true
+    storage: true
+    schema:
+      openAPIV3Schema:
+        type: object
+        properties:
+          spec:
+            type: object
+          status:
+            type: object
+    subresources:
+      status: {}
+  scope: Namespaced
+  names:
+    plural: trainedmodels
+    singular: trainedmodel
+    kind: TrainedModel

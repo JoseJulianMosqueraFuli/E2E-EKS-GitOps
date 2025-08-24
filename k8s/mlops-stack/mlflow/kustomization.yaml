@@ -1,0 +1,49 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+metadata:
+  name: mlflow
+  namespace: mlflow
+
+resources:
+  - deployment.yaml
+  - network-policy.yaml
+  - hpa.yaml
+  - pod-disruption-budget.yaml
+  - monitoring.yaml
+  - backup-cronjob.yaml
+
+commonLabels:
+  app.kubernetes.io/name: mlflow
+  app.kubernetes.io/instance: mlops-mlflow
+  app.kubernetes.io/version: "2.8.1"
+  app.kubernetes.io/component: ml-platform
+  app.kubernetes.io/part-of: mlops-platform
+
+images:
+  - name: postgres
+    newTag: "15-alpine"
+  - name: python
+    newTag: "3.11-slim"
+
+configMapGenerator:
+  - name: mlflow-environment-config
+    literals:
+      - ENVIRONMENT=production
+      - LOG_LEVEL=INFO
+      - MLFLOW_VERSION=2.8.1
+
+secretGenerator:
+  - name: mlflow-generated-secrets
+    literals:
+      - database-url=postgresql://mlflow:password@postgres:5432/mlflow
+
+patchesStrategicMerge:
+  # Add environment-specific patches here
+
+patchesJson6902:
+  # JSON patches for specific modifications
+
+replicas:
+  - name: mlflow-server
+    count: 2

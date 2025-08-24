@@ -1,0 +1,114 @@
+apiVersion: argoproj.io/v1alpha1
+kind: WorkflowTemplate
+metadata:
+  name: ml-pipeline-template
+  namespace: argo-workflows
+  labels:
+    app.kubernetes.io/name: argo-workflows
+    app.kubernetes.io/component: workflow-template
+spec:
+  entrypoint: ml-pipeline
+  serviceAccountName: argo-workflow
+  arguments:
+    parameters:
+    - name: data-source
+      value: "s3://mlops-raw-data/"
+    - name: model-name
+      value: "default-model"
+    - name: experiment-name
+      value: "default-experiment"
+    - name: deployment-namespace
+      value: "models"
+    - name: mlflow-tracking-uri
+      value: "http://mlflow-server.mlflow:5000"
+    - name: ecr-repository
+      value: "123456789012.dkr.ecr.us-west-2.amazonaws.com/mlops"
+  templates:
+  - name: ml-pipeline
+    dag:
+      tasks:
+      - name: data-validation
+        templateRef:
+          name: data-validation-template
+          template: data-validation
+        arguments:
+          parameters:
+          - name: data-source
+            value: "{{workflow.parameters.data-source}}"
+          - name: validation-suite
+            value: "production"
+          - name: output-path
+            value: "s3://mlops-curated-data/"
+      
+      - name: model-training
+        templateRef:
+          name: model-training-template
+          template: model-training
+        dependencies: [data-validation]
+        arguments:
+          parameters:
+          - name: data-path
+            value: "s3://mlops-curated-data/"
+          - name: model-name
+            value: "{{workflow.parameters.model-name}}"
+          - name: experiment-name
+            value: "{{workflow.parameters.experiment-name}}"
+          - name: mlflow-tracking-uri
+            value: "{{workflow.parameters.mlflow-tracking-uri}}"
+      
+      - name: model-deployment
+        templateRef:
+          name: model-deployment-template
+          template: model-deployment
+        dependencies: [model-training]
+        when: "{{tasks.model-training.outputs.parameters.model-approved}} == true"
+        arguments:
+          parameters:
+          - name: model-name
+            value: "{{workflow.parameters.model-name}}"
+          - name: model-version
+            value: "{{tasks.model-training.outputs.parameters.model-version}}"
+          - name: deployment-namespace
+            value: "{{workflow.parameters.deployment-namespace}}"
+          - name: mlflow-tracking-uri
+            value: "{{workflow.parameters.mlflow-tracking-uri}}"
+          - name: ecr-repository
+            value: "{{workflow.parameters.ecr-repository}}"
+      
+      - name: send-notification
+        template: send-notification-step
+        dependencies: [model-deployment]
+        arguments:
+          parameters:
+          - name: model-name
+            value: "{{workflow.parameters.model-name}}"
+          - name: deployment-status
+            value: "{{tasks.model-deployment.status}}"
+          - name: model-version
+            value: "{{tasks.model-training.outputs.parameters.model-version}}"
+  
+  - name: send-notification-step
+    inputs:
+      parameters:
+      - name: model-name
+      - name: deployment-status
+      - name: model-version
+    container:
+      image: mlops/notifier:latest
+      command: [python]
+      args: [
+        "/app/send_notification.py",
+        "--model-name", "{{inputs.parameters.model-name}}",
+        "--status", "{{inputs.parameters.deployment-status}}",
+        "--version", "{{inputs.parameters.model-version}}"
+      ]
+      env:
+      - name: AWS_DEFAULT_REGION
+        value: "us-west-2"
+      resources:
+        requests:
+          memory: "128Mi"
+          cpu: "100m"
+        limits:
+          memory: "256Mi"
+          cpu: "200m"

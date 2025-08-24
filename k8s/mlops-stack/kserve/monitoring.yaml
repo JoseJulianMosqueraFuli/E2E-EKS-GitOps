@@ -1,0 +1,103 @@
+apiVersion: v1
+kind: ServiceMonitor
+metadata:
+  name: kserve-controller-metrics
+  namespace: kserve-system
+  labels:
+    app.kubernetes.io/name: kserve
+    app.kubernetes.io/component: monitoring
+spec:
+  selector:
+    matchLabels:
+      control-plane: kserve-controller-manager
+  endpoints:
+  - port: metrics
+    path: /metrics
+    interval: 30s
+    scrapeTimeout: 10s
+---
+# ServiceMonitor for inference services
+apiVersion: v1
+kind: ServiceMonitor
+metadata:
+  name: kserve-inference-metrics
+  namespace: models
+  labels:
+    app.kubernetes.io/name: kserve
+    app.kubernetes.io/component: inference-monitoring
+spec:
+  selector:
+    matchLabels:
+      serving.kserve.io/inferenceservice: "true"
+  endpoints:
+  - port: http
+    path: /metrics
+    interval: 15s
+    scrapeTimeout: 10s
+---
+# PrometheusRule for KServe alerts
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: kserve-alerts
+  namespace: kserve-system
+  labels:
+    app.kubernetes.io/name: kserve
+    app.kubernetes.io/component: alerting
+spec:
+  groups:
+  - name: kserve.rules
+    rules:
+    - alert: KServeControllerDown
+      expr: up{job="kserve-controller-metrics"} == 0
+      for: 5m
+      labels:
+        severity: critical
+      annotations:
+        summary: "KServe controller is down"
+        description: "KServe controller has been down for more than 5 minutes"
+    
+    - alert: InferenceServiceDown
+      expr: up{job="kserve-inference-metrics"} == 0
+      for: 2m
+      labels:
+        severity: warning
+      annotations:
+        summary: "Inference service is down"
+        description: "Inference service {{ $labels.inference_service }} has been down for more than 2 minutes"
+    
+    - alert: InferenceServiceHighLatency
+      expr: histogram_quantile(0.95, rate(kserve_request_duration_seconds_bucket[5m])) > 1
+      for: 10m
+      labels:
+        severity: warning
+      annotations:
+        summary: "Inference service high latency"
+        description: "Inference service {{ $labels.inference_service }} 95th percentile latency is above 1 second"
+    
+    - alert: InferenceServiceHighErrorRate
+      expr: rate(kserve_request_total{status=~"5.."}[5m]) / rate(kserve_request_total[5m]) > 0.05
+      for: 5m
+      labels:
+        severity: warning
+      annotations:
+        summary: "Inference service high error rate"
+        description: "Inference service {{ $labels.inference_service }} error rate is above 5%"
+    
+    - alert: ModelLoadingFailure
+      expr: increase(kserve_model_loading_failures_total[5m]) > 0
+      for: 1m
+      labels:
+        severity: critical
+      annotations:
+        summary: "Model loading failure"
+        description: "Model loading failed for {{ $labels.model_name }} in {{ $labels.namespace }}"
+    
+    - alert: CanaryDeploymentStuck
+      expr: kserve_canary_traffic_percent{traffic_percent="10"} and on(inference_service) (time() - kserve_canary_deployment_start_time) > 3600
+      for: 5m
+      labels:
+        severity: warning
+      annotations:
+        summary: "Canary deployment stuck"
+        description: "Canary deployment for {{ $labels.inference_service }} has been at 10% traffic for over 1 hour"

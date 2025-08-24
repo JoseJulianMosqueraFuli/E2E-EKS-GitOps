@@ -1,0 +1,161 @@
+apiVersion: argoproj.io/v1alpha1
+kind: WorkflowTemplate
+metadata:
+  name: model-deployment-template
+  namespace: argo-workflows
+  labels:
+    app.kubernetes.io/name: argo-workflows
+    app.kubernetes.io/component: workflow-template
+spec:
+  entrypoint: model-deployment
+  serviceAccountName: argo-workflow
+  arguments:
+    parameters:
+    - name: model-name
+      value: "default-model"
+    - name: model-version
+      value: "1"
+    - name: deployment-namespace
+      value: "models"
+    - name: mlflow-tracking-uri
+      value: "http://mlflow-server.mlflow:5000"
+    - name: ecr-repository
+      value: "123456789012.dkr.ecr.us-west-2.amazonaws.com/mlops"
+  templates:
+  - name: model-deployment
+    dag:
+      tasks:
+      - name: build-inference-image
+        template: build-inference-image-step
+        arguments:
+          parameters:
+          - name: model-name
+            value: "{{workflow.parameters.model-name}}"
+          - name: model-version
+            value: "{{workflow.parameters.model-version}}"
+          - name: mlflow-tracking-uri
+            value: "{{workflow.parameters.mlflow-tracking-uri}}"
+          - name: ecr-repository
+            value: "{{workflow.parameters.ecr-repository}}"
+      - name: create-kserve-deployment
+        template: create-kserve-deployment-step
+        dependencies: [build-inference-image]
+        arguments:
+          parameters:
+          - name: model-name
+            value: "{{workflow.parameters.model-name}}"
+          - name: model-version
+            value: "{{workflow.parameters.model-version}}"
+          - name: deployment-namespace
+            value: "{{workflow.parameters.deployment-namespace}}"
+          - name: inference-image
+            value: "{{tasks.build-inference-image.outputs.parameters.inference-image}}"
+      - name: validate-deployment
+        template: validate-deployment-step
+        dependencies: [create-kserve-deployment]
+        arguments:
+          parameters:
+          - name: model-name
+            value: "{{workflow.parameters.model-name}}"
+          - name: deployment-namespace
+            value: "{{workflow.parameters.deployment-namespace}}"
+  
+  - name: build-inference-image-step
+    inputs:
+      parameters:
+      - name: model-name
+      - name: model-version
+      - name: mlflow-tracking-uri
+      - name: ecr-repository
+    outputs:
+      parameters:
+      - name: inference-image
+        valueFrom:
+          path: /tmp/inference-image.txt
+    container:
+      image: mlops/image-builder:latest
+      command: [python]
+      args: [
+        "/app/build_inference_image.py",
+        "--model-name", "{{inputs.parameters.model-name}}",
+        "--model-version", "{{inputs.parameters.model-version}}",
+        "--ecr-repository", "{{inputs.parameters.ecr-repository}}"
+      ]
+      env:
+      - name: MLFLOW_TRACKING_URI
+        value: "{{inputs.parameters.mlflow-tracking-uri}}"
+      - name: AWS_DEFAULT_REGION
+        value: "us-west-2"
+      - name: DOCKER_HOST
+        value: "tcp://docker-dind:2376"
+      resources:
+        requests:
+          memory: "2Gi"
+          cpu: "1000m"
+        limits:
+          memory: "4Gi"
+          cpu: "2000m"
+      volumeMounts:
+      - name: docker-sock
+        mountPath: /var/run/docker.sock
+    volumes:
+    - name: docker-sock
+      hostPath:
+        path: /var/run/docker.sock
+  
+  - name: create-kserve-deployment-step
+    inputs:
+      parameters:
+      - name: model-name
+      - name: model-version
+      - name: deployment-namespace
+      - name: inference-image
+    outputs:
+      parameters:
+      - name: inference-service-name
+        valueFrom:
+          path: /tmp/inference-service-name.txt
+    container:
+      image: mlops/kserve-deployer:latest
+      command: [python]
+      args: [
+        "/app/deploy_kserve.py",
+        "--model-name", "{{inputs.parameters.model-name}}",
+        "--model-version", "{{inputs.parameters.model-version}}",
+        "--namespace", "{{inputs.parameters.deployment-namespace}}",
+        "--inference-image", "{{inputs.parameters.inference-image}}"
+      ]
+      env:
+      - name: AWS_DEFAULT_REGION
+        value: "us-west-2"
+      resources:
+        requests:
+          memory: "512Mi"
+          cpu: "250m"
+        limits:
+          memory: "1Gi"
+          cpu: "500m"
+  
+  - name: validate-deployment-step
+    inputs:
+      parameters:
+      - name: model-name
+      - name: deployment-namespace
+    container:
+      image: mlops/deployment-validator:latest
+      command: [python]
+      args: [
+        "/app/validate_deployment.py",
+        "--model-name", "{{inputs.parameters.model-name}}",
+        "--namespace", "{{inputs.parameters.deployment-namespace}}"
+      ]
+      env:
+      - name: AWS_DEFAULT_REGION
+        value: "us-west-2"
+      resources:
+        requests:
+          memory: "256Mi"
+          cpu: "100m"
+        limits:
+          memory: "512Mi"
+          cpu: "250m"

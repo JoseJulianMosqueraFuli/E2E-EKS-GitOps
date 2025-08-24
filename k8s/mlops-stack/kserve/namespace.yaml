@@ -1,0 +1,19 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: kserve-system
+  labels:
+    name: kserve-system
+    app.kubernetes.io/name: kserve
+    app.kubernetes.io/component: system
+    control-plane: kserve-controller-manager
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: models
+  labels:
+    name: models
+    app.kubernetes.io/name: kserve
+    app.kubernetes.io/component: model-serving
+    serving.kserve.io/inferenceservice: enabled

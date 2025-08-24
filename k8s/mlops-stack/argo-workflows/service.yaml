@@ -1,0 +1,37 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: argo-server
+  namespace: argo-workflows
+  labels:
+    app.kubernetes.io/name: argo-workflows
+    app.kubernetes.io/component: argo-server
+spec:
+  type: ClusterIP
+  ports:
+  - name: web
+    port: 2746
+    protocol: TCP
+    targetPort: 2746
+  selector:
+    app.kubernetes.io/name: argo-workflows
+    app.kubernetes.io/component: argo-server
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: workflow-controller-metrics
+  namespace: argo-workflows
+  labels:
+    app.kubernetes.io/name: argo-workflows
+    app.kubernetes.io/component: workflow-controller
+spec:
+  type: ClusterIP
+  ports:
+  - name: metrics
+    port: 9090
+    protocol: TCP
+    targetPort: 9090
+  selector:
+    app.kubernetes.io/name: argo-workflows
+    app.kubernetes.io/component: workflow-controller

@@ -1,0 +1,55 @@
+apiVersion: argoproj.io/v1alpha1
+kind: CronWorkflow
+metadata:
+  name: scheduled-ml-pipeline
+  namespace: argo-workflows
+  labels:
+    app.kubernetes.io/name: argo-workflows
+    app.kubernetes.io/component: cron-workflow
+spec:
+  schedule: "0 2 * * *"  # Run daily at 2 AM UTC
+  timezone: "UTC"
+  startingDeadlineSeconds: 0
+  concurrencyPolicy: "Replace"
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 1
+  suspend: false
+  workflowSpec:
+    entrypoint: ml-pipeline
+    serviceAccountName: argo-workflow
+    arguments:
+      parameters:
+      - name: data-source
+        value: "s3://mlops-raw-data/daily/"
+      - name: model-name
+        value: "production-model"
+      - name: experiment-name
+        value: "daily-training"
+      - name: deployment-namespace
+        value: "models"
+      - name: mlflow-tracking-uri
+        value: "http://mlflow-server.mlflow:5000"
+      - name: ecr-repository
+        value: "123456789012.dkr.ecr.us-west-2.amazonaws.com/mlops"
+    workflowTemplateRef:
+      name: ml-pipeline-template
+    
+    # Workflow-level configuration
+    ttlStrategy:
+      secondsAfterCompletion: 86400  # 24 hours
+      secondsAfterSuccess: 86400     # 24 hours
+      secondsAfterFailure: 172800    # 48 hours
+    
+    # Resource cleanup
+    podGC:
+      strategy: OnPodCompletion
+      deleteDelayDuration: 300s  # 5 minutes
+    
+    # Workflow metadata
+    metadata:
+      labels:
+        workflow-type: "scheduled"
+        pipeline-stage: "production"
+        model-name: "production-model"
+      annotations:
+        workflow.argoproj.io/description: "Daily scheduled ML pipeline for production model training and deployment"

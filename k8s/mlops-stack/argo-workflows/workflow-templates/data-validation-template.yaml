@@ -1,0 +1,103 @@
+apiVersion: argoproj.io/v1alpha1
+kind: WorkflowTemplate
+metadata:
+  name: data-validation-template
+  namespace: argo-workflows
+  labels:
+    app.kubernetes.io/name: argo-workflows
+    app.kubernetes.io/component: workflow-template
+spec:
+  entrypoint: data-validation
+  serviceAccountName: argo-workflow
+  arguments:
+    parameters:
+    - name: data-source
+      value: "s3://mlops-raw-data/"
+    - name: validation-suite
+      value: "default"
+    - name: output-path
+      value: "s3://mlops-curated-data/"
+  templates:
+  - name: data-validation
+    dag:
+      tasks:
+      - name: validate-schema
+        template: validate-schema-step
+        arguments:
+          parameters:
+          - name: data-source
+            value: "{{workflow.parameters.data-source}}"
+      - name: validate-quality
+        template: validate-quality-step
+        dependencies: [validate-schema]
+        arguments:
+          parameters:
+          - name: data-source
+            value: "{{workflow.parameters.data-source}}"
+          - name: validation-suite
+            value: "{{workflow.parameters.validation-suite}}"
+      - name: generate-report
+        template: generate-report-step
+        dependencies: [validate-quality]
+        arguments:
+          parameters:
+          - name: output-path
+            value: "{{workflow.parameters.output-path}}"
+  
+  - name: validate-schema-step
+    inputs:
+      parameters:
+      - name: data-source
+    container:
+      image: mlops/data-validator:latest
+      command: [python]
+      args: ["/app/validate_schema.py", "--input", "{{inputs.parameters.data-source}}"]
+      env:
+      - name: AWS_DEFAULT_REGION
+        value: "us-west-2"
+      resources:
+        requests:
+          memory: "512Mi"
+          cpu: "250m"
+        limits:
+          memory: "1Gi"
+          cpu: "500m"
+  
+  - name: validate-quality-step
+    inputs:
+      parameters:
+      - name: data-source
+      - name: validation-suite
+    container:
+      image: mlops/data-validator:latest
+      command: [python]
+      args: ["/app/validate_quality.py", "--input", "{{inputs.parameters.data-source}}", "--suite", "{{inputs.parameters.validation-suite}}"]
+      env:
+      - name: AWS_DEFAULT_REGION
+        value: "us-west-2"
+      resources:
+        requests:
+          memory: "1Gi"
+          cpu: "500m"
+        limits:
+          memory: "2Gi"
+          cpu: "1000m"
+  
+  - name: generate-report-step
+    inputs:
+      parameters:
+      - name: output-path
+    container:
+      image: mlops/data-validator:latest
+      command: [python]
+      args: ["/app/generate_report.py", "--output", "{{inputs.parameters.output-path}}"]
+      env:
+      - name: AWS_DEFAULT_REGION
+        value: "us-west-2"
+      resources:
+        requests:
+          memory: "256Mi"
+          cpu: "100m"
+        limits:
+          memory: "512Mi"
+          cpu: "250m"

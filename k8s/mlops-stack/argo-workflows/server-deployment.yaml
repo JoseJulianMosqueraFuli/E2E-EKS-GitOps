@@ -1,0 +1,67 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: argo-server
+  namespace: argo-workflows
+  labels:
+    app.kubernetes.io/name: argo-workflows
+    app.kubernetes.io/component: argo-server
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: argo-workflows
+      app.kubernetes.io/component: argo-server
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: argo-workflows
+        app.kubernetes.io/component: argo-server
+    spec:
+      serviceAccountName: argo-server
+      containers:
+      - name: argo-server
+        image: quay.io/argoproj/argocli:v3.5.2
+        command:
+        - argo
+        args:
+        - server
+        - --configmap=workflow-controller-configmap
+        - --secure=false
+        - --auth-mode=server
+        ports:
+        - name: web
+          containerPort: 2746
+        env:
+        - name: IN_CLUSTER
+          value: "true"
+        - name: ARGO_NAMESPACE
+          valueFrom:
+            fieldRef:
+              apiVersion: v1
+              fieldPath: metadata.namespace
+        - name: BASE_HREF
+          value: /
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 500m
+            memory: 512Mi
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          readOnlyRootFilesystem: true
+          runAsNonRoot: true
+        readinessProbe:
+          httpGet:
+            path: /
+            port: 2746
+            scheme: HTTP
+          initialDelaySeconds: 10
+          periodSeconds: 20
+      nodeSelector:
+        kubernetes.io/os: linux

@@ -1,0 +1,61 @@
+apiVersion: serving.kserve.io/v1beta1
+kind: InferenceService
+metadata:
+  name: sklearn-iris-model
+  namespace: models
+  labels:
+    app.kubernetes.io/name: kserve
+    app.kubernetes.io/component: inference-service
+  annotations:
+    serving.kserve.io/deploymentMode: "Serverless"
+    autoscaling.knative.dev/minScale: "1"
+    autoscaling.knative.dev/maxScale: "10"
+    autoscaling.knative.dev/target: "10"
+spec:
+  predictor:
+    serviceAccountName: models-sa
+    model:
+      modelFormat:
+        name: sklearn
+      storageUri: s3://mlops-model-artifacts/sklearn-models/iris-model/
+      resources:
+        requests:
+          cpu: 100m
+          memory: 128Mi
+        limits:
+          cpu: 500m
+          memory: 1Gi
+      env:
+      - name: STORAGE_URI
+        value: s3://mlops-model-artifacts/sklearn-models/iris-model/
+    # Canary deployment configuration
+    canary:
+      trafficPercent: 10
+      model:
+        modelFormat:
+          name: sklearn
+        storageUri: s3://mlops-model-artifacts/sklearn-models/iris-model-v2/
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 500m
+            memory: 1Gi
+  # Optional transformer for feature preprocessing
+  transformer:
+    containers:
+    - name: transformer
+      image: mlops/feature-transformer:latest
+      env:
+      - name: PREDICTOR_HOST
+        value: "sklearn-iris-model-predictor"
+      - name: PROTOCOL
+        value: "v1"
+      resources:
+        requests:
+          cpu: 100m
+          memory: 128Mi
+        limits:
+          cpu: 500m
+          memory: 512Mi

@@ -1,0 +1,142 @@
+# Gateway for external traffic to inference services
+apiVersion: networking.istio.io/v1beta1
+kind: Gateway
+metadata:
+  name: kserve-gateway
+  namespace: models
+  labels:
+    app.kubernetes.io/name: kserve
+    app.kubernetes.io/component: istio-gateway
+spec:
+  selector:
+    istio: ingressgateway
+  servers:
+  - port:
+      number: 80
+      name: http
+      protocol: HTTP
+    hosts:
+    - "*.models.example.com"
+  - port:
+      number: 443
+      name: https
+      protocol: HTTPS
+    tls:
+      mode: SIMPLE
+      credentialName: kserve-tls-secret
+    hosts:
+    - "*.models.example.com"
+---
+# Virtual Service for inference service routing
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata:
+  name: kserve-routing
+  namespace: models
+  labels:
+    app.kubernetes.io/name: kserve
+    app.kubernetes.io/component: istio-routing
+spec:
+  hosts:
+  - "*.models.example.com"
+  gateways:
+  - kserve-gateway
+  http:
+  - match:
+    - uri:
+        prefix: "/v1/models/"
+    - uri:
+        prefix: "/v2/models/"
+    route:
+    - destination:
+        host: knative-local-gateway.istio-system.svc.cluster.local
+        port:
+          number: 80
+      headers:
+        request:
+          set:
+            Host: "{{ .Request.Host }}"
+  - match:
+    - uri:
+        prefix: "/metrics"
+    route:
+    - destination:
+        host: knative-local-gateway.istio-system.svc.cluster.local
+        port:
+          number: 80
+      headers:
+        request:
+          set:
+            Host: "{{ .Request.Host }}"
+---
+# Destination rule for load balancing and circuit breaking
+apiVersion: networking.istio.io/v1beta1
+kind: DestinationRule
+metadata:
+  name: kserve-destination-rule
+  namespace: models
+  labels:
+    app.kubernetes.io/name: kserve
+    app.kubernetes.io/component: istio-destination-rule
+spec:
+  host: "*.models.svc.cluster.local"
+  trafficPolicy:
+    loadBalancer:
+      simple: LEAST_CONN
+    connectionPool:
+      tcp:
+        maxConnections: 100
+      http:
+        http1MaxPendingRequests: 50
+        http2MaxRequests: 100
+        maxRequestsPerConnection: 10
+        maxRetries: 3
+        consecutiveGatewayErrors: 5
+        interval: 30s
+        baseEjectionTime: 30s
+        maxEjectionPercent: 50
+    outlierDetection:
+      consecutiveGatewayErrors: 5
+      interval: 30s
+      baseEjectionTime: 30s
+      maxEjectionPercent: 50
+      minHealthPercent: 50
+---
+# Service Entry for external S3 access
+apiVersion: networking.istio.io/v1beta1
+kind: ServiceEntry
+metadata:
+  name: s3-external
+  namespace: models
+  labels:
+    app.kubernetes.io/name: kserve
+    app.kubernetes.io/component: istio-service-entry
+spec:
+  hosts:
+  - s3.us-west-2.amazonaws.com
+  - "*.s3.us-west-2.amazonaws.com"
+  ports:
+  - number: 443
+    name: https
+    protocol: HTTPS
+  location: MESH_EXTERNAL
+  resolution: DNS
+---
+# Service Entry for MLflow access
+apiVersion: networking.istio.io/v1beta1
+kind: ServiceEntry
+metadata:
+  name: mlflow-external
+  namespace: models
+  labels:
+    app.kubernetes.io/name: kserve
+    app.kubernetes.io/component: istio-service-entry
+spec:
+  hosts:
+  - mlflow-server.mlflow.svc.cluster.local
+  ports:
+  - number: 5000
+    name: http
+    protocol: HTTP
+  location: MESH_EXTERNAL
+  resolution: DNS
