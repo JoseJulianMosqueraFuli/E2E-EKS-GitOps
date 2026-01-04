@@ -1,0 +1,368 @@
+# Simple Training Workflow Example
+# Este workflow ejecuta un entrenamiento básico de modelo
+# Uso: kubectl create -f simple-training-workflow.yaml
+apiVersion: argoproj.io/v1alpha1
+kind: Workflow
+metadata:
+  generateName: simple-training-
+  namespace: argo-workflows
+  labels:
+    workflow-type: training
+    environment: dev
+spec:
+  entrypoint: train-model
+  serviceAccountName: argo-workflow
+
+  # Parámetros del workflow
+  arguments:
+    parameters:
+      - name: data-path
+        value: "s3://mlops-dev-raw-data/sample/"
+      - name: model-name
+        value: "sample-classifier"
+      - name: algorithm
+        value: "random_forest"
+      - name: n-estimators
+        value: "100"
+      - name: max-depth
+        value: "10"
+
+  # Configuración de artifacts
+  artifactRepositoryRef:
+    configMap: artifact-repositories
+    key: default-v1
+
+  # TTL para limpieza automática
+  ttlStrategy:
+    secondsAfterCompletion: 3600 # 1 hora
+
+  templates:
+    - name: train-model
+      dag:
+        tasks:
+          - name: load-data
+            template: load-data-step
+            arguments:
+              parameters:
+                - name: data-path
+                  value: "{{workflow.parameters.data-path}}"
+
+          - name: preprocess
+            template: preprocess-step
+            dependencies: [load-data]
+            arguments:
+              artifacts:
+                - name: raw-data
+                  from: "{{tasks.load-data.outputs.artifacts.data}}"
+
+          - name: train
+            template: train-step
+            dependencies: [preprocess]
+            arguments:
+              parameters:
+                - name: model-name
+                  value: "{{workflow.parameters.model-name}}"
+                - name: algorithm
+                  value: "{{workflow.parameters.algorithm}}"
+                - name: n-estimators
+                  value: "{{workflow.parameters.n-estimators}}"
+                - name: max-depth
+                  value: "{{workflow.parameters.max-depth}}"
+              artifacts:
+                - name: train-data
+                  from: "{{tasks.preprocess.outputs.artifacts.train-data}}"
+                - name: test-data
+                  from: "{{tasks.preprocess.outputs.artifacts.test-data}}"
+
+          - name: evaluate
+            template: evaluate-step
+            dependencies: [train]
+            arguments:
+              artifacts:
+                - name: model
+                  from: "{{tasks.train.outputs.artifacts.model}}"
+                - name: test-data
+                  from: "{{tasks.preprocess.outputs.artifacts.test-data}}"
+
+    # Step: Cargar datos
+    - name: load-data-step
+      inputs:
+        parameters:
+          - name: data-path
+      outputs:
+        artifacts:
+          - name: data
+            path: /tmp/data
+            s3:
+              key: "{{workflow.name}}/raw-data"
+      container:
+        image: python:3.9-slim
+        command: [sh, -c]
+        args:
+          - |
+            pip install boto3 pandas pyarrow -q
+            python << 'EOF'
+            import boto3
+            import pandas as pd
+            import os
+
+            data_path = "{{inputs.parameters.data-path}}"
+            print(f"Loading data from: {data_path}")
+
+            # Simular carga de datos (en producción, cargar desde S3)
+            # Para demo, crear datos de ejemplo
+            import numpy as np
+            np.random.seed(42)
+
+            n_samples = 1000
+            data = pd.DataFrame({
+                'feature_1': np.random.normal(0, 1, n_samples),
+                'feature_2': np.random.uniform(0, 100, n_samples),
+                'feature_3': np.random.exponential(2, n_samples),
+                'category': np.random.choice(['A', 'B', 'C'], n_samples),
+                'target': np.random.randint(0, 2, n_samples)
+            })
+
+            os.makedirs('/tmp/data', exist_ok=True)
+            data.to_parquet('/tmp/data/dataset.parquet', index=False)
+            print(f"Data saved: {data.shape}")
+            EOF
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "250m"
+
+    # Step: Preprocesar datos
+    - name: preprocess-step
+      inputs:
+        artifacts:
+          - name: raw-data
+            path: /tmp/raw-data
+      outputs:
+        artifacts:
+          - name: train-data
+            path: /tmp/train-data
+            s3:
+              key: "{{workflow.name}}/train-data"
+          - name: test-data
+            path: /tmp/test-data
+            s3:
+              key: "{{workflow.name}}/test-data"
+      container:
+        image: python:3.9-slim
+        command: [sh, -c]
+        args:
+          - |
+            pip install pandas scikit-learn pyarrow -q
+            python << 'EOF'
+            import pandas as pd
+            from sklearn.model_selection import train_test_split
+            from sklearn.preprocessing import StandardScaler, LabelEncoder
+            import os
+
+            # Cargar datos
+            data = pd.read_parquet('/tmp/raw-data/dataset.parquet')
+            print(f"Loaded data: {data.shape}")
+
+            # Preprocesar
+            le = LabelEncoder()
+            data['category_encoded'] = le.fit_transform(data['category'])
+
+            # Separar features y target
+            X = data[['feature_1', 'feature_2', 'feature_3', 'category_encoded']]
+            y = data['target']
+
+            # Split
+            X_train, X_test, y_train, y_test = train_test_split(
+                X, y, test_size=0.2, random_state=42
+            )
+
+            # Escalar
+            scaler = StandardScaler()
+            X_train_scaled = pd.DataFrame(
+                scaler.fit_transform(X_train), 
+                columns=X_train.columns
+            )
+            X_test_scaled = pd.DataFrame(
+                scaler.transform(X_test), 
+                columns=X_test.columns
+            )
+
+            # Guardar
+            os.makedirs('/tmp/train-data', exist_ok=True)
+            os.makedirs('/tmp/test-data', exist_ok=True)
+
+            X_train_scaled['target'] = y_train.values
+            X_test_scaled['target'] = y_test.values
+
+            X_train_scaled.to_parquet('/tmp/train-data/train.parquet', index=False)
+            X_test_scaled.to_parquet('/tmp/test-data/test.parquet', index=False)
+
+            print(f"Train: {X_train_scaled.shape}, Test: {X_test_scaled.shape}")
+            EOF
+        resources:
+          requests:
+            memory: "1Gi"
+            cpu: "500m"
+
+    # Step: Entrenar modelo
+    - name: train-step
+      inputs:
+        parameters:
+          - name: model-name
+          - name: algorithm
+          - name: n-estimators
+          - name: max-depth
+        artifacts:
+          - name: train-data
+            path: /tmp/train-data
+          - name: test-data
+            path: /tmp/test-data
+      outputs:
+        artifacts:
+          - name: model
+            path: /tmp/model
+            s3:
+              key: "{{workflow.name}}/model"
+        parameters:
+          - name: accuracy
+            valueFrom:
+              path: /tmp/accuracy.txt
+      container:
+        image: python:3.9-slim
+        command: [sh, -c]
+        args:
+          - |
+            pip install pandas scikit-learn joblib pyarrow mlflow -q
+            python << 'EOF'
+            import pandas as pd
+            from sklearn.ensemble import RandomForestClassifier
+            from sklearn.metrics import accuracy_score
+            import joblib
+            import os
+            import mlflow
+
+            # Parámetros
+            model_name = "{{inputs.parameters.model-name}}"
+            n_estimators = int("{{inputs.parameters.n-estimators}}")
+            max_depth = int("{{inputs.parameters.max-depth}}")
+
+            # Cargar datos
+            train_data = pd.read_parquet('/tmp/train-data/train.parquet')
+            test_data = pd.read_parquet('/tmp/test-data/test.parquet')
+
+            X_train = train_data.drop('target', axis=1)
+            y_train = train_data['target']
+            X_test = test_data.drop('target', axis=1)
+            y_test = test_data['target']
+
+            # Entrenar
+            print(f"Training {model_name} with n_estimators={n_estimators}, max_depth={max_depth}")
+            model = RandomForestClassifier(
+                n_estimators=n_estimators,
+                max_depth=max_depth,
+                random_state=42,
+                n_jobs=-1
+            )
+            model.fit(X_train, y_train)
+
+            # Evaluar
+            y_pred = model.predict(X_test)
+            accuracy = accuracy_score(y_test, y_pred)
+            print(f"Accuracy: {accuracy:.4f}")
+
+            # Guardar
+            os.makedirs('/tmp/model', exist_ok=True)
+            joblib.dump(model, '/tmp/model/model.joblib')
+
+            with open('/tmp/accuracy.txt', 'w') as f:
+                f.write(str(accuracy))
+
+            # Log a MLflow si está disponible
+            try:
+                mlflow.set_tracking_uri(os.getenv('MLFLOW_TRACKING_URI', 'http://mlflow-server.mlflow:5000'))
+                mlflow.set_experiment(model_name)
+                with mlflow.start_run():
+                    mlflow.log_params({
+                        'n_estimators': n_estimators,
+                        'max_depth': max_depth,
+                        'algorithm': 'random_forest'
+                    })
+                    mlflow.log_metric('accuracy', accuracy)
+                    mlflow.sklearn.log_model(model, 'model')
+            except Exception as e:
+                print(f"MLflow logging skipped: {e}")
+
+            print("Training completed!")
+            EOF
+        env:
+          - name: MLFLOW_TRACKING_URI
+            value: "http://mlflow-server.mlflow:5000"
+        resources:
+          requests:
+            memory: "2Gi"
+            cpu: "1000m"
+
+    # Step: Evaluar modelo
+    - name: evaluate-step
+      inputs:
+        artifacts:
+          - name: model
+            path: /tmp/model
+          - name: test-data
+            path: /tmp/test-data
+      outputs:
+        parameters:
+          - name: metrics
+            valueFrom:
+              path: /tmp/metrics.json
+      container:
+        image: python:3.9-slim
+        command: [sh, -c]
+        args:
+          - |
+            pip install pandas scikit-learn joblib pyarrow -q
+            python << 'EOF'
+            import pandas as pd
+            from sklearn.metrics import (
+                accuracy_score, precision_score, recall_score, 
+                f1_score, classification_report
+            )
+            import joblib
+            import json
+
+            # Cargar modelo y datos
+            model = joblib.load('/tmp/model/model.joblib')
+            test_data = pd.read_parquet('/tmp/test-data/test.parquet')
+
+            X_test = test_data.drop('target', axis=1)
+            y_test = test_data['target']
+
+            # Predecir
+            y_pred = model.predict(X_test)
+
+            # Calcular métricas
+            metrics = {
+                'accuracy': float(accuracy_score(y_test, y_pred)),
+                'precision': float(precision_score(y_test, y_pred, average='weighted')),
+                'recall': float(recall_score(y_test, y_pred, average='weighted')),
+                'f1_score': float(f1_score(y_test, y_pred, average='weighted'))
+            }
+
+            print("=== Model Evaluation ===")
+            for k, v in metrics.items():
+                print(f"{k}: {v:.4f}")
+
+            print("\n=== Classification Report ===")
+            print(classification_report(y_test, y_pred))
+
+            # Guardar métricas
+            with open('/tmp/metrics.json', 'w') as f:
+                json.dump(metrics, f, indent=2)
+
+            print("\nEvaluation completed!")
+            EOF
+        resources:
+          requests:
+            memory: "1Gi"
+            cpu: "500m"

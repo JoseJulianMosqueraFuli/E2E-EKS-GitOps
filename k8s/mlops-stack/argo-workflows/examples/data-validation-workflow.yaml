@@ -1,0 +1,413 @@
+# Data Validation Workflow Example
+# Valida la calidad de datos antes del entrenamiento
+# Uso: kubectl create -f data-validation-workflow.yaml
+apiVersion: argoproj.io/v1alpha1
+kind: Workflow
+metadata:
+  generateName: data-validation-
+  namespace: argo-workflows
+  labels:
+    workflow-type: validation
+    environment: dev
+spec:
+  entrypoint: validate-data
+  serviceAccountName: argo-workflow
+
+  arguments:
+    parameters:
+      - name: data-path
+        value: "s3://mlops-dev-raw-data/incoming/"
+      - name: output-path
+        value: "s3://mlops-dev-curated-data/"
+      - name: min-rows
+        value: "100"
+      - name: max-null-percentage
+        value: "5"
+
+  ttlStrategy:
+    secondsAfterCompletion: 3600
+
+  templates:
+    - name: validate-data
+      dag:
+        tasks:
+          - name: check-data-exists
+            template: check-data-exists-step
+            arguments:
+              parameters:
+                - name: data-path
+                  value: "{{workflow.parameters.data-path}}"
+
+          - name: validate-schema
+            template: validate-schema-step
+            dependencies: [check-data-exists]
+            arguments:
+              parameters:
+                - name: data-path
+                  value: "{{workflow.parameters.data-path}}"
+
+          - name: validate-quality
+            template: validate-quality-step
+            dependencies: [validate-schema]
+            arguments:
+              parameters:
+                - name: data-path
+                  value: "{{workflow.parameters.data-path}}"
+                - name: min-rows
+                  value: "{{workflow.parameters.min-rows}}"
+                - name: max-null-percentage
+                  value: "{{workflow.parameters.max-null-percentage}}"
+
+          - name: generate-report
+            template: generate-report-step
+            dependencies: [validate-quality]
+            arguments:
+              parameters:
+                - name: output-path
+                  value: "{{workflow.parameters.output-path}}"
+              artifacts:
+                - name: validation-results
+                  from: "{{tasks.validate-quality.outputs.artifacts.results}}"
+
+    # Step: Verificar que los datos existen
+    - name: check-data-exists-step
+      inputs:
+        parameters:
+          - name: data-path
+      outputs:
+        parameters:
+          - name: file-count
+            valueFrom:
+              path: /tmp/file-count.txt
+      container:
+        image: python:3.9-slim
+        command: [sh, -c]
+        args:
+          - |
+            pip install boto3 -q
+            python << 'EOF'
+            import boto3
+            import os
+            from urllib.parse import urlparse
+
+            data_path = "{{inputs.parameters.data-path}}"
+            print(f"Checking data at: {data_path}")
+
+            # Para demo, simular verificación
+            # En producción, verificar S3
+            file_count = 1  # Simular que hay archivos
+
+            with open('/tmp/file-count.txt', 'w') as f:
+                f.write(str(file_count))
+
+            if file_count == 0:
+                raise Exception("No data files found!")
+
+            print(f"Found {file_count} data file(s)")
+            EOF
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "100m"
+
+    # Step: Validar esquema
+    - name: validate-schema-step
+      inputs:
+        parameters:
+          - name: data-path
+      outputs:
+        parameters:
+          - name: schema-valid
+            valueFrom:
+              path: /tmp/schema-valid.txt
+      container:
+        image: python:3.9-slim
+        command: [sh, -c]
+        args:
+          - |
+            pip install pandas pyarrow -q
+            python << 'EOF'
+            import pandas as pd
+            import numpy as np
+
+            print("=== Schema Validation ===")
+
+            # Crear datos de ejemplo para validación
+            np.random.seed(42)
+            data = pd.DataFrame({
+                'feature_1': np.random.normal(0, 1, 500),
+                'feature_2': np.random.uniform(0, 100, 500),
+                'feature_3': np.random.exponential(2, 500),
+                'category': np.random.choice(['A', 'B', 'C'], 500),
+                'target': np.random.randint(0, 2, 500)
+            })
+
+            # Esquema esperado
+            expected_columns = ['feature_1', 'feature_2', 'feature_3', 'category', 'target']
+            expected_types = {
+                'feature_1': 'float64',
+                'feature_2': 'float64',
+                'feature_3': 'float64',
+                'category': 'object',
+                'target': 'int64'
+            }
+
+            # Validar columnas
+            missing_cols = set(expected_columns) - set(data.columns)
+            extra_cols = set(data.columns) - set(expected_columns)
+
+            schema_valid = True
+
+            if missing_cols:
+                print(f"❌ Missing columns: {missing_cols}")
+                schema_valid = False
+            else:
+                print("✅ All expected columns present")
+
+            if extra_cols:
+                print(f"⚠️ Extra columns found: {extra_cols}")
+
+            # Validar tipos
+            for col, expected_type in expected_types.items():
+                if col in data.columns:
+                    actual_type = str(data[col].dtype)
+                    if actual_type != expected_type:
+                        print(f"⚠️ Column {col}: expected {expected_type}, got {actual_type}")
+                    else:
+                        print(f"✅ Column {col}: type OK ({actual_type})")
+
+            with open('/tmp/schema-valid.txt', 'w') as f:
+                f.write('true' if schema_valid else 'false')
+
+            print(f"\nSchema validation: {'PASSED' if schema_valid else 'FAILED'}")
+            EOF
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "250m"
+
+    # Step: Validar calidad de datos
+    - name: validate-quality-step
+      inputs:
+        parameters:
+          - name: data-path
+          - name: min-rows
+          - name: max-null-percentage
+      outputs:
+        parameters:
+          - name: quality-valid
+            valueFrom:
+              path: /tmp/quality-valid.txt
+        artifacts:
+          - name: results
+            path: /tmp/validation-results.json
+      container:
+        image: python:3.9-slim
+        command: [sh, -c]
+        args:
+          - |
+            pip install pandas numpy pyarrow -q
+            python << 'EOF'
+            import pandas as pd
+            import numpy as np
+            import json
+
+            min_rows = int("{{inputs.parameters.min-rows}}")
+            max_null_pct = float("{{inputs.parameters.max-null-percentage}}")
+
+            print("=== Data Quality Validation ===")
+            print(f"Min rows required: {min_rows}")
+            print(f"Max null percentage: {max_null_pct}%")
+
+            # Crear datos de ejemplo
+            np.random.seed(42)
+            n_samples = 500
+            data = pd.DataFrame({
+                'feature_1': np.random.normal(0, 1, n_samples),
+                'feature_2': np.random.uniform(0, 100, n_samples),
+                'feature_3': np.random.exponential(2, n_samples),
+                'category': np.random.choice(['A', 'B', 'C'], n_samples),
+                'target': np.random.randint(0, 2, n_samples)
+            })
+
+            # Agregar algunos nulls para prueba
+            data.loc[data.sample(10).index, 'feature_1'] = np.nan
+
+            results = {
+                'checks': [],
+                'passed': True,
+                'summary': {}
+            }
+
+            # Check 1: Número de filas
+            row_count = len(data)
+            row_check = row_count >= min_rows
+            results['checks'].append({
+                'name': 'row_count',
+                'passed': row_check,
+                'expected': f'>= {min_rows}',
+                'actual': row_count
+            })
+            print(f"{'✅' if row_check else '❌'} Row count: {row_count} (min: {min_rows})")
+
+            # Check 2: Porcentaje de nulls por columna
+            for col in data.columns:
+                null_pct = (data[col].isnull().sum() / len(data)) * 100
+                null_check = null_pct <= max_null_pct
+                results['checks'].append({
+                    'name': f'null_percentage_{col}',
+                    'passed': null_check,
+                    'expected': f'<= {max_null_pct}%',
+                    'actual': f'{null_pct:.2f}%'
+                })
+                print(f"{'✅' if null_check else '❌'} Null % in {col}: {null_pct:.2f}% (max: {max_null_pct}%)")
+                if not null_check:
+                    results['passed'] = False
+
+            # Check 3: Valores únicos en target
+            unique_targets = data['target'].nunique()
+            target_check = unique_targets >= 2
+            results['checks'].append({
+                'name': 'target_classes',
+                'passed': target_check,
+                'expected': '>= 2',
+                'actual': unique_targets
+            })
+            print(f"{'✅' if target_check else '❌'} Target classes: {unique_targets}")
+
+            # Check 4: Duplicados
+            dup_count = data.duplicated().sum()
+            dup_pct = (dup_count / len(data)) * 100
+            dup_check = dup_pct < 10  # Menos del 10% duplicados
+            results['checks'].append({
+                'name': 'duplicates',
+                'passed': dup_check,
+                'expected': '< 10%',
+                'actual': f'{dup_pct:.2f}%'
+            })
+            print(f"{'✅' if dup_check else '❌'} Duplicates: {dup_pct:.2f}%")
+
+            # Check 5: Estadísticas básicas
+            results['summary'] = {
+                'total_rows': row_count,
+                'total_columns': len(data.columns),
+                'numeric_columns': len(data.select_dtypes(include=[np.number]).columns),
+                'categorical_columns': len(data.select_dtypes(include=['object']).columns),
+                'total_nulls': int(data.isnull().sum().sum()),
+                'memory_mb': data.memory_usage(deep=True).sum() / 1024 / 1024
+            }
+
+            # Resultado final
+            all_passed = all(c['passed'] for c in results['checks'])
+            results['passed'] = all_passed
+
+            with open('/tmp/quality-valid.txt', 'w') as f:
+                f.write('true' if all_passed else 'false')
+
+            with open('/tmp/validation-results.json', 'w') as f:
+                json.dump(results, f, indent=2)
+
+            print(f"\n=== Quality Validation: {'PASSED ✅' if all_passed else 'FAILED ❌'} ===")
+            EOF
+        resources:
+          requests:
+            memory: "1Gi"
+            cpu: "500m"
+
+    # Step: Generar reporte
+    - name: generate-report-step
+      inputs:
+        parameters:
+          - name: output-path
+        artifacts:
+          - name: validation-results
+            path: /tmp/validation-results.json
+      container:
+        image: python:3.9-slim
+        command: [sh, -c]
+        args:
+          - |
+            pip install jinja2 -q
+            python << 'EOF'
+            import json
+            from datetime import datetime
+
+            # Cargar resultados
+            with open('/tmp/validation-results.json', 'r') as f:
+                results = json.load(f)
+
+            # Generar reporte HTML
+            html_report = f"""
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <title>Data Validation Report</title>
+                <style>
+                    body {{ font-family: Arial, sans-serif; margin: 20px; }}
+                    .passed {{ color: green; }}
+                    .failed {{ color: red; }}
+                    table {{ border-collapse: collapse; width: 100%; }}
+                    th, td {{ border: 1px solid #ddd; padding: 8px; text-align: left; }}
+                    th {{ background-color: #4CAF50; color: white; }}
+                </style>
+            </head>
+            <body>
+                <h1>Data Validation Report</h1>
+                <p>Generated: {datetime.now().isoformat()}</p>
+                
+                <h2>Overall Status: <span class="{'passed' if results['passed'] else 'failed'}">
+                    {'PASSED ✅' if results['passed'] else 'FAILED ❌'}
+                </span></h2>
+                
+                <h3>Summary</h3>
+                <ul>
+                    <li>Total Rows: {results['summary'].get('total_rows', 'N/A')}</li>
+                    <li>Total Columns: {results['summary'].get('total_columns', 'N/A')}</li>
+                    <li>Total Nulls: {results['summary'].get('total_nulls', 'N/A')}</li>
+                    <li>Memory (MB): {results['summary'].get('memory_mb', 0):.2f}</li>
+                </ul>
+                
+                <h3>Validation Checks</h3>
+                <table>
+                    <tr>
+                        <th>Check</th>
+                        <th>Status</th>
+                        <th>Expected</th>
+                        <th>Actual</th>
+                    </tr>
+            """
+
+            for check in results['checks']:
+                status = '✅ PASSED' if check['passed'] else '❌ FAILED'
+                status_class = 'passed' if check['passed'] else 'failed'
+                html_report += f"""
+                    <tr>
+                        <td>{check['name']}</td>
+                        <td class="{status_class}">{status}</td>
+                        <td>{check['expected']}</td>
+                        <td>{check['actual']}</td>
+                    </tr>
+                """
+
+            html_report += """
+                </table>
+            </body>
+            </html>
+            """
+
+            # Guardar reporte
+            with open('/tmp/validation-report.html', 'w') as f:
+                f.write(html_report)
+
+            print("=== Validation Report Generated ===")
+            print(f"Status: {'PASSED' if results['passed'] else 'FAILED'}")
+            print(f"Checks passed: {sum(1 for c in results['checks'] if c['passed'])}/{len(results['checks'])}")
+
+            # En producción, subir a S3
+            output_path = "{{inputs.parameters.output-path}}"
+            print(f"Report would be uploaded to: {output_path}")
+            EOF
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "100m"

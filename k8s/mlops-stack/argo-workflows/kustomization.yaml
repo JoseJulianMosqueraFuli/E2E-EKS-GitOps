@@ -15,11 +15,12 @@ resources:
   - server-deployment.yaml
   - service.yaml
   - artifact-repository-secret.yaml
-  
+
   # Workflow templates
   - workflow-templates/data-validation-template.yaml
   - workflow-templates/model-training-template.yaml
   - workflow-templates/model-deployment-template.yaml
+  - workflow-templates/model-retraining-template.yaml
   - workflow-templates/ml-pipeline-template.yaml
 
 commonLabels:

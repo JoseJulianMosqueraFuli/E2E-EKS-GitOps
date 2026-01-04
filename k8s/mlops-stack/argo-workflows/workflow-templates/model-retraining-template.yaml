@@ -1,0 +1,477 @@
+# Model Retraining Template
+# Template para reentrenamiento automático basado en drift o schedule
+apiVersion: argoproj.io/v1alpha1
+kind: WorkflowTemplate
+metadata:
+  name: model-retraining-template
+  namespace: argo-workflows
+  labels:
+    app.kubernetes.io/name: argo-workflows
+    app.kubernetes.io/component: workflow-template
+spec:
+  entrypoint: model-retraining
+  serviceAccountName: argo-workflow
+
+  arguments:
+    parameters:
+      - name: model-name
+        value: "production-model"
+      - name: current-model-version
+        value: "1"
+      - name: data-path
+        value: "s3://mlops-curated-data/"
+      - name: mlflow-tracking-uri
+        value: "http://mlflow-server.mlflow:5000"
+      - name: performance-threshold
+        value: "0.85" # Umbral mínimo de accuracy
+      - name: drift-threshold
+        value: "0.1" # Umbral de drift
+      - name: auto-deploy
+        value: "false" # Si true, despliega automáticamente si mejora
+
+  templates:
+    - name: model-retraining
+      dag:
+        tasks:
+          # 1. Evaluar modelo actual
+          - name: evaluate-current-model
+            template: evaluate-current-model-step
+            arguments:
+              parameters:
+                - name: model-name
+                  value: "{{workflow.parameters.model-name}}"
+                - name: model-version
+                  value: "{{workflow.parameters.current-model-version}}"
+                - name: data-path
+                  value: "{{workflow.parameters.data-path}}"
+                - name: mlflow-tracking-uri
+                  value: "{{workflow.parameters.mlflow-tracking-uri}}"
+
+          # 2. Detectar drift
+          - name: detect-drift
+            template: detect-drift-step
+            arguments:
+              parameters:
+                - name: model-name
+                  value: "{{workflow.parameters.model-name}}"
+                - name: data-path
+                  value: "{{workflow.parameters.data-path}}"
+                - name: drift-threshold
+                  value: "{{workflow.parameters.drift-threshold}}"
+
+          # 3. Decidir si reentrenar
+          - name: decide-retraining
+            template: decide-retraining-step
+            dependencies: [evaluate-current-model, detect-drift]
+            arguments:
+              parameters:
+                - name: current-accuracy
+                  value: "{{tasks.evaluate-current-model.outputs.parameters.accuracy}}"
+                - name: drift-detected
+                  value: "{{tasks.detect-drift.outputs.parameters.drift-detected}}"
+                - name: performance-threshold
+                  value: "{{workflow.parameters.performance-threshold}}"
+
+          # 4. Reentrenar modelo (si es necesario)
+          - name: retrain-model
+            template: retrain-model-step
+            dependencies: [decide-retraining]
+            when: "{{tasks.decide-retraining.outputs.parameters.should-retrain}} == true"
+            arguments:
+              parameters:
+                - name: model-name
+                  value: "{{workflow.parameters.model-name}}"
+                - name: data-path
+                  value: "{{workflow.parameters.data-path}}"
+                - name: mlflow-tracking-uri
+                  value: "{{workflow.parameters.mlflow-tracking-uri}}"
+
+          # 5. Comparar modelos
+          - name: compare-models
+            template: compare-models-step
+            dependencies: [retrain-model]
+            when: "{{tasks.decide-retraining.outputs.parameters.should-retrain}} == true"
+            arguments:
+              parameters:
+                - name: old-accuracy
+                  value: "{{tasks.evaluate-current-model.outputs.parameters.accuracy}}"
+                - name: new-accuracy
+                  value: "{{tasks.retrain-model.outputs.parameters.accuracy}}"
+                - name: new-model-uri
+                  value: "{{tasks.retrain-model.outputs.parameters.model-uri}}"
+
+          # 6. Desplegar nuevo modelo (si mejora y auto-deploy está habilitado)
+          - name: deploy-new-model
+            templateRef:
+              name: model-deployment-template
+              template: model-deployment
+            dependencies: [compare-models]
+            when: "{{tasks.compare-models.outputs.parameters.new-model-better}} == true && {{workflow.parameters.auto-deploy}} == true"
+            arguments:
+              parameters:
+                - name: model-name
+                  value: "{{workflow.parameters.model-name}}"
+                - name: model-version
+                  value: "{{tasks.retrain-model.outputs.parameters.new-version}}"
+                - name: deployment-namespace
+                  value: "models"
+                - name: mlflow-tracking-uri
+                  value: "{{workflow.parameters.mlflow-tracking-uri}}"
+
+          # 7. Notificar resultados
+          - name: notify-results
+            template: notify-results-step
+            dependencies:
+              [evaluate-current-model, detect-drift, decide-retraining]
+            arguments:
+              parameters:
+                - name: model-name
+                  value: "{{workflow.parameters.model-name}}"
+                - name: current-accuracy
+                  value: "{{tasks.evaluate-current-model.outputs.parameters.accuracy}}"
+                - name: drift-detected
+                  value: "{{tasks.detect-drift.outputs.parameters.drift-detected}}"
+                - name: should-retrain
+                  value: "{{tasks.decide-retraining.outputs.parameters.should-retrain}}"
+
+    # Step: Evaluar modelo actual
+    - name: evaluate-current-model-step
+      inputs:
+        parameters:
+          - name: model-name
+          - name: model-version
+          - name: data-path
+          - name: mlflow-tracking-uri
+      outputs:
+        parameters:
+          - name: accuracy
+            valueFrom:
+              path: /tmp/accuracy.txt
+          - name: metrics
+            valueFrom:
+              path: /tmp/metrics.json
+      container:
+        image: python:3.9-slim
+        command: [sh, -c]
+        args:
+          - |
+            pip install pandas scikit-learn numpy mlflow pyarrow -q
+            python << 'EOF'
+            import json
+            import numpy as np
+
+            model_name = "{{inputs.parameters.model-name}}"
+            model_version = "{{inputs.parameters.model-version}}"
+
+            print(f"Evaluating current model: {model_name} v{model_version}")
+
+            # Simular evaluación (en producción, cargar modelo de MLflow)
+            # y evaluar con datos recientes
+            accuracy = 0.87  # Simular accuracy actual
+
+            metrics = {
+                'accuracy': accuracy,
+                'precision': 0.85,
+                'recall': 0.88,
+                'f1_score': 0.86,
+                'samples_evaluated': 1000
+            }
+
+            print(f"Current model accuracy: {accuracy:.4f}")
+
+            with open('/tmp/accuracy.txt', 'w') as f:
+                f.write(str(accuracy))
+
+            with open('/tmp/metrics.json', 'w') as f:
+                json.dump(metrics, f, indent=2)
+            EOF
+        env:
+          - name: MLFLOW_TRACKING_URI
+            value: "{{inputs.parameters.mlflow-tracking-uri}}"
+        resources:
+          requests:
+            memory: "1Gi"
+            cpu: "500m"
+
+    # Step: Detectar drift
+    - name: detect-drift-step
+      inputs:
+        parameters:
+          - name: model-name
+          - name: data-path
+          - name: drift-threshold
+      outputs:
+        parameters:
+          - name: drift-detected
+            valueFrom:
+              path: /tmp/drift-detected.txt
+          - name: drift-score
+            valueFrom:
+              path: /tmp/drift-score.txt
+      container:
+        image: python:3.9-slim
+        command: [sh, -c]
+        args:
+          - |
+            pip install pandas numpy scipy -q
+            python << 'EOF'
+            import numpy as np
+            from scipy import stats
+
+            drift_threshold = float("{{inputs.parameters.drift-threshold}}")
+
+            print("=== Drift Detection ===")
+
+            # Simular detección de drift
+            # En producción, comparar distribuciones de datos de entrenamiento vs producción
+
+            # Simular estadísticas de baseline y actuales
+            baseline_mean = 0.0
+            baseline_std = 1.0
+            current_mean = 0.05  # Pequeño drift
+            current_std = 1.1
+
+            # Calcular drift score (usando diferencia normalizada)
+            drift_score = abs(current_mean - baseline_mean) / baseline_std
+
+            # También verificar cambio en varianza
+            variance_ratio = current_std / baseline_std
+
+            print(f"Baseline: mean={baseline_mean:.4f}, std={baseline_std:.4f}")
+            print(f"Current:  mean={current_mean:.4f}, std={current_std:.4f}")
+            print(f"Drift score: {drift_score:.4f}")
+            print(f"Variance ratio: {variance_ratio:.4f}")
+
+            drift_detected = drift_score > drift_threshold or abs(variance_ratio - 1) > drift_threshold
+
+            print(f"\nDrift threshold: {drift_threshold}")
+            print(f"Drift detected: {drift_detected}")
+
+            with open('/tmp/drift-detected.txt', 'w') as f:
+                f.write('true' if drift_detected else 'false')
+
+            with open('/tmp/drift-score.txt', 'w') as f:
+                f.write(str(drift_score))
+            EOF
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "250m"
+
+    # Step: Decidir si reentrenar
+    - name: decide-retraining-step
+      inputs:
+        parameters:
+          - name: current-accuracy
+          - name: drift-detected
+          - name: performance-threshold
+      outputs:
+        parameters:
+          - name: should-retrain
+            valueFrom:
+              path: /tmp/should-retrain.txt
+          - name: reason
+            valueFrom:
+              path: /tmp/reason.txt
+      container:
+        image: python:3.9-slim
+        command: [python, -c]
+        args:
+          - |
+            current_accuracy = float("{{inputs.parameters.current-accuracy}}")
+            drift_detected = "{{inputs.parameters.drift-detected}}" == "true"
+            performance_threshold = float("{{inputs.parameters.performance-threshold}}")
+
+            print("=== Retraining Decision ===")
+            print(f"Current accuracy: {current_accuracy:.4f}")
+            print(f"Performance threshold: {performance_threshold:.4f}")
+            print(f"Drift detected: {drift_detected}")
+
+            reasons = []
+            should_retrain = False
+
+            # Razón 1: Performance por debajo del umbral
+            if current_accuracy < performance_threshold:
+                reasons.append(f"Performance below threshold ({current_accuracy:.4f} < {performance_threshold:.4f})")
+                should_retrain = True
+
+            # Razón 2: Drift detectado
+            if drift_detected:
+                reasons.append("Data drift detected")
+                should_retrain = True
+
+            if not reasons:
+                reasons.append("No retraining needed - model performing well")
+
+            reason = "; ".join(reasons)
+
+            print(f"\nDecision: {'RETRAIN' if should_retrain else 'KEEP CURRENT MODEL'}")
+            print(f"Reason: {reason}")
+
+            with open('/tmp/should-retrain.txt', 'w') as f:
+                f.write('true' if should_retrain else 'false')
+
+            with open('/tmp/reason.txt', 'w') as f:
+                f.write(reason)
+        resources:
+          requests:
+            memory: "128Mi"
+            cpu: "100m"
+
+    # Step: Reentrenar modelo
+    - name: retrain-model-step
+      inputs:
+        parameters:
+          - name: model-name
+          - name: data-path
+          - name: mlflow-tracking-uri
+      outputs:
+        parameters:
+          - name: accuracy
+            valueFrom:
+              path: /tmp/new-accuracy.txt
+          - name: model-uri
+            valueFrom:
+              path: /tmp/model-uri.txt
+          - name: new-version
+            valueFrom:
+              path: /tmp/new-version.txt
+      container:
+        image: python:3.9-slim
+        command: [sh, -c]
+        args:
+          - |
+            pip install pandas scikit-learn numpy mlflow pyarrow -q
+            python << 'EOF'
+            import numpy as np
+            import os
+
+            model_name = "{{inputs.parameters.model-name}}"
+            data_path = "{{inputs.parameters.data-path}}"
+
+            print(f"=== Retraining Model: {model_name} ===")
+            print(f"Data path: {data_path}")
+
+            # Simular reentrenamiento
+            # En producción, cargar datos nuevos y reentrenar
+
+            print("Loading new training data...")
+            print("Training new model...")
+            print("Evaluating new model...")
+
+            # Simular mejora en accuracy
+            new_accuracy = 0.91  # Modelo mejorado
+            new_version = "2"
+            model_uri = f"s3://mlops-models/{model_name}/v{new_version}/"
+
+            print(f"\nNew model accuracy: {new_accuracy:.4f}")
+            print(f"New model version: {new_version}")
+            print(f"Model URI: {model_uri}")
+
+            with open('/tmp/new-accuracy.txt', 'w') as f:
+                f.write(str(new_accuracy))
+
+            with open('/tmp/model-uri.txt', 'w') as f:
+                f.write(model_uri)
+
+            with open('/tmp/new-version.txt', 'w') as f:
+                f.write(new_version)
+
+            print("\n✅ Retraining completed!")
+            EOF
+        env:
+          - name: MLFLOW_TRACKING_URI
+            value: "{{inputs.parameters.mlflow-tracking-uri}}"
+        resources:
+          requests:
+            memory: "4Gi"
+            cpu: "2000m"
+          limits:
+            memory: "8Gi"
+            cpu: "4000m"
+
+    # Step: Comparar modelos
+    - name: compare-models-step
+      inputs:
+        parameters:
+          - name: old-accuracy
+          - name: new-accuracy
+          - name: new-model-uri
+      outputs:
+        parameters:
+          - name: new-model-better
+            valueFrom:
+              path: /tmp/new-model-better.txt
+          - name: improvement
+            valueFrom:
+              path: /tmp/improvement.txt
+      container:
+        image: python:3.9-slim
+        command: [python, -c]
+        args:
+          - |
+            old_accuracy = float("{{inputs.parameters.old-accuracy}}")
+            new_accuracy = float("{{inputs.parameters.new-accuracy}}")
+
+            print("=== Model Comparison ===")
+            print(f"Old model accuracy: {old_accuracy:.4f}")
+            print(f"New model accuracy: {new_accuracy:.4f}")
+
+            improvement = new_accuracy - old_accuracy
+            improvement_pct = (improvement / old_accuracy) * 100
+
+            # Nuevo modelo es mejor si mejora al menos 1%
+            new_model_better = improvement > 0.01
+
+            print(f"\nImprovement: {improvement:.4f} ({improvement_pct:.2f}%)")
+            print(f"New model is better: {new_model_better}")
+
+            with open('/tmp/new-model-better.txt', 'w') as f:
+                f.write('true' if new_model_better else 'false')
+
+            with open('/tmp/improvement.txt', 'w') as f:
+                f.write(f"{improvement_pct:.2f}%")
+        resources:
+          requests:
+            memory: "128Mi"
+            cpu: "100m"
+
+    # Step: Notificar resultados
+    - name: notify-results-step
+      inputs:
+        parameters:
+          - name: model-name
+          - name: current-accuracy
+          - name: drift-detected
+          - name: should-retrain
+      container:
+        image: python:3.9-slim
+        command: [python, -c]
+        args:
+          - |
+            import json
+            from datetime import datetime
+
+            model_name = "{{inputs.parameters.model-name}}"
+            current_accuracy = "{{inputs.parameters.current-accuracy}}"
+            drift_detected = "{{inputs.parameters.drift-detected}}"
+            should_retrain = "{{inputs.parameters.should-retrain}}"
+
+            notification = {
+                "timestamp": datetime.now().isoformat(),
+                "model_name": model_name,
+                "current_accuracy": current_accuracy,
+                "drift_detected": drift_detected,
+                "retraining_triggered": should_retrain,
+                "message": f"Model monitoring completed for {model_name}"
+            }
+
+            print("=== Retraining Pipeline Summary ===")
+            print(json.dumps(notification, indent=2))
+
+            # En producción, enviar a Slack/Email/PagerDuty
+            print("\n📧 Notification would be sent to configured channels")
+        resources:
+          requests:
+            memory: "128Mi"
+            cpu: "100m"
