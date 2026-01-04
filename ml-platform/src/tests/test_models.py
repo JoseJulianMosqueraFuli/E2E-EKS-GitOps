@@ -4,13 +4,19 @@ Test Models
 Unit tests for ML models.
 """
 
+import os
+import sys
+
+# Add src directory to path for imports
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
 import pytest
 import pandas as pd
 import numpy as np
 from sklearn.datasets import make_classification, make_regression
 
-from ..models.classification_model import ClassificationModel
-from ..models.regression_model import RegressionModel
+from models.classification_model import ClassificationModel
+from models.regression_model import RegressionModel
 
 
 class TestClassificationModel:

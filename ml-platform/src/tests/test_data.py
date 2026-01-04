@@ -4,14 +4,19 @@ Test Data Processing
 Unit tests for data loading, validation, and feature engineering.
 """
 
+import os
+import sys
+
+# Add src directory to path for imports
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
 import pytest
 import pandas as pd
 import numpy as np
 import tempfile
-import os
 
-from ..data.data_loader import DataLoader
-from ..data.feature_engineering import FeatureEngineer
+from data.data_loader import DataLoader
+from data.feature_engineering import FeatureEngineer
 
 
 class TestDataLoader:

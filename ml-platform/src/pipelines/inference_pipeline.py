@@ -7,6 +7,7 @@ Supports batch and real-time inference with monitoring.
 
 import logging
 import os
+import sys
 import time
 from typing import Dict, Any, List, Union, Optional
 import pandas as pd
@@ -17,9 +18,11 @@ from datetime import datetime
 import joblib
 import json
 
-from ..data.data_loader import DataLoader
-from ..data.feature_engineering import FeatureEngineer
-from ..models.base_model import BaseModel
+# Add parent directory to path for imports
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+from data.data_loader import DataLoader
+from data.feature_engineering import FeatureEngineer
 
 logger = logging.getLogger(__name__)
 
