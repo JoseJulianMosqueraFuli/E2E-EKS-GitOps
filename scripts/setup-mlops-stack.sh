@@ -156,7 +156,8 @@ deploy_monitoring() {
     log_success "Monitoring stack deployed successfully"
     
     # Get Grafana URL
-    log_info "Grafana admin password: admin123 (change in production)"
+    log_info "Grafana password managed by External Secrets Operator"
+    log_info "See k8s/mlops-stack/secrets/ for configuration"
     log_info "Access Grafana via port-forward: kubectl port-forward svc/grafana 3000:3000 -n monitoring"
 }
 
