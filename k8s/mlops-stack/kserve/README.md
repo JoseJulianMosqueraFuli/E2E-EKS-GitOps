@@ -5,6 +5,7 @@ This directory contains Kubernetes manifests for deploying KServe, a cloud-nativ
 ## Overview
 
 KServe provides:
+q
 
 - **Serverless Model Serving**: Automatic scaling to zero and scale-to-demand
 - **Multi-Framework Support**: TensorFlow, PyTorch, Scikit-learn, XGBoost, and more
