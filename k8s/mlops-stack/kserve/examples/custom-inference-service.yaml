@@ -1,0 +1,114 @@
+# Custom Model Server InferenceService Example
+# Demonstrates serving custom models with your own container image
+---
+apiVersion: serving.kserve.io/v1beta1
+kind: InferenceService
+metadata:
+  name: custom-nlp-model
+  namespace: models
+  labels:
+    app.kubernetes.io/name: kserve
+    app.kubernetes.io/component: inference-service
+    model-type: custom
+  annotations:
+    serving.kserve.io/deploymentMode: "Serverless"
+    autoscaling.knative.dev/minScale: "1"
+    autoscaling.knative.dev/maxScale: "5"
+spec:
+  predictor:
+    serviceAccountName: models-sa
+    containers:
+      - name: kserve-container
+        image: ${ECR_REGISTRY}/mlops/custom-nlp-server:latest
+        ports:
+          - containerPort: 8080
+            protocol: TCP
+        env:
+          - name: MODEL_NAME
+            value: "custom-nlp-model"
+          - name: MODEL_PATH
+            value: "/mnt/models"
+          - name: STORAGE_URI
+            value: "s3://mlops-model-artifacts/custom-models/nlp-model/"
+        resources:
+          requests:
+            cpu: 500m
+            memory: 1Gi
+          limits:
+            cpu: 2000m
+            memory: 4Gi
+        readinessProbe:
+          httpGet:
+            path: /v1/models/custom-nlp-model
+            port: 8080
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 60
+          periodSeconds: 30
+---
+# Custom Model with Transformer and Explainer
+apiVersion: serving.kserve.io/v1beta1
+kind: InferenceService
+metadata:
+  name: custom-recommendation-model
+  namespace: models
+  labels:
+    app.kubernetes.io/name: kserve
+    app.kubernetes.io/component: inference-service
+    model-type: custom
+  annotations:
+    serving.kserve.io/deploymentMode: "Serverless"
+spec:
+  predictor:
+    serviceAccountName: models-sa
+    containers:
+      - name: kserve-container
+        image: ${ECR_REGISTRY}/mlops/recommendation-server:latest
+        ports:
+          - containerPort: 8080
+        env:
+          - name: MODEL_NAME
+            value: "recommendation-model"
+        resources:
+          requests:
+            cpu: 500m
+            memory: 2Gi
+          limits:
+            cpu: 2000m
+            memory: 8Gi
+  # Feature preprocessing transformer
+  transformer:
+    containers:
+      - name: transformer
+        image: ${ECR_REGISTRY}/mlops/feature-transformer:latest
+        env:
+          - name: PREDICTOR_HOST
+            value: "custom-recommendation-model-predictor"
+          - name: PROTOCOL
+            value: "v2"
+        resources:
+          requests:
+            cpu: 100m
+            memory: 256Mi
+          limits:
+            cpu: 500m
+            memory: 1Gi
+  # Model explainability with SHAP
+  explainer:
+    containers:
+      - name: explainer
+        image: ${ECR_REGISTRY}/mlops/shap-explainer:latest
+        env:
+          - name: PREDICTOR_HOST
+            value: "custom-recommendation-model-predictor"
+        resources:
+          requests:
+            cpu: 200m
+            memory: 512Mi
+          limits:
+            cpu: 1000m
+            memory: 2Gi

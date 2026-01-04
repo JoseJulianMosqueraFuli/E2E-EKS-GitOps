@@ -1,0 +1,124 @@
+# HuggingFace Transformers InferenceService Example
+# Demonstrates serving HuggingFace models for NLP tasks
+---
+apiVersion: serving.kserve.io/v1beta1
+kind: InferenceService
+metadata:
+  name: huggingface-bert-classifier
+  namespace: models
+  labels:
+    app.kubernetes.io/name: kserve
+    app.kubernetes.io/component: inference-service
+    model-type: huggingface
+  annotations:
+    serving.kserve.io/deploymentMode: "Serverless"
+    autoscaling.knative.dev/minScale: "1"
+    autoscaling.knative.dev/maxScale: "5"
+    autoscaling.knative.dev/target: "5"
+spec:
+  predictor:
+    serviceAccountName: models-sa
+    model:
+      modelFormat:
+        name: huggingface
+      storageUri: s3://mlops-model-artifacts/huggingface-models/bert-classifier/
+      resources:
+        requests:
+          cpu: 500m
+          memory: 2Gi
+        limits:
+          cpu: 2000m
+          memory: 8Gi
+      env:
+        - name: TASK
+          value: "text-classification"
+        - name: MODEL_ID
+          value: "bert-base-uncased"
+---
+# HuggingFace Sentiment Analysis with GPU
+apiVersion: serving.kserve.io/v1beta1
+kind: InferenceService
+metadata:
+  name: huggingface-sentiment-gpu
+  namespace: models
+  labels:
+    app.kubernetes.io/name: kserve
+    app.kubernetes.io/component: inference-service
+    model-type: huggingface
+    accelerator: gpu
+  annotations:
+    serving.kserve.io/deploymentMode: "Serverless"
+    autoscaling.knative.dev/minScale: "0"
+    autoscaling.knative.dev/maxScale: "3"
+spec:
+  predictor:
+    serviceAccountName: models-sa
+    model:
+      modelFormat:
+        name: huggingface
+      storageUri: s3://mlops-model-artifacts/huggingface-models/sentiment-analysis/
+      resources:
+        requests:
+          cpu: 500m
+          memory: 4Gi
+        limits:
+          cpu: 2000m
+          memory: 16Gi
+          nvidia.com/gpu: 1
+      env:
+        - name: TASK
+          value: "sentiment-analysis"
+        - name: DEVICE
+          value: "cuda"
+    nodeSelector:
+      accelerator: nvidia-tesla-t4
+    tolerations:
+      - key: "nvidia.com/gpu"
+        operator: "Exists"
+        effect: "NoSchedule"
+---
+# HuggingFace Text Generation (LLM)
+apiVersion: serving.kserve.io/v1beta1
+kind: InferenceService
+metadata:
+  name: huggingface-text-generation
+  namespace: models
+  labels:
+    app.kubernetes.io/name: kserve
+    app.kubernetes.io/component: inference-service
+    model-type: huggingface
+    task: text-generation
+  annotations:
+    serving.kserve.io/deploymentMode: "Serverless"
+    autoscaling.knative.dev/minScale: "0"
+    autoscaling.knative.dev/maxScale: "2"
+    # Longer timeout for text generation
+    serving.kserve.io/timeoutSeconds: "300"
+spec:
+  predictor:
+    serviceAccountName: models-sa
+    model:
+      modelFormat:
+        name: huggingface
+      storageUri: s3://mlops-model-artifacts/huggingface-models/text-generation/
+      resources:
+        requests:
+          cpu: 1000m
+          memory: 8Gi
+        limits:
+          cpu: 4000m
+          memory: 32Gi
+          nvidia.com/gpu: 1
+      env:
+        - name: TASK
+          value: "text-generation"
+        - name: MAX_LENGTH
+          value: "512"
+        - name: DEVICE
+          value: "cuda"
+    nodeSelector:
+      accelerator: nvidia-tesla-a10g
+    tolerations:
+      - key: "nvidia.com/gpu"
+        operator: "Exists"
+        effect: "NoSchedule"

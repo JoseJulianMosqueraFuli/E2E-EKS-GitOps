@@ -1,0 +1,69 @@
+# TensorFlow InferenceService Example
+# Demonstrates serving TensorFlow SavedModel format with GPU support
+---
+apiVersion: serving.kserve.io/v1beta1
+kind: InferenceService
+metadata:
+  name: tensorflow-mnist-model
+  namespace: models
+  labels:
+    app.kubernetes.io/name: kserve
+    app.kubernetes.io/component: inference-service
+    model-type: tensorflow
+  annotations:
+    serving.kserve.io/deploymentMode: "Serverless"
+    autoscaling.knative.dev/minScale: "1"
+    autoscaling.knative.dev/maxScale: "5"
+    autoscaling.knative.dev/target: "10"
+spec:
+  predictor:
+    serviceAccountName: models-sa
+    tensorflow:
+      storageUri: s3://mlops-model-artifacts/tensorflow-models/mnist/
+      runtimeVersion: "2.13.0"
+      resources:
+        requests:
+          cpu: 200m
+          memory: 512Mi
+        limits:
+          cpu: 1000m
+          memory: 2Gi
+      env:
+        - name: TF_CPP_MIN_LOG_LEVEL
+          value: "2"
+---
+# TensorFlow with GPU Support
+apiVersion: serving.kserve.io/v1beta1
+kind: InferenceService
+metadata:
+  name: tensorflow-gpu-model
+  namespace: models
+  labels:
+    app.kubernetes.io/name: kserve
+    app.kubernetes.io/component: inference-service
+    model-type: tensorflow
+    accelerator: gpu
+  annotations:
+    serving.kserve.io/deploymentMode: "Serverless"
+    autoscaling.knative.dev/minScale: "0"
+    autoscaling.knative.dev/maxScale: "3"
+spec:
+  predictor:
+    serviceAccountName: models-sa
+    tensorflow:
+      storageUri: s3://mlops-model-artifacts/tensorflow-models/image-classifier/
+      runtimeVersion: "2.13.0-gpu"
+      resources:
+        requests:
+          cpu: 500m
+          memory: 2Gi
+        limits:
+          cpu: 2000m
+          memory: 8Gi
+          nvidia.com/gpu: 1
+    nodeSelector:
+      accelerator: nvidia-tesla-t4
+    tolerations:
+      - key: "nvidia.com/gpu"
+        operator: "Exists"
+        effect: "NoSchedule"

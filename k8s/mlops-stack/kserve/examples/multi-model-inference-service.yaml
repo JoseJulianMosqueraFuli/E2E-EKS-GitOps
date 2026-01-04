@@ -1,0 +1,76 @@
+# Multi-Model Serving InferenceService Example
+# Demonstrates serving multiple models on a single InferenceService
+---
+apiVersion: serving.kserve.io/v1beta1
+kind: InferenceService
+metadata:
+  name: multi-model-server
+  namespace: models
+  labels:
+    app.kubernetes.io/name: kserve
+    app.kubernetes.io/component: inference-service
+    model-type: multi-model
+  annotations:
+    serving.kserve.io/deploymentMode: "Serverless"
+    autoscaling.knative.dev/minScale: "1"
+    autoscaling.knative.dev/maxScale: "10"
+    # Enable multi-model serving
+    serving.kserve.io/multiModelServer: "true"
+spec:
+  predictor:
+    serviceAccountName: models-sa
+    model:
+      modelFormat:
+        name: sklearn
+      # Base storage URI - models will be loaded from subdirectories
+      storageUri: s3://mlops-model-artifacts/multi-models/
+      resources:
+        requests:
+          cpu: 500m
+          memory: 2Gi
+        limits:
+          cpu: 2000m
+          memory: 8Gi
+---
+# TrainedModel resources for multi-model serving
+apiVersion: serving.kserve.io/v1alpha1
+kind: TrainedModel
+metadata:
+  name: model-a-classifier
+  namespace: models
+  labels:
+    app.kubernetes.io/name: kserve
+spec:
+  inferenceService: multi-model-server
+  model:
+    framework: sklearn
+    storageUri: s3://mlops-model-artifacts/multi-models/model-a/
+    memory: 256Mi
+---
+apiVersion: serving.kserve.io/v1alpha1
+kind: TrainedModel
+metadata:
+  name: model-b-regressor
+  namespace: models
+  labels:
+    app.kubernetes.io/name: kserve
+spec:
+  inferenceService: multi-model-server
+  model:
+    framework: sklearn
+    storageUri: s3://mlops-model-artifacts/multi-models/model-b/
+    memory: 256Mi
+---
+apiVersion: serving.kserve.io/v1alpha1
+kind: TrainedModel
+metadata:
+  name: model-c-ensemble
+  namespace: models
+  labels:
+    app.kubernetes.io/name: kserve
+spec:
+  inferenceService: multi-model-server
+  model:
+    framework: sklearn
+    storageUri: s3://mlops-model-artifacts/multi-models/model-c/
+    memory: 512Mi

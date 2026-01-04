@@ -1,0 +1,75 @@
+# XGBoost InferenceService Example
+# Demonstrates serving XGBoost models with batching and autoscaling
+---
+apiVersion: serving.kserve.io/v1beta1
+kind: InferenceService
+metadata:
+  name: xgboost-credit-model
+  namespace: models
+  labels:
+    app.kubernetes.io/name: kserve
+    app.kubernetes.io/component: inference-service
+    model-type: xgboost
+  annotations:
+    serving.kserve.io/deploymentMode: "Serverless"
+    autoscaling.knative.dev/minScale: "1"
+    autoscaling.knative.dev/maxScale: "10"
+    autoscaling.knative.dev/target: "50"
+    # Enable request batching for better throughput
+    serving.kserve.io/batcherMaxBatchSize: "32"
+    serving.kserve.io/batcherMaxLatency: "100"
+spec:
+  predictor:
+    serviceAccountName: models-sa
+    xgboost:
+      storageUri: s3://mlops-model-artifacts/xgboost-models/credit-scoring/
+      runtimeVersion: "1.7.0"
+      resources:
+        requests:
+          cpu: 100m
+          memory: 256Mi
+        limits:
+          cpu: 1000m
+          memory: 1Gi
+      env:
+        - name: NTHREAD
+          value: "4"
+---
+# XGBoost with Canary Deployment
+apiVersion: serving.kserve.io/v1beta1
+kind: InferenceService
+metadata:
+  name: xgboost-fraud-detection
+  namespace: models
+  labels:
+    app.kubernetes.io/name: kserve
+    app.kubernetes.io/component: inference-service
+    model-type: xgboost
+  annotations:
+    serving.kserve.io/deploymentMode: "Serverless"
+    autoscaling.knative.dev/minScale: "2"
+    autoscaling.knative.dev/maxScale: "20"
+spec:
+  predictor:
+    serviceAccountName: models-sa
+    xgboost:
+      storageUri: s3://mlops-model-artifacts/xgboost-models/fraud-detection-v1/
+      resources:
+        requests:
+          cpu: 200m
+          memory: 512Mi
+        limits:
+          cpu: 1000m
+          memory: 2Gi
+  # Canary for A/B testing new model version
+  canary:
+    trafficPercent: 10
+    xgboost:
+      storageUri: s3://mlops-model-artifacts/xgboost-models/fraud-detection-v2/
+      resources:
+        requests:
+          cpu: 200m
+          memory: 512Mi
+        limits:
+          cpu: 1000m
+          memory: 2Gi
