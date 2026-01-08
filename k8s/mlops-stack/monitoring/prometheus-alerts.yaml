@@ -1,0 +1,136 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: prometheus-ml-alerts
+  namespace: monitoring
+data:
+  ml-alerts.yml: |
+    groups:
+      - name: ml_drift_alerts
+        rules:
+          # Data Drift Detection
+          - alert: DataDriftDetected
+            expr: ml_data_drift_detected == 1
+            for: 5m
+            labels:
+              severity: warning
+              category: ml_monitoring
+            annotations:
+              summary: "Data drift detected for model {{ $labels.model_name }}"
+              description: "Model {{ $labels.model_name }} (v{{ $labels.model_version }}) has detected data drift. Drift share: {{ $value }}%"
+              runbook_url: "https://docs.example.com/runbooks/data-drift"
+
+          # High Drift Share
+          - alert: HighDriftShare
+            expr: ml_data_drift_share > 0.3
+            for: 5m
+            labels:
+              severity: critical
+              category: ml_monitoring
+            annotations:
+              summary: "High drift share for model {{ $labels.model_name }}"
+              description: "Model {{ $labels.model_name }} has {{ $value | humanizePercentage }} of features drifted. Consider retraining."
+              runbook_url: "https://docs.example.com/runbooks/high-drift"
+
+          # Model Health Critical
+          - alert: ModelHealthCritical
+            expr: ml_model_health_status == 2
+            for: 5m
+            labels:
+              severity: critical
+              category: ml_monitoring
+            annotations:
+              summary: "Model {{ $labels.model_name }} health is critical"
+              description: "Model {{ $labels.model_name }} (v{{ $labels.model_version }}) is in critical health status. Immediate attention required."
+              runbook_url: "https://docs.example.com/runbooks/model-health"
+
+          # Model Health Warning
+          - alert: ModelHealthWarning
+            expr: ml_model_health_status == 1
+            for: 15m
+            labels:
+              severity: warning
+              category: ml_monitoring
+            annotations:
+              summary: "Model {{ $labels.model_name }} health warning"
+              description: "Model {{ $labels.model_name }} (v{{ $labels.model_version }}) is showing warning signs. Monitor closely."
+
+          # Performance Degradation
+          - alert: ModelPerformanceDegraded
+            expr: ml_performance_degradation_percent > 10
+            for: 10m
+            labels:
+              severity: warning
+              category: ml_monitoring
+            annotations:
+              summary: "Performance degradation for model {{ $labels.model_name }}"
+              description: "Model {{ $labels.model_name }} performance has degraded by {{ $value | humanize }}% from baseline."
+
+          # Severe Performance Degradation
+          - alert: ModelPerformanceSeverelyDegraded
+            expr: ml_performance_degradation_percent > 20
+            for: 5m
+            labels:
+              severity: critical
+              category: ml_monitoring
+            annotations:
+              summary: "Severe performance degradation for model {{ $labels.model_name }}"
+              description: "Model {{ $labels.model_name }} performance has severely degraded by {{ $value | humanize }}%. Consider rollback or retraining."
+
+          # Low Model Accuracy
+          - alert: LowModelAccuracy
+            expr: ml_model_accuracy < 0.7
+            for: 10m
+            labels:
+              severity: warning
+              category: ml_monitoring
+            annotations:
+              summary: "Low accuracy for model {{ $labels.model_name }}"
+              description: "Model {{ $labels.model_name }} accuracy is {{ $value | humanizePercentage }}, below threshold of 70%."
+
+          # High Missing Values
+          - alert: HighMissingValues
+            expr: ml_missing_values_share > 0.1
+            for: 5m
+            labels:
+              severity: warning
+              category: ml_monitoring
+            annotations:
+              summary: "High missing values in data for model {{ $labels.model_name }}"
+              description: "{{ $value | humanizePercentage }} of values are missing in current data for model {{ $labels.model_name }}."
+
+          # Monitoring Service Down
+          - alert: MonitoringServiceDown
+            expr: up{job="evidently-monitoring"} == 0
+            for: 5m
+            labels:
+              severity: critical
+              category: ml_monitoring
+            annotations:
+              summary: "ML Monitoring service is down"
+              description: "The Evidently monitoring service has been down for more than 5 minutes."
+
+          # No Recent Monitoring Runs
+          - alert: NoRecentMonitoringRuns
+            expr: increase(ml_monitoring_runs_total[2h]) == 0
+            for: 2h
+            labels:
+              severity: warning
+              category: ml_monitoring
+            annotations:
+              summary: "No monitoring runs for model {{ $labels.model_name }}"
+              description: "No monitoring runs have been executed for model {{ $labels.model_name }} in the last 2 hours."
+
+      - name: ml_drift_recording_rules
+        rules:
+          # Average drift share across all models
+          - record: ml:drift_share:avg
+            expr: avg(ml_data_drift_share) by (model_name)
+
+          # Total drifted models
+          - record: ml:drifted_models:count
+            expr: count(ml_data_drift_detected == 1)
+
+          # Models by health status
+          - record: ml:models_by_health:count
+            expr: count by (health_status) (ml_model_health_status)

@@ -1,0 +1,44 @@
+FROM python:3.10-slim
+
+WORKDIR /app
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy requirements
+COPY requirements.txt .
+
+# Install Python dependencies
+RUN pip install --no-cache-dir \
+    evidently==0.4.2 \
+    prometheus-client==0.17.1 \
+    fastapi==0.100.0 \
+    uvicorn==0.23.0 \
+    pandas==2.0.3 \
+    numpy==1.24.3 \
+    pyyaml==6.0.1 \
+    requests==2.31.0 \
+    boto3==1.28.25 \
+    pyarrow==12.0.1
+
+# Copy application code
+COPY src/monitoring /app/monitoring
+
+# Create directories
+RUN mkdir -p /data/reports /data/reference /app/config
+
+# Set environment variables
+ENV PYTHONPATH=/app
+ENV PORT=8080
+
+# Expose port
+EXPOSE 8080
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+    CMD curl -f http://localhost:8080/health || exit 1
+
+# Run the service
+CMD ["python", "-m", "monitoring.monitoring_service"]
