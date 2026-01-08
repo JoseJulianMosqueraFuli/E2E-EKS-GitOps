@@ -1,0 +1,176 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: ml-monitoring
+  labels:
+    name: ml-monitoring
+    app.kubernetes.io/part-of: mlops-stack
+
+---
+# ConfigMap for monitoring configuration
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: evidently-config
+  namespace: ml-monitoring
+data:
+  config.yaml: |
+    monitoring:
+      drift_threshold: 0.05
+      check_interval_minutes: 60
+      alert_on_drift: true
+      
+    storage:
+      reports_path: /data/reports
+      reference_data_path: /data/reference
+      
+    prometheus:
+      enabled: true
+      pushgateway_url: http://prometheus-pushgateway.monitoring:9091
+      
+    alerting:
+      enabled: true
+      slack_webhook_url: ""  # Configure via secret
+      email_recipients: []
+
+---
+# PVC for storing reference data and reports
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: evidently-data-pvc
+  namespace: ml-monitoring
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 20Gi
+  storageClassName: gp3
+
+---
+# Deployment for the monitoring service
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: evidently-monitoring
+  namespace: ml-monitoring
+  labels:
+    app: evidently-monitoring
+    app.kubernetes.io/name: evidently-monitoring
+    app.kubernetes.io/component: monitoring
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: evidently-monitoring
+  template:
+    metadata:
+      labels:
+        app: evidently-monitoring
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8080"
+        prometheus.io/path: "/metrics"
+    spec:
+      serviceAccountName: evidently-monitoring
+      containers:
+        - name: evidently-monitoring
+          image: ${ECR_REGISTRY}/ml-monitoring:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 8080
+              name: http
+          env:
+            - name: PORT
+              value: "8080"
+            - name: LOG_LEVEL
+              value: "INFO"
+            - name: PROMETHEUS_PUSHGATEWAY
+              value: "http://prometheus-pushgateway.monitoring:9091"
+          resources:
+            requests:
+              memory: "512Mi"
+              cpu: "250m"
+            limits:
+              memory: "2Gi"
+              cpu: "1000m"
+          volumeMounts:
+            - name: data
+              mountPath: /data
+            - name: config
+              mountPath: /app/config
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8080
+            initialDelaySeconds: 30
+            periodSeconds: 30
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8080
+            initialDelaySeconds: 10
+            periodSeconds: 10
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: evidently-data-pvc
+        - name: config
+          configMap:
+            name: evidently-config
+
+---
+# Service for the monitoring API
+apiVersion: v1
+kind: Service
+metadata:
+  name: evidently-monitoring
+  namespace: ml-monitoring
+  labels:
+    app: evidently-monitoring
+spec:
+  selector:
+    app: evidently-monitoring
+  ports:
+    - port: 8080
+      targetPort: 8080
+      name: http
+
+---
+# ServiceAccount
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: evidently-monitoring
+  namespace: ml-monitoring
+
+---
+# RBAC for accessing model data
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: evidently-monitoring
+  namespace: ml-monitoring
+rules:
+  - apiGroups: [""]
+    resources: ["configmaps", "secrets"]
+    verbs: ["get", "list"]
+  - apiGroups: [""]
+    resources: ["pods"]
+    verbs: ["get", "list", "watch"]
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: evidently-monitoring
+  namespace: ml-monitoring
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: evidently-monitoring
+subjects:
+  - kind: ServiceAccount
+    name: evidently-monitoring
+    namespace: ml-monitoring

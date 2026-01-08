@@ -97,6 +97,34 @@ data:
         - source_labels: [__meta_kubernetes_service_label_app]
           action: keep
           regex: ml-pipeline.*
+      
+      # Evidently ML Monitoring
+      - job_name: 'evidently-monitoring'
+        static_configs:
+        - targets: ['evidently-monitoring.ml-monitoring:8080']
+        metrics_path: /metrics
+        scrape_interval: 30s
+      
+      # ML Model Drift Metrics (from pods with annotation)
+      - job_name: 'ml-drift-metrics'
+        kubernetes_sd_configs:
+        - role: pod
+          namespaces:
+            names:
+            - ml-monitoring
+        relabel_configs:
+        - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_scrape]
+          action: keep
+          regex: true
+        - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_path]
+          action: replace
+          target_label: __metrics_path__
+          regex: (.+)
+        - source_labels: [__address__, __meta_kubernetes_pod_annotation_prometheus_io_port]
+          action: replace
+          regex: ([^:]+)(?::\d+)?;(\d+)
+          replacement: $1:$2
+          target_label: __address__
 
 ---
 # Prometheus Deployment
