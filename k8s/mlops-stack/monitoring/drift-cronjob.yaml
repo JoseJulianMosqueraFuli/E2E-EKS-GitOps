@@ -1,0 +1,110 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: drift-detection-job
+  namespace: ml-monitoring
+  labels:
+    app: drift-detection
+    app.kubernetes.io/name: drift-detection
+    app.kubernetes.io/component: monitoring
+spec:
+  # Run every hour
+  schedule: "0 * * * *"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      backoffLimit: 2
+      activeDeadlineSeconds: 1800 # 30 minutes timeout
+      template:
+        metadata:
+          labels:
+            app: drift-detection
+          annotations:
+            prometheus.io/scrape: "true"
+            prometheus.io/port: "8000"
+        spec:
+          serviceAccountName: evidently-monitoring
+          restartPolicy: OnFailure
+          containers:
+            - name: drift-detector
+              image: ${ECR_REGISTRY}/ml-monitoring:latest
+              command:
+                - python
+                - -m
+                - monitoring.run_drift_check
+              env:
+                - name: MONITORING_SERVICE_URL
+                  value: "http://evidently-monitoring.ml-monitoring:8080"
+                - name: PROMETHEUS_PUSHGATEWAY
+                  value: "http://prometheus-pushgateway.monitoring:9091"
+                - name: S3_BUCKET
+                  valueFrom:
+                    configMapKeyRef:
+                      name: evidently-config
+                      key: s3_bucket
+                      optional: true
+                - name: SLACK_WEBHOOK_URL
+                  valueFrom:
+                    secretKeyRef:
+                      name: monitoring-secrets
+                      key: slack-webhook-url
+                      optional: true
+              resources:
+                requests:
+                  memory: "1Gi"
+                  cpu: "500m"
+                limits:
+                  memory: "4Gi"
+                  cpu: "2000m"
+              volumeMounts:
+                - name: data
+                  mountPath: /data
+          volumes:
+            - name: data
+              persistentVolumeClaim:
+                claimName: evidently-data-pvc
+
+---
+# ConfigMap for drift detection settings
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: drift-detection-config
+  namespace: ml-monitoring
+data:
+  models.yaml: |
+    # List of models to monitor
+    models:
+      - name: fraud-detection
+        version: "1.0"
+        type: classification
+        reference_data: s3://ml-data/reference/fraud-detection/reference.parquet
+        current_data_query: |
+          SELECT * FROM predictions 
+          WHERE model_name = 'fraud-detection' 
+          AND timestamp > NOW() - INTERVAL '1 hour'
+        
+      - name: churn-prediction
+        version: "2.1"
+        type: classification
+        reference_data: s3://ml-data/reference/churn-prediction/reference.parquet
+        
+    # Global settings
+    settings:
+      drift_threshold: 0.05
+      alert_on_critical: true
+      generate_reports: true
+      report_retention_days: 30
+
+---
+# Secret for sensitive monitoring config (create manually or via External Secrets)
+# apiVersion: v1
+# kind: Secret
+# metadata:
+#   name: monitoring-secrets
+#   namespace: ml-monitoring
+# type: Opaque
+# stringData:
+#   slack-webhook-url: "https://hooks.slack.com/services/xxx"
