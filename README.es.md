@@ -6,11 +6,49 @@
 
 [English](README.md) | Español
 
-Plataforma MLOps lista para producción sobre Amazon EKS con GitOps. Entrena, despliega y monitorea modelos ML a escala.
+Plataforma MLOps completa sobre Amazon EKS. Desde entrenamiento hasta producción con monitoreo incluido.
+
+> **Nota**: ~~GitOps~~ - Integración con ArgoCD próximamente.
+
+## Qué es esto?
+
+Un setup completo para correr workloads de ML en Kubernetes:
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│                         Tu Workflow de ML                           │
+├─────────────────────────────────────────────────────────────────────┤
+│                                                                     │
+│   Entrenar ──► Registrar en MLflow ──► Deploy en KServe ──► Monitorear
+│       │                │                     │                 │    │
+│       ▼                ▼                     ▼                 ▼    │
+│   ┌─────────┐    ┌───────────┐        ┌───────────┐    ┌─────────┐ │
+│   │Kubeflow │    │  MLflow   │        │  KServe   │    │ Grafana │ │
+│   │Pipelines│    │  Registry │        │  Serving  │    │Evidently│ │
+│   └─────────┘    └───────────┘        └───────────┘    └─────────┘ │
+│                                                                     │
+├─────────────────────────────────────────────────────────────────────┤
+│                    Amazon EKS (Terraform)                           │
+│         VPC │ EKS │ S3 │ ECR │ Glue │ KMS │ IAM                    │
+└─────────────────────────────────────────────────────────────────────┘
+```
+
+## Qué obtienes
+
+| Componente               | Propósito                                            |
+| ------------------------ | ---------------------------------------------------- |
+| **Módulos Terraform**    | VPC, EKS, S3, ECR, Glue - reutilizables y testeados  |
+| **Plataforma ML**        | Modelos listos para usar, pipelines de training, CLI |
+| **MLflow**               | Trackear experimentos, registrar modelos             |
+| **Kubeflow**             | Orquestar workflows de ML                            |
+| **KServe**               | Servir modelos con autoscaling                       |
+| **Prometheus + Grafana** | Métricas y dashboards                                |
+| **Evidently**            | Detectar data drift automáticamente                  |
+| **Multi-ambiente**       | Configs para dev, staging, prod                      |
+| **Templates CI/CD**      | GitHub Actions, GitLab, CircleCI, Jenkins            |
 
 ## Tabla de Contenidos
 
-- [Características](#características)
 - [Requisitos](#requisitos)
 - [Inicio Rápido](#inicio-rápido)
 - [Estructura del Proyecto](#estructura-del-proyecto)
@@ -18,15 +56,6 @@ Plataforma MLOps lista para producción sobre Amazon EKS con GitOps. Entrena, de
 - [Documentación](#documentación)
 - [Contribuir](#contribuir)
 - [Licencia](#licencia)
-
-## Características
-
-- **Infraestructura como Código**: Módulos Terraform para VPC, EKS, S3, ECR, Glue
-- **Plataforma ML**: Modelos de clasificación/regresión, pipelines de entrenamiento, CLI
-- **Stack MLOps**: MLflow, Kubeflow, KServe, Prometheus, Grafana
-- **Monitoreo de Modelos**: Detección de data drift con Evidently, dashboards pre-configurados
-- **Multi-ambiente**: Configuraciones para dev, staging, producción
-- **CI/CD**: GitHub Actions, GitLab CI, CircleCI, Jenkins
 
 ## Requisitos
 
