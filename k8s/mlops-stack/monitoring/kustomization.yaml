@@ -19,6 +19,9 @@ configMapGenerator:
   - name: grafana-dashboards
     files:
       - dashboards/ml-monitoring-dashboard.json
+      - dashboards/mlflow-dashboard.json
+      - dashboards/kserve-dashboard.json
+      - dashboards/model-metrics-dashboard.json
 
 generatorOptions:
   disableNameSuffixHash: true
