@@ -1,0 +1,37 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: argocd-server
+  namespace: argocd
+spec:
+  template:
+    spec:
+      containers:
+        - name: argocd-server
+          args:
+            - /usr/local/bin/argocd-server
+            - --staticassets
+            - /shared/app
+            - --repo-server
+            - argocd-repo-server:8081
+            - --dex-server
+            - http://argocd-dex-server:5556
+            - --logformat
+            - json
+            - --loglevel
+            - info
+            - --redis
+            - argocd-redis:6379
+            - --insecure
+          env:
+            - name: ARGOCD_SERVER_INSECURE
+              value: "true"
+            - name: ARGOCD_SERVER_ROOTPATH
+              value: /argocd
+          resources:
+            limits:
+              cpu: 500m
+              memory: 256Mi
+            requests:
+              cpu: 50m
+              memory: 64Mi
