@@ -1,0 +1,100 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: kustomize-controller
+  namespace: flux-system
+  labels:
+    app.kubernetes.io/name: kustomize-controller
+    app.kubernetes.io/component: kustomize-controller
+    app.kubernetes.io/part-of: flux
+    control-plane: controller
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: kustomize-controller
+  template:
+    metadata:
+      labels:
+        app: kustomize-controller
+    spec:
+      serviceAccountName: kustomize-controller
+      securityContext:
+        fsGroup: 1337
+      containers:
+        - name: manager
+          image: ghcr.io/fluxcd/kustomize-controller:v1.2.2
+          imagePullPolicy: IfNotPresent
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+            readOnlyRootFilesystem: true
+            runAsNonRoot: true
+            runAsUser: 65534
+            seccompProfile:
+              type: RuntimeDefault
+          ports:
+            - containerPort: 8080
+              name: http-prom
+              protocol: TCP
+            - containerPort: 9440
+              name: healthz
+              protocol: TCP
+          env:
+            - name: RUNTIME_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+          args:
+            - --events-addr=http://notification-controller.flux-system.svc.cluster.local./
+            - --watch-all-namespaces=true
+            - --log-level=info
+            - --log-encoding=json
+            - --enable-leader-election
+            - --concurrent=4
+            - --kube-api-qps=500
+            - --kube-api-burst=1000
+            - --requeue-dependency=30s
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: healthz
+          readinessProbe:
+            httpGet:
+              path: /readyz
+              port: healthz
+          resources:
+            limits:
+              cpu: 1000m
+              memory: 1Gi
+            requests:
+              cpu: 100m
+              memory: 64Mi
+          volumeMounts:
+            - name: temp
+              mountPath: /tmp
+      volumes:
+        - name: temp
+          emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: kustomize-controller
+  namespace: flux-system
+  labels:
+    app.kubernetes.io/name: kustomize-controller
+    app.kubernetes.io/component: kustomize-controller
+    app.kubernetes.io/part-of: flux
+    control-plane: controller
+spec:
+  type: ClusterIP
+  ports:
+    - name: http
+      port: 80
+      protocol: TCP
+      targetPort: http-prom
+  selector:
+    app: kustomize-controller
