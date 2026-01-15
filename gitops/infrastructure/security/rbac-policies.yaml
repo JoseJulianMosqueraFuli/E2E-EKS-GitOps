@@ -1,0 +1,78 @@
+---
+# RBAC Policies for GitOps Controllers
+# These policies define the permissions for Flux and ArgoCD service accounts
+
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: gitops-admin
+  namespace: flux-system
+  labels:
+    app.kubernetes.io/part-of: gitops
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: gitops-admin
+  labels:
+    app.kubernetes.io/part-of: gitops
+rules:
+  # Full access to GitOps resources
+  - apiGroups: ["source.toolkit.fluxcd.io"]
+    resources: ["*"]
+    verbs: ["*"]
+  - apiGroups: ["kustomize.toolkit.fluxcd.io"]
+    resources: ["*"]
+    verbs: ["*"]
+  - apiGroups: ["helm.toolkit.fluxcd.io"]
+    resources: ["*"]
+    verbs: ["*"]
+  - apiGroups: ["notification.toolkit.fluxcd.io"]
+    resources: ["*"]
+    verbs: ["*"]
+  - apiGroups: ["argoproj.io"]
+    resources: ["*"]
+    verbs: ["*"]
+  # Read access to cluster resources
+  - apiGroups: [""]
+    resources: ["namespaces", "configmaps", "secrets", "services"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["apps"]
+    resources: ["deployments", "statefulsets", "daemonsets"]
+    verbs: ["get", "list", "watch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: gitops-admin
+  labels:
+    app.kubernetes.io/part-of: gitops
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: gitops-admin
+subjects:
+  - kind: ServiceAccount
+    name: gitops-admin
+    namespace: flux-system
+---
+# Read-only role for GitOps monitoring
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: gitops-viewer
+  labels:
+    app.kubernetes.io/part-of: gitops
+rules:
+  - apiGroups: ["source.toolkit.fluxcd.io"]
+    resources: ["*"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["kustomize.toolkit.fluxcd.io"]
+    resources: ["*"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["helm.toolkit.fluxcd.io"]
+    resources: ["*"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["argoproj.io"]
+    resources: ["applications", "appprojects"]
+    verbs: ["get", "list", "watch"]

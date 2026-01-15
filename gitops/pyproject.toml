@@ -8,29 +8,32 @@ license = "MIT"
 
 [tool.poetry.dependencies]
 python = "^3.9"
-# Kubernetes clients
+# Kubernetes clients (PRODUCTION)
 kubernetes = "^28.1.0"
 pyyaml = "^6.0.1"
-# Testing
-hypothesis = "^6.92.0"
-pytest = "^7.4.0"
-pytest-asyncio = "^0.21.0"
-# Utilities
+# Utilities (PRODUCTION)
 requests = "^2.31.0"
 click = "^8.1.7"
 jinja2 = "^3.1.2"
 
+[tool.poetry.group.test.dependencies]
+# Testing dependencies (only for CI/CD and development)
+hypothesis = "^6.92.0"
+pytest = "^7.4.0"
+pytest-asyncio = "^0.21.0"
+pytest-cov = "^4.1.0"
+pytest-xdist = "^3.5.0"
+
 [tool.poetry.group.dev.dependencies]
-# Code quality
+# Code quality tools (only for development)
 black = "^23.12.0"
 isort = "^5.13.0"
 flake8 = "^6.1.0"
 mypy = "^1.7.0"
 pylint = "^3.0.3"
-# Testing
-pytest-cov = "^4.1.0"
-pytest-xdist = "^3.5.0"
-# Documentation
+
+[tool.poetry.group.docs.dependencies]
+# Documentation tools (only for building docs)
 mkdocs = "^1.5.3"
 mkdocs-material = "^9.5.3"
 
