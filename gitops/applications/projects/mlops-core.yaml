@@ -1,0 +1,48 @@
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: mlops-core
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  description: Core MLOps platform applications
+
+  sourceRepos:
+    - "*"
+
+  destinations:
+    - namespace: mlflow
+      server: https://kubernetes.default.svc
+    - namespace: kubeflow
+      server: https://kubernetes.default.svc
+    - namespace: kserve
+      server: https://kubernetes.default.svc
+    - namespace: monitoring
+      server: https://kubernetes.default.svc
+    - namespace: argocd
+      server: https://kubernetes.default.svc
+
+  clusterResourceWhitelist:
+    - group: "*"
+      kind: "*"
+
+  namespaceResourceWhitelist:
+    - group: "*"
+      kind: "*"
+
+  roles:
+    - name: mlops-admin
+      description: Admin role for MLOps applications
+      policies:
+        - p, proj:mlops-core:mlops-admin, applications, *, mlops-core/*, allow
+      groups:
+        - mlops-admins
+
+    - name: mlops-developer
+      description: Developer role for MLOps applications
+      policies:
+        - p, proj:mlops-core:mlops-developer, applications, get, mlops-core/*, allow
+        - p, proj:mlops-core:mlops-developer, applications, sync, mlops-core/*, allow
+      groups:
+        - mlops-developers
