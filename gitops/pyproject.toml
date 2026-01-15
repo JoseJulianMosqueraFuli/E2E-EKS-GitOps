@@ -1,0 +1,117 @@
+[tool.poetry]
+name = "gitops-mlops-platform"
+version = "0.1.0"
+description = "GitOps implementation for MLOps platform using ArgoCD and Flux v2"
+authors = ["MLOps Platform Team"]
+readme = "README.md"
+license = "MIT"
+
+[tool.poetry.dependencies]
+python = "^3.9"
+# Kubernetes clients
+kubernetes = "^28.1.0"
+pyyaml = "^6.0.1"
+# Testing
+hypothesis = "^6.92.0"
+pytest = "^7.4.0"
+pytest-asyncio = "^0.21.0"
+# Utilities
+requests = "^2.31.0"
+click = "^8.1.7"
+jinja2 = "^3.1.2"
+
+[tool.poetry.group.dev.dependencies]
+# Code quality
+black = "^23.12.0"
+isort = "^5.13.0"
+flake8 = "^6.1.0"
+mypy = "^1.7.0"
+pylint = "^3.0.3"
+# Testing
+pytest-cov = "^4.1.0"
+pytest-xdist = "^3.5.0"
+# Documentation
+mkdocs = "^1.5.3"
+mkdocs-material = "^9.5.3"
+
+[tool.poetry.scripts]
+gitops-setup = "scripts.setup:main"
+gitops-test = "tests.run_tests:main"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = "test_*.py"
+python_classes = "Test*"
+python_functions = "test_*"
+markers = [
+    "property: Property-based tests using Hypothesis",
+    "unit: Unit tests for specific scenarios",
+    "integration: Integration tests requiring full cluster",
+    "slow: Tests that take a long time to run",
+]
+addopts = [
+    "-v",
+    "--tb=short",
+    "--strict-markers",
+    "--disable-warnings",
+]
+
+[tool.black]
+line-length = 100
+target-version = ['py39']
+include = '\.pyi?$'
+exclude = '''
+/(
+    \.git
+  | \.venv
+  | \.pytest_cache
+  | __pycache__
+  | build
+  | dist
+)/
+'''
+
+[tool.isort]
+profile = "black"
+line_length = 100
+multi_line_output = 3
+include_trailing_comma = true
+force_grid_wrap = 0
+use_parentheses = true
+ensure_newline_before_comments = true
+
+[tool.mypy]
+python_version = "3.9"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = false
+ignore_missing_imports = true
+exclude = [
+    "tests/",
+    "build/",
+    "dist/",
+]
+
+[tool.coverage.run]
+source = ["scripts", "tests"]
+omit = [
+    "*/tests/*",
+    "*/test_*.py",
+    "*/__pycache__/*",
+]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "raise AssertionError",
+    "raise NotImplementedError",
+    "if __name__ == .__main__.:",
+    "if TYPE_CHECKING:",
+]
+precision = 2
+show_missing = true

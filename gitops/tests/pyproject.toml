@@ -1,0 +1,75 @@
+[tool.poetry]
+name = "gitops-tests"
+version = "0.1.0"
+description = "Property-based tests for GitOps implementation"
+authors = ["MLOps Platform Team"]
+readme = "README.md"
+packages = [{include = "tests"}]
+
+[tool.poetry.dependencies]
+python = "^3.9"
+hypothesis = "^6.92.0"
+pytest = "^7.4.0"
+pytest-asyncio = "^0.21.0"
+kubernetes = "^28.1.0"
+pyyaml = "^6.0.1"
+requests = "^2.31.0"
+
+[tool.poetry.group.dev.dependencies]
+black = "^23.12.0"
+isort = "^5.13.0"
+flake8 = "^6.1.0"
+mypy = "^1.7.0"
+pytest-cov = "^4.1.0"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.pytest.ini_options]
+testpaths = ["."]
+python_files = "test_*.py"
+python_classes = "Test*"
+python_functions = "test_*"
+markers = [
+    "property: Property-based tests using Hypothesis",
+    "unit: Unit tests for specific scenarios",
+    "integration: Integration tests requiring full cluster",
+    "slow: Tests that take a long time to run",
+]
+addopts = [
+    "-v",
+    "--tb=short",
+    "--strict-markers",
+    "--disable-warnings",
+]
+
+[tool.black]
+line-length = 100
+target-version = ['py39']
+include = '\.pyi?$'
+
+[tool.isort]
+profile = "black"
+line_length = 100
+multi_line_output = 3
+
+[tool.mypy]
+python_version = "3.9"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = false
+ignore_missing_imports = true
+
+[tool.coverage.run]
+source = ["."]
+omit = ["*/tests/*", "*/test_*.py"]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "raise AssertionError",
+    "raise NotImplementedError",
+    "if __name__ == .__main__.:",
+]
