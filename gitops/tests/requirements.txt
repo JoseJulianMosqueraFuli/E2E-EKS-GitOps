@@ -1,0 +1,7 @@
+# Testing dependencies for GitOps implementation
+hypothesis>=6.92.0
+pytest>=7.4.0
+pytest-asyncio>=0.21.0
+kubernetes>=28.1.0
+pyyaml>=6.0.1
+requests>=2.31.0
