@@ -1,0 +1,24 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: cluster-config
+  namespace: flux-system
+data:
+  environment: "production"
+  cluster_name: "mlops-production-cluster"
+  region: "us-west-2"
+  domain: "mlops.company.com"
+  monitoring_enabled: "true"
+  backup_enabled: "true"
+  log_level: "warn"
+  sync_interval: "10m"
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: environment-vars
+  namespace: flux-system
+data:
+  AWS_REGION: "us-west-2"
+  CLUSTER_NAME: "mlops-production-cluster"
+  ENVIRONMENT: "production"
