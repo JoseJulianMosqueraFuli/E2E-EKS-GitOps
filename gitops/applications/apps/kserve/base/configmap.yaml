@@ -1,0 +1,25 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: kserve-config
+  namespace: kserve
+data:
+  inferenceservice_config: |
+    {
+      "storageInitializer": {
+        "image": "kserve/storage-initializer:v0.11.0",
+        "memoryRequest": "100Mi",
+        "memoryLimit": "1Gi",
+        "cpuRequest": "100m",
+        "cpuLimit": "1"
+      },
+      "credentials": {
+        "gcs": {
+          "gcsCredentialFileName": "gcloud-application-credentials.json"
+        },
+        "s3": {
+          "s3AccessKeyIDName": "AWS_ACCESS_KEY_ID",
+          "s3SecretAccessKeyName": "AWS_SECRET_ACCESS_KEY"
+        }
+      }
+    }
