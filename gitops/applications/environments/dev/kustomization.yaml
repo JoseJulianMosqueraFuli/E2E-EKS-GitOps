@@ -4,11 +4,13 @@ kind: Kustomization
 namespace: argocd
 
 resources:
-  - ../../projects/mlops-core.yaml
+  - mlflow-application.yaml
+  - kubeflow-application.yaml
+  - kserve-application.yaml
+  - monitoring-application.yaml
 
-commonLabels:
-  environment: dev
-  managed-by: argocd
-
-commonAnnotations:
-  argocd.argoproj.io/sync-wave: "0"
+labels:
+  - pairs:
+      environment: dev
+      managed-by: argocd
+    includeSelectors: false
