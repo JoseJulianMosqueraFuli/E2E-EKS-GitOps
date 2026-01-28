@@ -6,8 +6,10 @@ resources:
 
 namePrefix: dev-
 
-commonLabels:
-  environment: dev
+labels:
+  - pairs:
+      environment: dev
+    includeSelectors: false
 
 patches:
   - patch: |
