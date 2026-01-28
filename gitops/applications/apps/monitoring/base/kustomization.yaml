@@ -8,7 +8,9 @@ resources:
   - configmap.yaml
   - serviceaccount.yaml
 
-commonLabels:
-  app.kubernetes.io/name: monitoring
-  app.kubernetes.io/component: observability
-  app.kubernetes.io/part-of: mlops-platform
+labels:
+  - pairs:
+      app.kubernetes.io/name: monitoring
+      app.kubernetes.io/component: observability
+      app.kubernetes.io/part-of: mlops-platform
+    includeSelectors: false
