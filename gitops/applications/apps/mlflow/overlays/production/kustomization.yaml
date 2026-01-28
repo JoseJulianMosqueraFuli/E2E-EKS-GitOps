@@ -6,8 +6,10 @@ resources:
 
 namePrefix: prod-
 
-commonLabels:
-  environment: production
+labels:
+  - pairs:
+      environment: production
+    includeSelectors: false
 
 patches:
   - patch: |
@@ -33,9 +35,10 @@ patches:
     target:
       kind: Deployment
       name: mlflow-server
-
-configMapGenerator:
-  - name: mlflow-config
-    behavior: merge
-    literals:
-      - artifact_root=s3://mlflow-artifacts-production
+  - patch: |
+      - op: replace
+        path: /data/artifact_root
+        value: s3://mlflow-artifacts-production
+    target:
+      kind: ConfigMap
+      name: mlflow-config

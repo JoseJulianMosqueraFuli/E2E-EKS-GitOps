@@ -8,7 +8,9 @@ resources:
   - configmap.yaml
   - serviceaccount.yaml
 
-commonLabels:
-  app.kubernetes.io/name: mlflow
-  app.kubernetes.io/component: tracking-server
-  app.kubernetes.io/part-of: mlops-platform
+labels:
+  - pairs:
+      app.kubernetes.io/name: mlflow
+      app.kubernetes.io/component: tracking-server
+      app.kubernetes.io/part-of: mlops-platform
+    includeSelectors: false
