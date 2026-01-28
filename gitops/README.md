@@ -43,6 +43,19 @@ gitops/
 
 ## Quick Start
 
+### 0. Install Dependencies (Poetry)
+
+```bash
+# Install Poetry (if not already installed)
+curl -sSL https://install.python-poetry.org | python3 -
+
+# Install project dependencies
+poetry install
+
+# Or use pip (alternative)
+pip install -r tests/requirements.txt
+```
+
 ### 1. Install GitOps Controllers
 
 ```bash
@@ -67,7 +80,7 @@ kubectl get pods -n argocd
 # Run property-based tests
 cd ../tests
 ./setup_test_env.sh
-pytest -m property
+poetry run pytest -m property
 ```
 
 ### 3. Access ArgoCD UI
