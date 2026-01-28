@@ -7,7 +7,9 @@ resources:
   - configmap.yaml
   - serviceaccount.yaml
 
-commonLabels:
-  app.kubernetes.io/name: kubeflow
-  app.kubernetes.io/component: pipelines
-  app.kubernetes.io/part-of: mlops-platform
+labels:
+  - pairs:
+      app.kubernetes.io/name: kubeflow
+      app.kubernetes.io/component: pipelines
+      app.kubernetes.io/part-of: mlops-platform
+    includeSelectors: false

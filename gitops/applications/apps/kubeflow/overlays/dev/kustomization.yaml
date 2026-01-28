@@ -6,11 +6,16 @@ resources:
 
 namePrefix: dev-
 
-commonLabels:
-  environment: dev
+labels:
+  - pairs:
+      environment: dev
+    includeSelectors: false
 
-configMapGenerator:
-  - name: kubeflow-config
-    behavior: merge
-    literals:
-      - bucket_name=kubeflow-pipelines-dev
+patches:
+  - patch: |
+      - op: replace
+        path: /data/bucket_name
+        value: kubeflow-pipelines-dev
+    target:
+      kind: ConfigMap
+      name: kubeflow-config

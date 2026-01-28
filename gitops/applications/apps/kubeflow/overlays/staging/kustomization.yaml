@@ -6,11 +6,16 @@ resources:
 
 namePrefix: staging-
 
-commonLabels:
-  environment: staging
+labels:
+  - pairs:
+      environment: staging
+    includeSelectors: false
 
-configMapGenerator:
-  - name: kubeflow-config
-    behavior: merge
-    literals:
-      - bucket_name=kubeflow-pipelines-staging
+patches:
+  - patch: |
+      - op: replace
+        path: /data/bucket_name
+        value: kubeflow-pipelines-staging
+    target:
+      kind: ConfigMap
+      name: kubeflow-config
