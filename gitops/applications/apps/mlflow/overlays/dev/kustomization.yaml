@@ -1,0 +1,25 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - ../../base
+
+namePrefix: dev-
+
+commonLabels:
+  environment: dev
+
+patches:
+  - patch: |
+      - op: replace
+        path: /spec/replicas
+        value: 1
+    target:
+      kind: Deployment
+      name: mlflow-server
+
+configMapGenerator:
+  - name: mlflow-config
+    behavior: merge
+    literals:
+      - artifact_root=s3://mlflow-artifacts-dev
