@@ -1,0 +1,48 @@
+apiVersion: source.toolkit.fluxcd.io/v1
+kind: GitRepository
+metadata:
+  name: infrastructure-repo
+  namespace: flux-system
+spec:
+  interval: 5m
+  url: https://github.com/org/gitops-infrastructure
+  ref:
+    branch: main
+  secretRef:
+    name: git-credentials
+  ignore: |
+    # Exclude files not needed for deployment
+    /**/README.md
+    /**/docs/
+    /**/.git/
+---
+apiVersion: source.toolkit.fluxcd.io/v1
+kind: GitRepository
+metadata:
+  name: applications-repo
+  namespace: flux-system
+spec:
+  interval: 5m
+  url: https://github.com/org/gitops-applications
+  ref:
+    branch: main
+  secretRef:
+    name: git-credentials
+  ignore: |
+    # Exclude files not needed for deployment
+    /**/README.md
+    /**/docs/
+    /**/.git/
+---
+apiVersion: source.toolkit.fluxcd.io/v1
+kind: GitRepository
+metadata:
+  name: helm-charts-repo
+  namespace: flux-system
+spec:
+  interval: 10m
+  url: https://github.com/org/mlops-helm-charts
+  ref:
+    branch: main
+  secretRef:
+    name: git-credentials
