@@ -1,0 +1,77 @@
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: mlops-applications
+  namespace: argocd
+spec:
+  generators:
+    - matrix:
+        generators:
+          - list:
+              elements:
+                - app: mlflow
+                  namespace: mlflow
+                  component: tracking-server
+                - app: kubeflow
+                  namespace: kubeflow
+                  component: pipelines
+                - app: kserve
+                  namespace: kserve
+                  component: model-serving
+                - app: monitoring
+                  namespace: monitoring
+                  component: observability
+          - list:
+              elements:
+                - environment: dev
+                  branch: develop
+                  autoSync: "true"
+                  prune: "true"
+                  revisionHistoryLimit: "5"
+                - environment: staging
+                  branch: staging
+                  autoSync: "true"
+                  prune: "true"
+                  revisionHistoryLimit: "10"
+                - environment: production
+                  branch: main
+                  autoSync: "true"
+                  prune: "false"
+                  revisionHistoryLimit: "15"
+  template:
+    metadata:
+      name: "{{app}}-{{environment}}"
+      namespace: argocd
+      labels:
+        app.kubernetes.io/name: "{{app}}"
+        app.kubernetes.io/component: "{{component}}"
+        app.kubernetes.io/part-of: mlops-platform
+        environment: "{{environment}}"
+      finalizers:
+        - resources-finalizer.argocd.argoproj.io
+    spec:
+      project: mlops-core
+      source:
+        repoURL: https://github.com/org/gitops-applications
+        targetRevision: "{{branch}}"
+        path: "apps/{{app}}/overlays/{{environment}}"
+      destination:
+        server: https://kubernetes.default.svc
+        namespace: "{{namespace}}"
+      syncPolicy:
+        automated:
+          prune: "{{prune}}"
+          selfHeal: true
+          allowEmpty: false
+        syncOptions:
+          - CreateNamespace=true
+          - PrunePropagationPolicy=foreground
+          - PruneLast=true
+          - ApplyOutOfSyncOnly=true
+        retry:
+          limit: 5
+          backoff:
+            duration: 5s
+            factor: 2
+            maxDuration: 3m
+      revisionHistoryLimit: "{{revisionHistoryLimit}}"
