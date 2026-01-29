@@ -66,11 +66,25 @@ kubectl >= 1.25
 helm >= 3.0
 aws-cli >= 2.0
 python >= 3.9
+go >= 1.21
 make
 
 # Configurar AWS
 aws configure
 ```
+
+## Dependencias Clave
+
+| Paquete            | Versión | Notas                                          |
+| ------------------ | ------- | ---------------------------------------------- |
+| MLflow             | 3.5.0   | Tracking de experimentos y registro de modelos |
+| Apache Airflow     | 3.1.6   | Orquestación de workflows                      |
+| Feast              | 0.54.0  | Feature store                                  |
+| Prefect            | 2.20.17 | Pipelines de datos                             |
+| KServe             | 0.11.0  | Serving de modelos                             |
+| Kubeflow Pipelines | 2.0.1   | Pipelines de ML                                |
+
+> **Nota de Seguridad**: Todas las dependencias se actualizan regularmente para corregir CVEs. Ver `ml-platform/requirements.txt` para versiones actuales.
 
 ## Inicio Rápido
 
