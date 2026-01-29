@@ -27,8 +27,8 @@ prometheus-client==0.17.1
 grafana-api==1.0.3
 
 # Data Processing
-apache-airflow==2.10.4  # Updated from 2.6.3 to fix CVE proxy credentials leak in task logs
-prefect==2.10.21
+apache-airflow==3.1.6  # Updated to fix CVE-2025-68675 (proxy credentials leak)
+prefect==2.20.17  # Updated to fix CVE-2024-8183 (CORS misconfiguration)
 
 # Feature Store
 feast==0.32.0
