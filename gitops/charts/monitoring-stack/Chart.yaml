@@ -1,0 +1,30 @@
+apiVersion: v2
+name: monitoring-stack
+description: MLOps monitoring stack with Prometheus, Grafana, and Evidently
+type: application
+version: 1.0.0
+appVersion: "1.0.0"
+keywords:
+  - monitoring
+  - prometheus
+  - grafana
+  - evidently
+  - mlops
+  - observability
+home: https://prometheus.io
+sources:
+  - https://github.com/prometheus/prometheus
+  - https://github.com/grafana/grafana
+  - https://github.com/evidentlyai/evidently
+maintainers:
+  - name: MLOps Team
+    email: mlops@company.com
+dependencies:
+  - name: prometheus
+    version: "25.x.x"
+    repository: https://prometheus-community.github.io/helm-charts
+    condition: prometheus.enabled
+  - name: grafana
+    version: "7.x.x"
+    repository: https://grafana.github.io/helm-charts
+    condition: grafana.enabled

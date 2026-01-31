@@ -1,0 +1,22 @@
+{{- if .Values.alertRules.enabled -}}
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: {{ include "monitoring-stack.fullname" . }}-mlops-rules
+  labels:
+    {{- include "monitoring-stack.labels" . | nindent 4 }}
+    app.kubernetes.io/component: prometheus-rules
+spec:
+  groups:
+    - name: mlops.rules
+      rules:
+        {{- range .Values.alertRules.rules }}
+        - alert: {{ .alert }}
+          expr: {{ .expr }}
+          for: {{ .for }}
+          labels:
+            {{- toYaml .labels | nindent 12 }}
+          annotations:
+            {{- toYaml .annotations | nindent 12 }}
+        {{- end }}
+{{- end }}

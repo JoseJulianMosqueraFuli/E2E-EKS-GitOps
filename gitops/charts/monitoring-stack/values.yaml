@@ -1,0 +1,221 @@
+# Monitoring Stack Helm Chart Values
+# Default values for monitoring-stack deployment
+
+# Global settings
+global:
+  imageRegistry: ""
+  imagePullSecrets: []
+
+# Prometheus Configuration (subchart)
+prometheus:
+  enabled: true
+  server:
+    persistentVolume:
+      enabled: true
+      size: 50Gi
+      storageClass: gp3
+    resources:
+      requests:
+        memory: "512Mi"
+        cpu: "500m"
+      limits:
+        memory: "2Gi"
+        cpu: "1000m"
+    retention: "200h"
+    extraFlags:
+      - web.enable-lifecycle
+      - web.enable-admin-api
+
+  alertmanager:
+    enabled: true
+    persistentVolume:
+      enabled: true
+      size: 10Gi
+      storageClass: gp3
+
+  # Additional scrape configs for MLOps components
+  extraScrapeConfigs: |
+    - job_name: 'mlflow'
+      static_configs:
+        - targets: ['mlflow-server.mlflow:5000']
+      metrics_path: /metrics
+
+    - job_name: 'kubeflow-pipelines'
+      kubernetes_sd_configs:
+        - role: service
+          namespaces:
+            names:
+              - kubeflow
+      relabel_configs:
+        - source_labels: [__meta_kubernetes_service_label_app]
+          action: keep
+          regex: ml-pipeline.*
+
+    - job_name: 'evidently-monitoring'
+      static_configs:
+        - targets: ['evidently-monitoring.ml-monitoring:8080']
+      metrics_path: /metrics
+      scrape_interval: 30s
+
+    - job_name: 'kserve-inference'
+      kubernetes_sd_configs:
+        - role: pod
+          namespaces:
+            names:
+              - kserve-system
+      relabel_configs:
+        - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_scrape]
+          action: keep
+          regex: true
+
+# Grafana Configuration (subchart)
+grafana:
+  enabled: true
+  adminPassword: ""
+  persistence:
+    enabled: true
+    size: 10Gi
+    storageClass: gp3
+  resources:
+    requests:
+      memory: "256Mi"
+      cpu: "250m"
+    limits:
+      memory: "512Mi"
+      cpu: "500m"
+
+  # Datasources
+  datasources:
+    datasources.yaml:
+      apiVersion: 1
+      datasources:
+        - name: Prometheus
+          type: prometheus
+          url: http://{{ .Release.Name }}-prometheus-server
+          access: proxy
+          isDefault: true
+
+  # Dashboard providers
+  dashboardProviders:
+    dashboardproviders.yaml:
+      apiVersion: 1
+      providers:
+        - name: "mlops"
+          orgId: 1
+          folder: "MLOps"
+          type: file
+          disableDeletion: false
+          editable: true
+          options:
+            path: /var/lib/grafana/dashboards/mlops
+
+  # Install plugins
+  plugins:
+    - grafana-piechart-panel
+    - grafana-worldmap-panel
+
+# Evidently ML Monitoring Configuration
+evidently:
+  enabled: true
+  image:
+    repository: evidentlyai/evidently-service
+    tag: "latest"
+    pullPolicy: IfNotPresent
+
+  replicaCount: 1
+
+  resources:
+    requests:
+      memory: "512Mi"
+      cpu: "250m"
+    limits:
+      memory: "1Gi"
+      cpu: "500m"
+
+  service:
+    type: ClusterIP
+    port: 8080
+
+  # Configuration for drift detection
+  config:
+    referenceDataPath: "/data/reference"
+    currentDataPath: "/data/current"
+    reportPath: "/data/reports"
+    checkInterval: "1h"
+
+# Drift Detection CronJob
+driftDetection:
+  enabled: true
+  schedule: "0 */6 * * *" # Every 6 hours
+  image:
+    repository: python
+    tag: "3.11-slim"
+    pullPolicy: IfNotPresent
+
+  resources:
+    requests:
+      memory: "512Mi"
+      cpu: "250m"
+    limits:
+      memory: "1Gi"
+      cpu: "500m"
+
+  # S3 configuration for data
+  s3:
+    bucket: "mlops-model-artifacts"
+    referenceDataPrefix: "reference-data"
+    currentDataPrefix: "current-data"
+    region: "us-west-2"
+
+# Alert Rules
+alertRules:
+  enabled: true
+  rules:
+    # Model drift alerts
+    - alert: ModelDriftDetected
+      expr: ml_model_drift_score > 0.3
+      for: 5m
+      labels:
+        severity: warning
+      annotations:
+        summary: "Model drift detected"
+        description: "Model {{ $labels.model_name }} has drift score {{ $value }}"
+
+    # Prediction latency alerts
+    - alert: HighPredictionLatency
+      expr: histogram_quantile(0.95, rate(ml_prediction_latency_seconds_bucket[5m])) > 1
+      for: 5m
+      labels:
+        severity: warning
+      annotations:
+        summary: "High prediction latency"
+        description: "95th percentile latency is {{ $value }}s"
+
+    # Model accuracy alerts
+    - alert: LowModelAccuracy
+      expr: ml_model_accuracy < 0.8
+      for: 10m
+      labels:
+        severity: critical
+      annotations:
+        summary: "Low model accuracy"
+        description: "Model {{ $labels.model_name }} accuracy dropped to {{ $value }}"
+
+# Service Account
+serviceAccount:
+  create: true
+  name: monitoring-stack
+  annotations: {}
+
+# RBAC
+rbac:
+  create: true
+
+# Node selector
+nodeSelector: {}
+
+# Tolerations
+tolerations: []
+
+# Affinity
+affinity: {}
