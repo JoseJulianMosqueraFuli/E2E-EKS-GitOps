@@ -1,0 +1,245 @@
+# ArgoCD Helm Repository Configuration for MLOps Charts
+# This configures ArgoCD to use the local Helm charts repository
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: argocd-cm
+  namespace: argocd
+  labels:
+    app.kubernetes.io/name: argocd-cm
+    app.kubernetes.io/part-of: argocd
+data:
+  # Helm repository configuration
+  helm.repositories: |
+    - name: mlops-charts
+      url: https://org.github.io/mlops-helm-charts
+      type: helm
+    - name: bitnami
+      url: https://charts.bitnami.com/bitnami
+      type: helm
+    - name: prometheus-community
+      url: https://prometheus-community.github.io/helm-charts
+      type: helm
+    - name: grafana
+      url: https://grafana.github.io/helm-charts
+      type: helm
+    - name: jetstack
+      url: https://charts.jetstack.io
+      type: helm
+
+---
+# ArgoCD Repository Secret for private Helm repository (if needed)
+apiVersion: v1
+kind: Secret
+metadata:
+  name: mlops-helm-repo
+  namespace: argocd
+  labels:
+    argocd.argoproj.io/secret-type: repository
+type: Opaque
+stringData:
+  type: helm
+  name: mlops-charts
+  url: https://org.github.io/mlops-helm-charts
+  # For private repositories, add:
+  # username: ""
+  # password: ""
+  # Or for GitHub Pages with token:
+  # githubAppID: ""
+  # githubAppInstallationID: ""
+  # githubAppPrivateKey: ""
+
+---
+# ArgoCD Application for MLflow using Helm chart
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: mlflow-helm
+  namespace: argocd
+  labels:
+    app.kubernetes.io/name: mlflow
+    app.kubernetes.io/component: experiment-tracking
+    environment: dev
+spec:
+  project: mlops-core
+  source:
+    repoURL: https://org.github.io/mlops-helm-charts
+    chart: mlflow
+    targetRevision: 1.0.0
+    helm:
+      releaseName: mlflow
+      valueFiles:
+        - values.yaml
+      values: |
+        mlflow:
+          replicaCount: 2
+          artifacts:
+            root: "s3://mlops-model-artifacts/mlflow-artifacts"
+        postgresql:
+          enabled: true
+          auth:
+            existingSecret: mlflow-postgresql-secret
+        ingress:
+          enabled: true
+          hosts:
+            - host: mlflow.dev.mlops.company.com
+              paths:
+                - path: /
+                  pathType: Prefix
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: mlflow
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+    retry:
+      limit: 5
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m
+
+---
+# ArgoCD Application for KServe using Helm chart
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: kserve-helm
+  namespace: argocd
+  labels:
+    app.kubernetes.io/name: kserve
+    app.kubernetes.io/component: model-serving
+    environment: dev
+spec:
+  project: mlops-core
+  source:
+    repoURL: https://org.github.io/mlops-helm-charts
+    chart: kserve
+    targetRevision: 1.0.0
+    helm:
+      releaseName: kserve
+      values: |
+        controller:
+          replicaCount: 1
+        ingress:
+          ingressDomain: "dev.mlops.company.com"
+        s3:
+          region: "us-west-2"
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: kserve-system
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+    retry:
+      limit: 5
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m
+
+---
+# ArgoCD Application for Kubeflow Pipelines using Helm chart
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: kubeflow-pipelines-helm
+  namespace: argocd
+  labels:
+    app.kubernetes.io/name: kubeflow-pipelines
+    app.kubernetes.io/component: workflow-orchestration
+    environment: dev
+spec:
+  project: mlops-core
+  source:
+    repoURL: https://org.github.io/mlops-helm-charts
+    chart: kubeflow-pipelines
+    targetRevision: 1.0.0
+    helm:
+      releaseName: kubeflow-pipelines
+      values: |
+        mysql:
+          enabled: true
+          auth:
+            existingSecret: kubeflow-mysql-secret
+        minio:
+          enabled: true
+          auth:
+            existingSecret: kubeflow-minio-secret
+        ingress:
+          enabled: true
+          hosts:
+            - host: kubeflow.dev.mlops.company.com
+              paths:
+                - path: /
+                  pathType: Prefix
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: kubeflow
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+    retry:
+      limit: 5
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m
+
+---
+# ArgoCD Application for Monitoring Stack using Helm chart
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: monitoring-stack-helm
+  namespace: argocd
+  labels:
+    app.kubernetes.io/name: monitoring-stack
+    app.kubernetes.io/component: observability
+    environment: dev
+spec:
+  project: mlops-core
+  source:
+    repoURL: https://org.github.io/mlops-helm-charts
+    chart: monitoring-stack
+    targetRevision: 1.0.0
+    helm:
+      releaseName: monitoring-stack
+      values: |
+        prometheus:
+          enabled: true
+          server:
+            retention: "200h"
+        grafana:
+          enabled: true
+          adminPassword: ""  # Use external secret
+        evidently:
+          enabled: true
+        driftDetection:
+          enabled: true
+          schedule: "0 */6 * * *"
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: monitoring
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+    retry:
+      limit: 5
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m
