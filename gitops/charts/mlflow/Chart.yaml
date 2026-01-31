@@ -1,0 +1,22 @@
+apiVersion: v2
+name: mlflow
+description: MLflow tracking server with PostgreSQL backend and S3 artifact storage
+type: application
+version: 1.0.0
+appVersion: "2.8.1"
+keywords:
+  - mlflow
+  - mlops
+  - experiment-tracking
+  - model-registry
+home: https://mlflow.org
+sources:
+  - https://github.com/mlflow/mlflow
+maintainers:
+  - name: MLOps Team
+    email: mlops@company.com
+dependencies:
+  - name: postgresql
+    version: "12.x.x"
+    repository: https://charts.bitnami.com/bitnami
+    condition: postgresql.enabled

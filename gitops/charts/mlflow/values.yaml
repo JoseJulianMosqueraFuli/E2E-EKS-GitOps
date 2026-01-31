@@ -1,0 +1,164 @@
+# MLflow Helm Chart Values
+# Default values for mlflow deployment
+
+# Global settings
+global:
+  imageRegistry: ""
+  imagePullSecrets: []
+
+# MLflow Server Configuration
+mlflow:
+  image:
+    repository: python
+    tag: "3.11-slim"
+    pullPolicy: IfNotPresent
+
+  replicaCount: 2
+
+  # Server configuration
+  server:
+    host: "0.0.0.0"
+    port: 5000
+    workers: 4
+    gunicornOpts: "--timeout 120 --keep-alive 2 --max-requests 1000"
+
+  # Artifact storage configuration
+  artifacts:
+    root: "s3://mlops-model-artifacts/mlflow-artifacts"
+    s3EndpointUrl: "https://s3.us-west-2.amazonaws.com"
+
+  # AWS configuration
+  aws:
+    region: "us-west-2"
+
+  # Resource limits
+  resources:
+    requests:
+      memory: "1Gi"
+      cpu: "500m"
+    limits:
+      memory: "2Gi"
+      cpu: "1000m"
+
+  # Security context
+  securityContext:
+    runAsNonRoot: true
+    runAsUser: 1000
+    fsGroup: 1000
+
+  # Container security context
+  containerSecurityContext:
+    allowPrivilegeEscalation: false
+    capabilities:
+      drop:
+        - ALL
+    readOnlyRootFilesystem: false
+
+  # Health probes
+  livenessProbe:
+    httpGet:
+      path: /health
+      port: http
+    initialDelaySeconds: 60
+    periodSeconds: 30
+    timeoutSeconds: 10
+    failureThreshold: 3
+
+  readinessProbe:
+    httpGet:
+      path: /health
+      port: http
+    initialDelaySeconds: 30
+    periodSeconds: 10
+    timeoutSeconds: 5
+    failureThreshold: 3
+
+# Service Account
+serviceAccount:
+  create: true
+  name: mlflow-sa
+  annotations:
+    eks.amazonaws.com/role-arn: ""
+
+# Service configuration
+service:
+  type: ClusterIP
+  port: 5000
+  annotations:
+    prometheus.io/scrape: "true"
+    prometheus.io/port: "5000"
+    prometheus.io/path: "/metrics"
+
+# Ingress configuration
+ingress:
+  enabled: true
+  className: "alb"
+  annotations:
+    kubernetes.io/ingress.class: "alb"
+    alb.ingress.kubernetes.io/scheme: internet-facing
+    alb.ingress.kubernetes.io/target-type: ip
+    alb.ingress.kubernetes.io/healthcheck-path: /health
+    alb.ingress.kubernetes.io/ssl-redirect: "443"
+  hosts:
+    - host: mlflow.mlops.company.com
+      paths:
+        - path: /
+          pathType: Prefix
+  tls: []
+
+# PostgreSQL configuration (Bitnami subchart)
+postgresql:
+  enabled: true
+  auth:
+    username: mlflow
+    password: ""
+    database: mlflow
+    existingSecret: ""
+  primary:
+    persistence:
+      enabled: true
+      size: 20Gi
+      storageClass: gp3
+    resources:
+      requests:
+        memory: "512Mi"
+        cpu: "250m"
+      limits:
+        memory: "1Gi"
+        cpu: "500m"
+
+# External database configuration (when postgresql.enabled=false)
+externalDatabase:
+  host: ""
+  port: 5432
+  user: mlflow
+  password: ""
+  database: mlflow
+  existingSecret: ""
+  existingSecretPasswordKey: postgres-password
+
+# RBAC configuration
+rbac:
+  create: true
+
+# Pod Disruption Budget
+podDisruptionBudget:
+  enabled: true
+  minAvailable: 1
+
+# Horizontal Pod Autoscaler
+autoscaling:
+  enabled: false
+  minReplicas: 2
+  maxReplicas: 10
+  targetCPUUtilizationPercentage: 80
+  targetMemoryUtilizationPercentage: 80
+
+# Node selector
+nodeSelector: {}
+
+# Tolerations
+tolerations: []
+
+# Affinity
+affinity: {}

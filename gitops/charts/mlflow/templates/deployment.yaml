@@ -1,0 +1,97 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "mlflow.fullname" . }}-server
+  labels:
+    {{- include "mlflow.labels" . | nindent 4 }}
+    app.kubernetes.io/component: server
+spec:
+  replicas: {{ .Values.mlflow.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "mlflow.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: server
+  template:
+    metadata:
+      labels:
+        {{- include "mlflow.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: server
+    spec:
+      serviceAccountName: {{ include "mlflow.serviceAccountName" . }}
+      securityContext:
+        {{- toYaml .Values.mlflow.securityContext | nindent 8 }}
+      initContainers:
+        - name: wait-for-postgres
+          image: postgres:15-alpine
+          command:
+            - /bin/sh
+            - -c
+            - |
+              until pg_isready -h {{ include "mlflow.databaseHost" . }} -p {{ include "mlflow.databasePort" . }} -U {{ include "mlflow.databaseUser" . }}; do
+                echo "Waiting for PostgreSQL to be ready..."
+                sleep 2
+              done
+          env:
+            - name: PGPASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "mlflow.databaseSecretName" . }}
+                  key: {{ include "mlflow.databaseSecretKey" . }}
+      containers:
+        - name: mlflow-server
+          image: "{{ .Values.mlflow.image.repository }}:{{ .Values.mlflow.image.tag }}"
+          imagePullPolicy: {{ .Values.mlflow.image.pullPolicy }}
+          command:
+            - /bin/bash
+            - -c
+            - |
+              set -e
+              pip install --no-cache-dir \
+                mlflow[extras]=={{ .Chart.AppVersion }} \
+                psycopg2-binary \
+                boto3 \
+                cryptography
+              
+              exec mlflow server \
+                --backend-store-uri "postgresql://$(DB_USER):$(DB_PASSWORD)@{{ include "mlflow.databaseHost" . }}:{{ include "mlflow.databasePort" . }}/{{ include "mlflow.databaseName" . }}" \
+                --default-artifact-root "{{ .Values.mlflow.artifacts.root }}" \
+                --host "{{ .Values.mlflow.server.host }}" \
+                --port "{{ .Values.mlflow.server.port }}" \
+                --workers "{{ .Values.mlflow.server.workers }}" \
+                --gunicorn-opts "{{ .Values.mlflow.server.gunicornOpts }}"
+          ports:
+            - name: http
+              containerPort: {{ .Values.mlflow.server.port }}
+              protocol: TCP
+          env:
+            - name: DB_USER
+              value: {{ include "mlflow.databaseUser" . }}
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "mlflow.databaseSecretName" . }}
+                  key: {{ include "mlflow.databaseSecretKey" . }}
+            - name: AWS_DEFAULT_REGION
+              value: {{ .Values.mlflow.aws.region }}
+            - name: MLFLOW_S3_ENDPOINT_URL
+              value: {{ .Values.mlflow.artifacts.s3EndpointUrl }}
+          resources:
+            {{- toYaml .Values.mlflow.resources | nindent 12 }}
+          livenessProbe:
+            {{- toYaml .Values.mlflow.livenessProbe | nindent 12 }}
+          readinessProbe:
+            {{- toYaml .Values.mlflow.readinessProbe | nindent 12 }}
+          securityContext:
+            {{- toYaml .Values.mlflow.containerSecurityContext | nindent 12 }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
