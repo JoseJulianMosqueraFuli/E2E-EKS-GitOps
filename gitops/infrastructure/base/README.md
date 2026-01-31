@@ -1,13 +1,36 @@
-# Infrastructure Base Configurations
+# Infrastructure Base
 
-This directory contains base Flux configurations for infrastructure management.
+This directory contains base infrastructure configurations that are shared across all environments.
 
-## Components
+## Structure
 
-- **sources**: Git repository and Helm repository sources
-- **kustomizations**: Base kustomization configurations
-- **policies**: Security and network policies
+```
+base/
+├── README.md
+├── cluster-addons/          # AWS cluster addons (ALB, EBS CSI, etc.)
+├── networking/              # Istio, ingress controllers
+└── common/                  # Common configurations
+```
 
 ## Usage
 
-These base configurations are referenced by environment-specific overlays in the `environments/` directory.
+Base configurations are referenced by environment-specific overlays in the `clusters/` directory.
+
+## Components
+
+### Cluster Addons
+
+- AWS Load Balancer Controller
+- EBS CSI Driver
+- Cluster Autoscaler
+
+### Networking
+
+- Istio Service Mesh
+- Ingress Controllers
+- Network Policies
+
+### Common
+
+- Shared ConfigMaps
+- Common Labels and Annotations
