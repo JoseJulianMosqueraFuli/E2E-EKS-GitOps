@@ -1,0 +1,267 @@
+# Kubeflow Pipelines Helm Chart Values
+# Default values for kubeflow-pipelines deployment
+
+# Global settings
+global:
+  imageRegistry: "gcr.io/ml-pipeline"
+  imagePullSecrets: []
+
+# API Server Configuration
+apiServer:
+  image:
+    repository: api-server
+    tag: "2.0.1"
+    pullPolicy: IfNotPresent
+
+  replicaCount: 1
+
+  resources:
+    requests:
+      cpu: 250m
+      memory: 500Mi
+    limits:
+      cpu: 500m
+      memory: 1Gi
+
+  service:
+    type: ClusterIP
+    port: 8888
+
+# Frontend Configuration
+frontend:
+  image:
+    repository: frontend
+    tag: "2.0.1"
+    pullPolicy: IfNotPresent
+
+  replicaCount: 1
+
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: 250m
+      memory: 512Mi
+
+  service:
+    type: ClusterIP
+    port: 3000
+
+# Persistence Agent Configuration
+persistenceAgent:
+  image:
+    repository: persistenceagent
+    tag: "2.0.1"
+    pullPolicy: IfNotPresent
+
+  replicaCount: 1
+
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: 250m
+      memory: 512Mi
+
+# Scheduled Workflow Configuration
+scheduledWorkflow:
+  image:
+    repository: scheduledworkflow
+    tag: "2.0.1"
+    pullPolicy: IfNotPresent
+
+  replicaCount: 1
+
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: 250m
+      memory: 512Mi
+
+# Viewer CRD Controller Configuration
+viewerCrdController:
+  image:
+    repository: viewer-crd-controller
+    tag: "2.0.1"
+    pullPolicy: IfNotPresent
+
+  replicaCount: 1
+
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 250m
+      memory: 256Mi
+
+# Visualization Server Configuration
+visualizationServer:
+  image:
+    repository: visualization-server
+    tag: "2.0.1"
+    pullPolicy: IfNotPresent
+
+  replicaCount: 1
+
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 1Gi
+
+# Metadata Writer Configuration
+metadataWriter:
+  image:
+    repository: metadata-writer
+    tag: "2.0.1"
+    pullPolicy: IfNotPresent
+
+  replicaCount: 1
+
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: 250m
+      memory: 512Mi
+
+# Cache Server Configuration
+cacheServer:
+  image:
+    repository: cache-server
+    tag: "2.0.1"
+    pullPolicy: IfNotPresent
+
+  replicaCount: 1
+
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: 250m
+      memory: 512Mi
+
+# Workflow Controller Configuration
+workflowController:
+  image:
+    repository: workflow-controller
+    tag: "v3.3.10-license-compliance"
+    pullPolicy: IfNotPresent
+
+  replicaCount: 1
+
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 1Gi
+
+# Service Account
+serviceAccount:
+  create: true
+  name: ml-pipeline
+  annotations: {}
+
+# MySQL Configuration (Bitnami subchart)
+mysql:
+  enabled: true
+  auth:
+    rootPassword: ""
+    database: mlpipeline
+    username: mlpipeline
+    password: ""
+    existingSecret: ""
+  primary:
+    persistence:
+      enabled: true
+      size: 20Gi
+      storageClass: gp3
+    resources:
+      requests:
+        memory: "512Mi"
+        cpu: "250m"
+      limits:
+        memory: "1Gi"
+        cpu: "500m"
+
+# External MySQL configuration (when mysql.enabled=false)
+externalMysql:
+  host: ""
+  port: 3306
+  user: mlpipeline
+  password: ""
+  database: mlpipeline
+  existingSecret: ""
+
+# MinIO Configuration (Bitnami subchart)
+minio:
+  enabled: true
+  auth:
+    rootUser: minio
+    rootPassword: ""
+    existingSecret: ""
+  persistence:
+    enabled: true
+    size: 50Gi
+    storageClass: gp3
+  resources:
+    requests:
+      memory: "512Mi"
+      cpu: "250m"
+    limits:
+      memory: "1Gi"
+      cpu: "500m"
+
+# External S3 configuration (when minio.enabled=false)
+externalS3:
+  endpoint: ""
+  bucket: mlpipeline
+  region: us-west-2
+  accessKeyId: ""
+  secretAccessKey: ""
+  existingSecret: ""
+
+# Ingress configuration
+ingress:
+  enabled: true
+  className: "alb"
+  annotations:
+    kubernetes.io/ingress.class: "alb"
+    alb.ingress.kubernetes.io/scheme: internet-facing
+    alb.ingress.kubernetes.io/target-type: ip
+  hosts:
+    - host: kubeflow.mlops.company.com
+      paths:
+        - path: /
+          pathType: Prefix
+  tls: []
+
+# RBAC
+rbac:
+  create: true
+
+# Security Context
+securityContext:
+  runAsNonRoot: true
+  runAsUser: 1000
+  fsGroup: 1000
+
+# Node selector
+nodeSelector: {}
+
+# Tolerations
+tolerations: []
+
+# Affinity
+affinity: {}

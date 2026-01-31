@@ -1,0 +1,27 @@
+apiVersion: v2
+name: kubeflow-pipelines
+description: Kubeflow Pipelines for ML workflow orchestration
+type: application
+version: 1.0.0
+appVersion: "2.0.1"
+keywords:
+  - kubeflow
+  - pipelines
+  - mlops
+  - workflow
+  - orchestration
+home: https://www.kubeflow.org/docs/components/pipelines/
+sources:
+  - https://github.com/kubeflow/pipelines
+maintainers:
+  - name: MLOps Team
+    email: mlops@company.com
+dependencies:
+  - name: mysql
+    version: "9.x.x"
+    repository: https://charts.bitnami.com/bitnami
+    condition: mysql.enabled
+  - name: minio
+    version: "12.x.x"
+    repository: https://charts.bitnami.com/bitnami
+    condition: minio.enabled
