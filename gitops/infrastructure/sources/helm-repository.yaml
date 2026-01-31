@@ -1,39 +1,74 @@
+# MLOps Helm Charts Repository
+# Local charts packaged from gitops/charts directory
 apiVersion: source.toolkit.fluxcd.io/v1beta2
 kind: HelmRepository
 metadata:
   name: mlops-charts
   namespace: flux-system
+  labels:
+    app.kubernetes.io/name: mlops-charts
+    app.kubernetes.io/component: helm-repository
 spec:
   interval: 30m
   url: https://org.github.io/mlops-helm-charts
   type: default
 ---
+# Bitnami Charts Repository
+# Used for PostgreSQL, MySQL, MinIO dependencies
 apiVersion: source.toolkit.fluxcd.io/v1beta2
 kind: HelmRepository
 metadata:
   name: bitnami
   namespace: flux-system
+  labels:
+    app.kubernetes.io/name: bitnami
+    app.kubernetes.io/component: helm-repository
 spec:
   interval: 1h
   url: https://charts.bitnami.com/bitnami
   type: default
 ---
+# Prometheus Community Charts Repository
+# Used for Prometheus and AlertManager
 apiVersion: source.toolkit.fluxcd.io/v1beta2
 kind: HelmRepository
 metadata:
   name: prometheus-community
   namespace: flux-system
+  labels:
+    app.kubernetes.io/name: prometheus-community
+    app.kubernetes.io/component: helm-repository
 spec:
   interval: 1h
   url: https://prometheus-community.github.io/helm-charts
   type: default
 ---
+# Grafana Charts Repository
+# Used for Grafana dashboards and Loki
 apiVersion: source.toolkit.fluxcd.io/v1beta2
 kind: HelmRepository
 metadata:
   name: grafana
   namespace: flux-system
+  labels:
+    app.kubernetes.io/name: grafana
+    app.kubernetes.io/component: helm-repository
 spec:
   interval: 1h
   url: https://grafana.github.io/helm-charts
+  type: default
+---
+# Jetstack Charts Repository
+# Used for cert-manager (KServe dependency)
+apiVersion: source.toolkit.fluxcd.io/v1beta2
+kind: HelmRepository
+metadata:
+  name: jetstack
+  namespace: flux-system
+  labels:
+    app.kubernetes.io/name: jetstack
+    app.kubernetes.io/component: helm-repository
+spec:
+  interval: 1h
+  url: https://charts.jetstack.io
   type: default
