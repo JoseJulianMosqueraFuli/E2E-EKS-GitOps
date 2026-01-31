@@ -1,0 +1,121 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: inferenceservice-config
+  labels:
+    {{- include "kserve.labels" . | nindent 4 }}
+    app.kubernetes.io/component: config
+data:
+  predictors: |
+    {
+      "tensorflow": {
+        "image": "{{ .Values.predictors.tensorflow.image }}",
+        "defaultImageVersion": "{{ .Values.predictors.tensorflow.defaultImageVersion }}",
+        "defaultGpuImageVersion": "{{ .Values.predictors.tensorflow.defaultGpuImageVersion }}",
+        "defaultTimeout": "{{ .Values.predictors.tensorflow.defaultTimeout }}",
+        "multiModelServer": {{ .Values.predictors.tensorflow.multiModelServer }}
+      },
+      "sklearn": {
+        "image": "{{ .Values.predictors.sklearn.image }}",
+        "defaultImageVersion": "{{ .Values.predictors.sklearn.defaultImageVersion }}",
+        "multiModelServer": {{ .Values.predictors.sklearn.multiModelServer }}
+      },
+      "xgboost": {
+        "image": "{{ .Values.predictors.xgboost.image }}",
+        "defaultImageVersion": "{{ .Values.predictors.xgboost.defaultImageVersion }}",
+        "multiModelServer": {{ .Values.predictors.xgboost.multiModelServer }}
+      },
+      "pytorch": {
+        "image": "{{ .Values.predictors.pytorch.image }}",
+        "defaultImageVersion": "{{ .Values.predictors.pytorch.defaultImageVersion }}",
+        "defaultGpuImageVersion": "{{ .Values.predictors.pytorch.defaultGpuImageVersion }}",
+        "multiModelServer": {{ .Values.predictors.pytorch.multiModelServer }}
+      },
+      "triton": {
+        "image": "{{ .Values.predictors.triton.image }}",
+        "defaultImageVersion": "{{ .Values.predictors.triton.defaultImageVersion }}",
+        "multiModelServer": {{ .Values.predictors.triton.multiModelServer }}
+      },
+      "lightgbm": {
+        "image": "{{ .Values.predictors.lightgbm.image }}",
+        "defaultImageVersion": "{{ .Values.predictors.lightgbm.defaultImageVersion }}",
+        "multiModelServer": {{ .Values.predictors.lightgbm.multiModelServer }}
+      }
+    }
+  storageInitializer: |
+    {
+      "image": "{{ .Values.storageInitializer.image }}",
+      "memoryRequest": "{{ .Values.storageInitializer.memoryRequest }}",
+      "memoryLimit": "{{ .Values.storageInitializer.memoryLimit }}",
+      "cpuRequest": "{{ .Values.storageInitializer.cpuRequest }}",
+      "cpuLimit": "{{ .Values.storageInitializer.cpuLimit }}"
+    }
+  credentials: |
+    {
+      "s3": {
+        "s3AccessKeyIDName": "{{ .Values.s3.accessKeyIDName }}",
+        "s3SecretAccessKeyName": "{{ .Values.s3.secretAccessKeyName }}",
+        "s3Endpoint": "{{ .Values.s3.endpoint }}",
+        "s3Region": "{{ .Values.s3.region }}",
+        "s3UseHttps": "{{ .Values.s3.useHttps }}",
+        "s3VerifySSL": "{{ .Values.s3.verifySSL }}",
+        "s3UseVirtualBucket": "{{ .Values.s3.useVirtualBucket }}",
+        "s3UseAnonymousCredential": "{{ .Values.s3.useAnonymousCredential }}"
+      }
+    }
+  ingress: |
+    {
+      "ingressGateway": "{{ .Values.ingress.ingressGateway }}",
+      "ingressService": "{{ .Values.ingress.ingressService }}",
+      "localGateway": "{{ .Values.ingress.localGateway }}",
+      "localGatewayService": "{{ .Values.ingress.localGatewayService }}",
+      "ingressDomain": "{{ .Values.ingress.ingressDomain }}",
+      "ingressClassName": "{{ .Values.ingress.ingressClassName }}",
+      "domainTemplate": "{{ .Values.ingress.domainTemplate }}",
+      "urlScheme": "{{ .Values.ingress.urlScheme }}",
+      "disableIstioVirtualHost": {{ .Values.ingress.disableIstioVirtualHost }}
+    }
+  agent: |
+    {
+      "image": "{{ .Values.agent.image }}",
+      "memoryRequest": "{{ .Values.agent.memoryRequest }}",
+      "memoryLimit": "{{ .Values.agent.memoryLimit }}",
+      "cpuRequest": "{{ .Values.agent.cpuRequest }}",
+      "cpuLimit": "{{ .Values.agent.cpuLimit }}"
+    }
+  router: |
+    {
+      "image": "{{ .Values.router.image }}",
+      "memoryRequest": "{{ .Values.router.memoryRequest }}",
+      "memoryLimit": "{{ .Values.router.memoryLimit }}",
+      "cpuRequest": "{{ .Values.router.cpuRequest }}",
+      "cpuLimit": "{{ .Values.router.cpuLimit }}"
+    }
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: kserve-config
+  labels:
+    {{- include "kserve.labels" . | nindent 4 }}
+    app.kubernetes.io/component: config
+data:
+  deploy: |
+    {
+      "defaultDeploymentMode": "{{ .Values.inferenceService.defaultDeploymentMode }}",
+      "defaultTimeout": "{{ .Values.inferenceService.defaultTimeout }}",
+      "defaultCanaryTrafficPercent": "{{ .Values.inferenceService.defaultCanaryTrafficPercent }}",
+      "defaultCanaryRolloutDuration": "{{ .Values.inferenceService.defaultCanaryRolloutDuration }}",
+      "progressDeadlineSeconds": "{{ .Values.inferenceService.progressDeadlineSeconds }}",
+      "scaleMetric": "{{ .Values.inferenceService.scaleMetric }}",
+      "scaleTarget": "{{ .Values.inferenceService.scaleTarget }}"
+    }
+  metricsAggregator: |
+    {
+      "enableMetricAggregation": "{{ .Values.metricsAggregator.enableMetricAggregation }}",
+      "enablePrometheusScraping": "{{ .Values.metricsAggregator.enablePrometheusScraping }}"
+    }
+  explainers: |
+    {
+      "enableExplainers": "{{ .Values.explainers.enabled }}"
+    }

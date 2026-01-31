@@ -1,0 +1,31 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "kserve.fullname" . }}-controller-manager-metrics
+  labels:
+    {{- include "kserve.labels" . | nindent 4 }}
+    app.kubernetes.io/component: controller-manager
+spec:
+  ports:
+    - name: metrics
+      port: 8080
+      targetPort: metrics
+      protocol: TCP
+  selector:
+    control-plane: kserve-controller-manager
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "kserve.fullname" . }}-webhook-service
+  labels:
+    {{- include "kserve.labels" . | nindent 4 }}
+    app.kubernetes.io/component: webhook
+spec:
+  ports:
+    - name: https
+      port: 443
+      targetPort: {{ .Values.webhook.port }}
+      protocol: TCP
+  selector:
+    control-plane: kserve-controller-manager

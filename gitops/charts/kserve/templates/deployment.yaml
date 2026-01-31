@@ -1,0 +1,90 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "kserve.fullname" . }}-controller-manager
+  labels:
+    {{- include "kserve.labels" . | nindent 4 }}
+    app.kubernetes.io/component: controller-manager
+    control-plane: kserve-controller-manager
+spec:
+  replicas: {{ .Values.controller.replicaCount }}
+  selector:
+    matchLabels:
+      control-plane: kserve-controller-manager
+  template:
+    metadata:
+      labels:
+        control-plane: kserve-controller-manager
+        {{- include "kserve.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: controller-manager
+    spec:
+      serviceAccountName: {{ include "kserve.serviceAccountName" . }}
+      securityContext:
+        {{- toYaml .Values.controller.securityContext | nindent 8 }}
+      containers:
+        - name: manager
+          image: "{{ .Values.controller.image.repository }}:{{ .Values.controller.image.tag }}"
+          imagePullPolicy: {{ .Values.controller.image.pullPolicy }}
+          command:
+            - /manager
+          args:
+            {{- if .Values.controller.leaderElect }}
+            - --leader-elect
+            {{- end }}
+            - --metrics-bind-addr={{ .Values.controller.metricsBindAddr }}
+            - --health-probe-bind-addr={{ .Values.controller.healthProbeBindAddr }}
+          env:
+            - name: POD_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            - name: SECRET_NAME
+              value: {{ .Values.webhook.certSecret }}
+          ports:
+            - name: webhook-server
+              containerPort: {{ .Values.webhook.port }}
+              protocol: TCP
+            - name: metrics
+              containerPort: 8080
+              protocol: TCP
+            - name: health
+              containerPort: 8081
+              protocol: TCP
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: health
+            initialDelaySeconds: 30
+            periodSeconds: 20
+          readinessProbe:
+            httpGet:
+              path: /readyz
+              port: health
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          resources:
+            {{- toYaml .Values.controller.resources | nindent 12 }}
+          securityContext:
+            {{- toYaml .Values.controller.containerSecurityContext | nindent 12 }}
+          volumeMounts:
+            - name: cert
+              mountPath: /tmp/k8s-webhook-server/serving-certs
+              readOnly: true
+      volumes:
+        - name: cert
+          secret:
+            defaultMode: 420
+            secretName: {{ .Values.webhook.certSecret }}
+      terminationGracePeriodSeconds: 10
+      {{- with .Values.controller.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}

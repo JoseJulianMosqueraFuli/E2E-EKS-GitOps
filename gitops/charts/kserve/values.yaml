@@ -1,0 +1,194 @@
+# KServe Helm Chart Values
+# Default values for kserve deployment
+
+# Global settings
+global:
+  imageRegistry: ""
+  imagePullSecrets: []
+
+# Controller Manager Configuration
+controller:
+  image:
+    repository: kserve/kserve-controller
+    tag: "v0.11.0"
+    pullPolicy: IfNotPresent
+
+  replicaCount: 1
+
+  # Leader election
+  leaderElect: true
+
+  # Metrics and health
+  metricsBindAddr: ":8080"
+  healthProbeBindAddr: ":8081"
+
+  # Resource limits
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+
+  # Security context
+  securityContext:
+    runAsNonRoot: true
+    runAsUser: 1000
+    fsGroup: 1000
+
+  containerSecurityContext:
+    allowPrivilegeEscalation: false
+    capabilities:
+      drop:
+        - ALL
+    readOnlyRootFilesystem: true
+
+  # Node selector
+  nodeSelector:
+    kubernetes.io/os: linux
+
+# Service Account
+serviceAccount:
+  create: true
+  name: kserve-controller-manager
+  annotations: {}
+
+# Webhook Configuration
+webhook:
+  port: 9443
+  certSecret: webhook-server-certs
+
+# Inference Service Configuration
+inferenceService:
+  # Default deployment mode: Serverless or RawDeployment
+  defaultDeploymentMode: "Serverless"
+  defaultTimeout: "60s"
+  defaultCanaryTrafficPercent: "10"
+  defaultCanaryRolloutDuration: "120s"
+  progressDeadlineSeconds: "600s"
+  scaleMetric: "concurrency"
+  scaleTarget: "1"
+
+# Predictor Configurations
+predictors:
+  tensorflow:
+    image: tensorflow/serving
+    defaultImageVersion: "2.6.2"
+    defaultGpuImageVersion: "2.6.2-gpu"
+    defaultTimeout: "60"
+    multiModelServer: false
+
+  sklearn:
+    image: kserve/sklearnserver
+    defaultImageVersion: "v0.11.0"
+    multiModelServer: true
+
+  xgboost:
+    image: kserve/xgbserver
+    defaultImageVersion: "v0.11.0"
+    multiModelServer: true
+
+  pytorch:
+    image: kserve/torchserve
+    defaultImageVersion: "0.7.0"
+    defaultGpuImageVersion: "0.7.0-gpu"
+    multiModelServer: false
+
+  triton:
+    image: nvcr.io/nvidia/tritonserver
+    defaultImageVersion: "21.09-py3"
+    multiModelServer: true
+
+  lightgbm:
+    image: kserve/lgbserver
+    defaultImageVersion: "v0.11.0"
+    multiModelServer: false
+
+# Storage Initializer
+storageInitializer:
+  image: kserve/storage-initializer:v0.11.0
+  memoryRequest: "100Mi"
+  memoryLimit: "1Gi"
+  cpuRequest: "100m"
+  cpuLimit: "1"
+
+# Agent Configuration
+agent:
+  image: kserve/agent:v0.11.0
+  memoryRequest: "100Mi"
+  memoryLimit: "1Gi"
+  cpuRequest: "100m"
+  cpuLimit: "1"
+
+# Router Configuration
+router:
+  image: kserve/router:v0.11.0
+  memoryRequest: "100Mi"
+  memoryLimit: "1Gi"
+  cpuRequest: "100m"
+  cpuLimit: "1"
+
+# Ingress Configuration
+ingress:
+  ingressGateway: "knative-serving/knative-ingress-gateway"
+  ingressService: "istio-ingressgateway.istio-system.svc.cluster.local"
+  localGateway: "knative-serving/knative-local-gateway"
+  localGatewayService: "knative-local-gateway.istio-system.svc.cluster.local"
+  ingressDomain: "example.com"
+  ingressClassName: "istio"
+  domainTemplate: "{{.Name}}-{{.Namespace}}.{{.IngressDomain}}"
+  urlScheme: "http"
+  disableIstioVirtualHost: false
+
+# S3 Credentials Configuration
+s3:
+  accessKeyIDName: "AWS_ACCESS_KEY_ID"
+  secretAccessKeyName: "AWS_SECRET_ACCESS_KEY"
+  endpoint: ""
+  region: "us-west-2"
+  useHttps: ""
+  verifySSL: ""
+  useVirtualBucket: ""
+  useAnonymousCredential: ""
+
+# Metrics Aggregator
+metricsAggregator:
+  enableMetricAggregation: false
+  enablePrometheusScraping: false
+
+# Explainers
+explainers:
+  enabled: false
+  alibi:
+    image: kserve/alibi-explainer
+    defaultImageVersion: "v0.11.0"
+  aix:
+    image: kserve/aix-explainer
+    defaultImageVersion: "v0.11.0"
+  art:
+    image: kserve/art-explainer
+    defaultImageVersion: "v0.11.0"
+
+# Cert Manager (subchart)
+certManager:
+  enabled: false
+
+# RBAC
+rbac:
+  create: true
+
+# Network Policy
+networkPolicy:
+  enabled: false
+
+# Pod Disruption Budget
+podDisruptionBudget:
+  enabled: false
+  minAvailable: 1
+
+# Tolerations
+tolerations: []
+
+# Affinity
+affinity: {}
