@@ -3,6 +3,9 @@ kind: ConfigMap
 metadata:
   name: mlflow-config
   namespace: mlflow
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
 data:
   tracking_uri: "http://mlflow-server.mlflow.svc.cluster.local:5000"
   artifact_root: "s3://mlflow-artifacts"
+  s3_endpoint_url: "http://mlflow-minio:9000"

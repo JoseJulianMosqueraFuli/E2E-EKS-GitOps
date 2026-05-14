@@ -12,6 +12,7 @@ labels:
     includeSelectors: false
 
 patches:
+  # MLflow server: 3 replicas with production resources
   - patch: |
       - op: replace
         path: /spec/replicas
@@ -35,10 +36,88 @@ patches:
     target:
       kind: Deployment
       name: mlflow-server
+  # Production: use real S3 instead of MinIO
   - patch: |
       - op: replace
         path: /data/artifact_root
         value: s3://mlflow-artifacts-production
+      - op: replace
+        path: /data/s3_endpoint_url
+        value: https://s3.us-west-2.amazonaws.com
     target:
       kind: ConfigMap
       name: mlflow-config
+  # Production PostgreSQL: higher resources and storage
+  - patch: |
+      - op: replace
+        path: /spec/volumeClaimTemplates/0/spec/resources/requests/storage
+        value: 100Gi
+      - op: replace
+        path: /spec/template/spec/containers/0/resources/requests/cpu
+        value: 1000m
+      - op: replace
+        path: /spec/template/spec/containers/0/resources/requests/memory
+        value: 2Gi
+      - op: replace
+        path: /spec/template/spec/containers/0/resources/limits/cpu
+        value: 2000m
+      - op: replace
+        path: /spec/template/spec/containers/0/resources/limits/memory
+        value: 4Gi
+    target:
+      kind: StatefulSet
+      name: mlflow-postgresql
+  # Production MinIO: higher resources and storage
+  - patch: |
+      - op: replace
+        path: /spec/resources/requests/storage
+        value: 200Gi
+    target:
+      kind: PersistentVolumeClaim
+      name: mlflow-minio-pvc
+  - patch: |
+      - op: replace
+        path: /spec/template/spec/containers/0/resources/requests/cpu
+        value: 500m
+      - op: replace
+        path: /spec/template/spec/containers/0/resources/requests/memory
+        value: 1Gi
+      - op: replace
+        path: /spec/template/spec/containers/0/resources/limits/cpu
+        value: 2000m
+      - op: replace
+        path: /spec/template/spec/containers/0/resources/limits/memory
+        value: 2Gi
+    target:
+      kind: Deployment
+      name: mlflow-minio
+  # Production ExternalSecret: use production secret path with shorter refresh
+  - patch: |
+      - op: replace
+        path: /spec/refreshInterval
+        value: 30m
+      - op: replace
+        path: /spec/data/0/remoteRef/key
+        value: mlops/production/mlflow/database
+      - op: replace
+        path: /spec/data/1/remoteRef/key
+        value: mlops/production/mlflow/database
+      - op: replace
+        path: /spec/data/2/remoteRef/key
+        value: mlops/production/mlflow/database
+    target:
+      kind: ExternalSecret
+      name: mlflow-secrets
+  - patch: |
+      - op: replace
+        path: /spec/refreshInterval
+        value: 30m
+      - op: replace
+        path: /spec/data/0/remoteRef/key
+        value: mlops/production/mlflow/s3
+      - op: replace
+        path: /spec/data/1/remoteRef/key
+        value: mlops/production/mlflow/s3
+    target:
+      kind: ExternalSecret
+      name: mlflow-minio-secrets

@@ -1,0 +1,24 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: mlflow-minio
+  namespace: mlflow
+  labels:
+    app: mlflow-minio
+    app.kubernetes.io/name: mlflow
+    app.kubernetes.io/component: artifact-storage
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
+spec:
+  type: ClusterIP
+  ports:
+    - port: 9000
+      targetPort: api
+      protocol: TCP
+      name: api
+    - port: 9001
+      targetPort: console
+      protocol: TCP
+      name: console
+  selector:
+    app: mlflow-minio

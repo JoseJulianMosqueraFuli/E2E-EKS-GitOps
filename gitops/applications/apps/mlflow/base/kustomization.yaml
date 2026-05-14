@@ -3,10 +3,16 @@ kind: Kustomization
 
 resources:
   - namespace.yaml
+  - serviceaccount.yaml
+  - external-secrets.yaml
+  - configmap.yaml
+  - postgresql-statefulset.yaml
+  - postgresql-service.yaml
+  - minio-pvc.yaml
+  - minio-deployment.yaml
+  - minio-service.yaml
   - deployment.yaml
   - service.yaml
-  - configmap.yaml
-  - serviceaccount.yaml
 
 labels:
   - pairs:

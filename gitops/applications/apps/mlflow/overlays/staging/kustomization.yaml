@@ -12,6 +12,7 @@ labels:
     includeSelectors: false
 
 patches:
+  # MLflow server: 2 replicas with higher resources
   - patch: |
       - op: replace
         path: /spec/replicas
@@ -35,10 +36,72 @@ patches:
     target:
       kind: Deployment
       name: mlflow-server
+  # Staging artifact bucket
   - patch: |
       - op: replace
         path: /data/artifact_root
         value: s3://mlflow-artifacts-staging
+      - op: replace
+        path: /data/s3_endpoint_url
+        value: http://staging-mlflow-minio:9000
     target:
       kind: ConfigMap
       name: mlflow-config
+  # Staging PostgreSQL: higher resources
+  - patch: |
+      - op: replace
+        path: /spec/template/spec/containers/0/resources/requests/cpu
+        value: 500m
+      - op: replace
+        path: /spec/template/spec/containers/0/resources/requests/memory
+        value: 1Gi
+      - op: replace
+        path: /spec/template/spec/containers/0/resources/limits/cpu
+        value: 1000m
+      - op: replace
+        path: /spec/template/spec/containers/0/resources/limits/memory
+        value: 2Gi
+    target:
+      kind: StatefulSet
+      name: mlflow-postgresql
+  # Staging MinIO: higher resources
+  - patch: |
+      - op: replace
+        path: /spec/template/spec/containers/0/resources/requests/cpu
+        value: 200m
+      - op: replace
+        path: /spec/template/spec/containers/0/resources/requests/memory
+        value: 512Mi
+      - op: replace
+        path: /spec/template/spec/containers/0/resources/limits/cpu
+        value: 1000m
+      - op: replace
+        path: /spec/template/spec/containers/0/resources/limits/memory
+        value: 1Gi
+    target:
+      kind: Deployment
+      name: mlflow-minio
+  # Staging ExternalSecret: use staging secret path
+  - patch: |
+      - op: replace
+        path: /spec/data/0/remoteRef/key
+        value: mlops/staging/mlflow/database
+      - op: replace
+        path: /spec/data/1/remoteRef/key
+        value: mlops/staging/mlflow/database
+      - op: replace
+        path: /spec/data/2/remoteRef/key
+        value: mlops/staging/mlflow/database
+    target:
+      kind: ExternalSecret
+      name: mlflow-secrets
+  - patch: |
+      - op: replace
+        path: /spec/data/0/remoteRef/key
+        value: mlops/staging/mlflow/s3
+      - op: replace
+        path: /spec/data/1/remoteRef/key
+        value: mlops/staging/mlflow/s3
+    target:
+      kind: ExternalSecret
+      name: mlflow-minio-secrets

@@ -2,6 +2,8 @@ apiVersion: v1
 kind: Namespace
 metadata:
   name: mlflow
+  annotations:
+    argocd.argoproj.io/sync-wave: "-2"
   labels:
     app.kubernetes.io/name: mlflow
     app.kubernetes.io/part-of: mlops-platform

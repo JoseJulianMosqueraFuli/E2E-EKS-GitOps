@@ -12,6 +12,7 @@ labels:
     includeSelectors: false
 
 patches:
+  # MLflow server: 1 replica for dev
   - patch: |
       - op: replace
         path: /spec/replicas
@@ -19,10 +20,54 @@ patches:
     target:
       kind: Deployment
       name: mlflow-server
+  # Dev artifact bucket
   - patch: |
       - op: replace
         path: /data/artifact_root
         value: s3://mlflow-artifacts-dev
+      - op: replace
+        path: /data/s3_endpoint_url
+        value: http://dev-mlflow-minio:9000
     target:
       kind: ConfigMap
       name: mlflow-config
+  # Dev PostgreSQL: smaller storage
+  - patch: |
+      - op: replace
+        path: /spec/volumeClaimTemplates/0/spec/resources/requests/storage
+        value: 10Gi
+    target:
+      kind: StatefulSet
+      name: mlflow-postgresql
+  # Dev MinIO: smaller storage
+  - patch: |
+      - op: replace
+        path: /spec/resources/requests/storage
+        value: 20Gi
+    target:
+      kind: PersistentVolumeClaim
+      name: mlflow-minio-pvc
+  # Dev ExternalSecret: use dev secret path
+  - patch: |
+      - op: replace
+        path: /spec/data/0/remoteRef/key
+        value: mlops/dev/mlflow/database
+      - op: replace
+        path: /spec/data/1/remoteRef/key
+        value: mlops/dev/mlflow/database
+      - op: replace
+        path: /spec/data/2/remoteRef/key
+        value: mlops/dev/mlflow/database
+    target:
+      kind: ExternalSecret
+      name: mlflow-secrets
+  - patch: |
+      - op: replace
+        path: /spec/data/0/remoteRef/key
+        value: mlops/dev/mlflow/s3
+      - op: replace
+        path: /spec/data/1/remoteRef/key
+        value: mlops/dev/mlflow/s3
+    target:
+      kind: ExternalSecret
+      name: mlflow-minio-secrets

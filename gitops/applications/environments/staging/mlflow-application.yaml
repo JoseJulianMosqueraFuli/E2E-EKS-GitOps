@@ -8,6 +8,10 @@ metadata:
     app.kubernetes.io/component: tracking-server
     app.kubernetes.io/part-of: mlops-platform
     environment: staging
+  annotations:
+    argocd.argoproj.io/tracking-method: annotation+label
+    notifications.argoproj.io/subscribe.on-sync-failed.slack: mlops-alerts
+    notifications.argoproj.io/subscribe.on-health-degraded.slack: mlops-alerts
   finalizers:
     - resources-finalizer.argocd.argoproj.io
 spec:
@@ -29,6 +33,8 @@ spec:
       - PrunePropagationPolicy=foreground
       - PruneLast=true
       - ApplyOutOfSyncOnly=true
+      - ServerSideApply=true
+      - RespectIgnoreDifferences=true
     retry:
       limit: 5
       backoff:
@@ -36,3 +42,8 @@ spec:
         factor: 2
         maxDuration: 3m
   revisionHistoryLimit: 10
+  ignoreDifferences:
+    - group: apps
+      kind: StatefulSet
+      jsonPointers:
+        - /spec/volumeClaimTemplates
