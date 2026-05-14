@@ -1,0 +1,13 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+metadata:
+  name: ebs-csi-driver
+  namespace: flux-system
+
+resources:
+  - helm-repository.yaml
+  - helm-release.yaml
+
+commonLabels:
+  app.kubernetes.io/name: aws-ebs-csi-driver
+  app.kubernetes.io/part-of: mlops-platform

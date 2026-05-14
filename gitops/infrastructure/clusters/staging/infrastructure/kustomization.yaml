@@ -1,9 +1,14 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
+metadata:
+  name: staging-infrastructure
+  namespace: flux-system
 
 resources:
   - ../../../sources
   - ../../../flux-config
+  - ../../../addons
+  - ../../../networking
 
 patches:
   - patch: |
@@ -19,6 +24,27 @@ patches:
     target:
       kind: Kustomization
       namespace: flux-system
+  - patch: |
+      - op: replace
+        path: /spec/postBuild/substitute/cluster_name
+        value: mlops-staging-cluster
+    target:
+      kind: Kustomization
+      name: infrastructure-addons
+  - patch: |
+      - op: replace
+        path: /spec/postBuild/substitute/region
+        value: us-west-2
+    target:
+      kind: Kustomization
+      name: infrastructure-addons
+  - patch: |
+      - op: replace
+        path: /spec/postBuild/substitute/environment
+        value: staging
+    target:
+      kind: Kustomization
+      name: infrastructure-addons
 
 commonLabels:
   environment: staging
