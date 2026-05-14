@@ -1,0 +1,12 @@
+apiVersion: source.toolkit.fluxcd.io/v1beta2
+kind: HelmRepository
+metadata:
+  name: istio
+  namespace: flux-system
+  labels:
+    app.kubernetes.io/name: istio
+    app.kubernetes.io/component: helm-repository
+spec:
+  interval: 1h
+  url: https://istio-release.storage.googleapis.com/charts
+  type: default

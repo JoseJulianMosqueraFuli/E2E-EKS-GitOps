@@ -1,0 +1,55 @@
+apiVersion: helm.toolkit.fluxcd.io/v2beta2
+kind: HelmRelease
+metadata:
+  name: istiod
+  namespace: istio-system
+  labels:
+    app.kubernetes.io/name: istiod
+    app.kubernetes.io/component: service-mesh
+    app.kubernetes.io/part-of: mlops-platform
+spec:
+  interval: 10m
+  timeout: 5m
+  dependsOn:
+    - name: istio-base
+      namespace: istio-system
+  chart:
+    spec:
+      chart: istiod
+      version: "1.20.x"
+      sourceRef:
+        kind: HelmRepository
+        name: istio
+        namespace: flux-system
+      interval: 1h
+  releaseName: istiod
+  targetNamespace: istio-system
+  install:
+    createNamespace: true
+  values:
+    pilot:
+      replicaCount: ${istiod_replicas}
+      resources:
+        requests:
+          cpu: ${istiod_cpu_request}
+          memory: ${istiod_memory_request}
+        limits:
+          cpu: ${istiod_cpu_limit}
+          memory: ${istiod_memory_limit}
+      autoscaleEnabled: ${istiod_autoscale}
+      autoscaleMin: ${istiod_autoscale_min}
+      autoscaleMax: ${istiod_autoscale_max}
+    meshConfig:
+      accessLogFile: /dev/stdout
+      enablePrometheusMerge: true
+      defaultConfig:
+        holdApplicationUntilProxyStarts: true
+    global:
+      proxy:
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 200m
+            memory: 256Mi

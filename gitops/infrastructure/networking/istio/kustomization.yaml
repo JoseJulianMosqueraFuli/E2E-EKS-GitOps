@@ -1,0 +1,15 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+metadata:
+  name: istio
+  namespace: flux-system
+
+resources:
+  - helm-repository.yaml
+  - namespace.yaml
+  - istio-base.yaml
+  - istiod.yaml
+
+commonLabels:
+  app.kubernetes.io/name: istio
+  app.kubernetes.io/part-of: mlops-platform
