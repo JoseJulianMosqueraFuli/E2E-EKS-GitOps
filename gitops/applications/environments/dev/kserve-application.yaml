@@ -8,6 +8,9 @@ metadata:
     app.kubernetes.io/component: model-serving
     app.kubernetes.io/part-of: mlops-platform
     environment: dev
+  annotations:
+    argocd.argoproj.io/tracking-method: annotation+label
+    notifications.argoproj.io/subscribe.on-sync-failed.slack: mlops-alerts-dev
   finalizers:
     - resources-finalizer.argocd.argoproj.io
 spec:
