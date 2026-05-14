@@ -1,0 +1,13 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+metadata:
+  name: aws-load-balancer-controller
+  namespace: flux-system
+
+resources:
+  - helm-repository.yaml
+  - helm-release.yaml
+
+commonLabels:
+  app.kubernetes.io/name: aws-load-balancer-controller
+  app.kubernetes.io/part-of: mlops-platform

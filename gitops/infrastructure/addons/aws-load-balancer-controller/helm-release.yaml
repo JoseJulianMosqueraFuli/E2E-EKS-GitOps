@@ -1,0 +1,50 @@
+apiVersion: helm.toolkit.fluxcd.io/v2beta2
+kind: HelmRelease
+metadata:
+  name: aws-load-balancer-controller
+  namespace: kube-system
+  labels:
+    app.kubernetes.io/name: aws-load-balancer-controller
+    app.kubernetes.io/component: ingress
+    app.kubernetes.io/part-of: mlops-platform
+spec:
+  interval: 10m
+  timeout: 5m
+  chart:
+    spec:
+      chart: aws-load-balancer-controller
+      version: "1.7.x"
+      sourceRef:
+        kind: HelmRepository
+        name: aws-load-balancer-controller
+        namespace: flux-system
+      interval: 1h
+  releaseName: aws-load-balancer-controller
+  targetNamespace: kube-system
+  install:
+    createNamespace: true
+    crds: CreateReplace
+  upgrade:
+    crds: CreateReplace
+  values:
+    clusterName: ${cluster_name}
+    region: ${region}
+    vpcId: ${vpc_id}
+    replicaCount: ${alb_replicas}
+    serviceAccount:
+      create: true
+      name: aws-load-balancer-controller
+      annotations:
+        eks.amazonaws.com/role-arn: ${alb_irsa_role}
+    resources:
+      requests:
+        cpu: ${alb_cpu_request}
+        memory: ${alb_memory_request}
+      limits:
+        cpu: ${alb_cpu_limit}
+        memory: ${alb_memory_limit}
+  valuesFrom:
+    - kind: ConfigMap
+      name: cluster-config
+      valuesKey: environment
+      targetPath: env

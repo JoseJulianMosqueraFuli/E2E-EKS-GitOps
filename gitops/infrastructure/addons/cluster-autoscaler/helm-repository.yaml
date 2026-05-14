@@ -1,0 +1,12 @@
+apiVersion: source.toolkit.fluxcd.io/v1beta2
+kind: HelmRepository
+metadata:
+  name: cluster-autoscaler
+  namespace: flux-system
+  labels:
+    app.kubernetes.io/name: cluster-autoscaler
+    app.kubernetes.io/component: helm-repository
+spec:
+  interval: 1h
+  url: https://kubernetes.github.io/autoscaler
+  type: default

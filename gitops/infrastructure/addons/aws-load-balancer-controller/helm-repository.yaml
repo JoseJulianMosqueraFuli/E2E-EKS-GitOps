@@ -1,0 +1,12 @@
+apiVersion: source.toolkit.fluxcd.io/v1beta2
+kind: HelmRepository
+metadata:
+  name: aws-load-balancer-controller
+  namespace: flux-system
+  labels:
+    app.kubernetes.io/name: aws-load-balancer-controller
+    app.kubernetes.io/component: helm-repository
+spec:
+  interval: 1h
+  url: https://aws.github.io/eks-charts
+  type: default

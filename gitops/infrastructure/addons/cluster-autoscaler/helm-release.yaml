@@ -1,0 +1,52 @@
+apiVersion: helm.toolkit.fluxcd.io/v2beta2
+kind: HelmRelease
+metadata:
+  name: cluster-autoscaler
+  namespace: kube-system
+  labels:
+    app.kubernetes.io/name: cluster-autoscaler
+    app.kubernetes.io/component: autoscaling
+    app.kubernetes.io/part-of: mlops-platform
+spec:
+  interval: 10m
+  timeout: 5m
+  chart:
+    spec:
+      chart: cluster-autoscaler
+      version: "9.37.x"
+      sourceRef:
+        kind: HelmRepository
+        name: cluster-autoscaler
+        namespace: flux-system
+      interval: 1h
+  releaseName: cluster-autoscaler
+  targetNamespace: kube-system
+  install:
+    createNamespace: true
+  values:
+    autoDiscovery:
+      clusterName: ${cluster_name}
+    awsRegion: ${region}
+    replicaCount: ${ca_replicas}
+    rbac:
+      create: true
+      serviceAccount:
+        create: true
+        name: cluster-autoscaler
+        annotations:
+          eks.amazonaws.com/role-arn: ${ca_irsa_role}
+    extraArgs:
+      skip-nodes-with-system-pods: true
+      skip-nodes-with-local-storage: false
+      expander: priority
+      balance-similar-node-groups: true
+      scale-down-enabled: ${ca_scale_down}
+      scale-down-unneeded-time: ${ca_scale_down_time}
+      scale-down-utilization-threshold: "0.5"
+    resources:
+      requests:
+        cpu: ${ca_cpu_request}
+        memory: ${ca_memory_request}
+      limits:
+        cpu: ${ca_cpu_limit}
+        memory: ${ca_memory_limit}

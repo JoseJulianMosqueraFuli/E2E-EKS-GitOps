@@ -1,0 +1,13 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+metadata:
+  name: cluster-autoscaler
+  namespace: flux-system
+
+resources:
+  - helm-repository.yaml
+  - helm-release.yaml
+
+commonLabels:
+  app.kubernetes.io/name: cluster-autoscaler
+  app.kubernetes.io/part-of: mlops-platform
