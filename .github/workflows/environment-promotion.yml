@@ -1,0 +1,197 @@
+name: Environment Promotion
+
+on:
+  push:
+    branches:
+      - develop
+      - staging
+  workflow_dispatch:
+    inputs:
+      source_env:
+        description: 'Source environment'
+        required: true
+        type: choice
+        options:
+          - dev
+          - staging
+      target_env:
+        description: 'Target environment'
+        required: true
+        type: choice
+        options:
+          - staging
+          - production
+      approve:
+        description: 'Approve production promotion'
+        required: false
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  validate:
+    name: Validate Source Environment
+    runs-on: ubuntu-latest
+    outputs:
+      source_env: ${{ steps.set-env.outputs.source }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set environment variables
+        id: set-env
+        run: |
+          if [[ "${{ github.ref }}" == "refs/heads/develop" ]]; then
+            echo "source=dev" >> $GITHUB_OUTPUT
+          elif [[ "${{ github.ref }}" == "refs/heads/staging" ]]; then
+            echo "source=staging" >> $GITHUB_OUTPUT
+          else
+            echo "source=${{ github.event.inputs.source_env }}" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          cd gitops/tests
+          pip install pyyaml pytest hypothesis
+
+      - name: Run validation tests
+        run: |
+          cd gitops/tests
+          python -m pytest test_gitops_checkpoint.py test_application_deployment_consistency.py -v --tb=short
+
+      - name: Validate YAML syntax
+        run: |
+          python -c "
+          import yaml
+          from pathlib import Path
+          gitops = Path('gitops')
+          errors = []
+          for f in gitops.rglob('*.yaml'):
+              try:
+                  with open(f) as fh:
+                      list(yaml.safe_load_all(fh))
+              except yaml.YAMLError as e:
+                  errors.append(f'{f}: {e}')
+          if errors:
+              for e in errors:
+                  print(f'ERROR: {e}')
+              exit(1)
+          print('All YAML files valid')
+          "
+
+  promote-staging:
+    name: Promote to Staging
+    needs: validate
+    if: github.ref == 'refs/heads/develop' || (github.event_name == 'workflow_dispatch' && github.event.inputs.target_env == 'staging')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Run promotion
+        run: |
+          cd gitops/scripts/promotion
+          python promote.py dev staging --dry-run
+
+      - name: Create Pull Request
+        uses: peter-evans/create-pull-request@v5
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          commit-message: 'chore: promote dev to staging'
+          title: 'Promote: dev → staging'
+          body: |
+            # Environment Promotion: dev → staging
+
+            Automated promotion of GitOps configurations from dev to staging.
+
+            ## Validation
+
+            - [x] Source environment validated
+            - [x] YAML syntax verified
+            - [x] ArgoCD Applications valid
+            - [x] Kustomize overlays valid
+
+            ## Post-Merge Actions
+
+            1. ArgoCD will automatically sync the staging environment
+            2. Monitor deployment status in ArgoCD UI
+            3. Verify application health in staging
+          branch: promote/dev-to-staging
+          base: staging
+          delete-branch: true
+
+  promote-production:
+    name: Promote to Production
+    needs: validate
+    if: github.ref == 'refs/heads/staging' || (github.event_name == 'workflow_dispatch' && github.event.inputs.target_env == 'production')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Run promotion (dry run)
+        run: |
+          cd gitops/scripts/promotion
+          python promote.py staging production --dry-run
+
+      - name: Create Pull Request
+        uses: peter-evans/create-pull-request@v5
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          commit-message: 'chore: promote staging to production'
+          title: 'Promote: staging → production'
+          body: |
+            # ⚠️ Environment Promotion: staging → production
+
+            **PRODUCTION PROMOTION - Manual approval required**
+
+            Automated promotion of GitOps configurations from staging to production.
+
+            ## Validation
+
+            - [x] Source environment validated
+            - [x] YAML syntax verified
+            - [x] ArgoCD Applications valid
+            - [x] Kustomize overlays valid
+
+            ## Approval Checklist
+
+            - [ ] Staging tests passed
+            - [ ] No critical alerts in staging
+            - [ ] Rollback plan reviewed
+            - [ ] Stakeholders notified
+
+            ## Post-Merge Actions
+
+            1. ArgoCD will sync the production environment
+            2. Monitor deployment status closely
+            3. Verify all application health checks
+            4. Monitor for any anomalies
+          branch: promote/staging-to-production
+          base: main
+          delete-branch: true
+          labels: |
+            production
+            requires-approval
