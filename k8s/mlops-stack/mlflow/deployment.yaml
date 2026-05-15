@@ -1,3 +1,22 @@
+# ------------------------------------------------------------------------------
+# CRITICAL SECURITY NOTE
+# This manifest does NOT contain any hardcoded secrets.
+# You MUST create the following secrets in this namespace BEFORE applying:
+#
+#   1. mlflow-secrets (Opaque)
+#        - postgres-password
+#        - postgres-user
+#        - postgres-db
+#
+#   2. mlflow-auth-secrets (Opaque) - optional, for UI basic-auth/JWT
+#        - auth-username
+#        - auth-password
+#        - jwt-secret
+#
+# RECOMMENDED: Use External Secrets Operator (ESO) or Sealed Secrets.
+# Example with ESO: see gitops/applications/apps/mlflow/base/external-secrets.yaml
+# ------------------------------------------------------------------------------
+
 apiVersion: v1
 kind: Namespace
 metadata:
@@ -18,48 +37,11 @@ metadata:
     app.kubernetes.io/component: config
 data:
   MLFLOW_S3_ENDPOINT_URL: "https://s3.us-west-2.amazonaws.com"
-  MLFLOW_TRACKING_URI: "postgresql://mlflow:password@postgres:5432/mlflow"
   AWS_DEFAULT_REGION: "us-west-2"
   MLFLOW_ARTIFACT_ROOT: "s3://mlops-model-artifacts/mlflow-artifacts"
   MLFLOW_SERVER_HOST: "0.0.0.0"
   MLFLOW_SERVER_PORT: "5000"
   MLFLOW_SERVER_WORKERS: "4"
-  MLFLOW_BACKEND_STORE_URI: "postgresql://mlflow:password@postgres:5432/mlflow"
-
----
-apiVersion: v1
-kind: Secret
-metadata:
-  name: mlflow-secrets
-  namespace: mlflow
-  labels:
-    app.kubernetes.io/name: mlflow
-    app.kubernetes.io/component: secrets
-type: Opaque
-stringData:
-  postgres-password: "mlflow-secure-password-change-me"
-  postgres-user: "mlflow"
-  postgres-db: "mlflow"
-  # AWS credentials - use IRSA in production instead
-  aws-access-key-id: ""
-  aws-secret-access-key: ""
----
-# Additional secret for MLflow authentication
-apiVersion: v1
-kind: Secret
-metadata:
-  name: mlflow-auth-secrets
-  namespace: mlflow
-  labels:
-    app.kubernetes.io/name: mlflow
-    app.kubernetes.io/component: auth
-type: Opaque
-stringData:
-  # Basic auth credentials for MLflow UI (optional)
-  auth-username: "mlflow-admin"
-  auth-password: "change-me-secure-password"
-  # JWT secret for token-based auth
-  jwt-secret: "change-me-jwt-secret-key"
 
 ---
 apiVersion: apps/v1
