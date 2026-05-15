@@ -21,10 +21,21 @@ variable "private_subnet_ids" {
   type        = list(string)
 }
 
+variable "endpoint_public_access" {
+  description = "Whether the EKS public API endpoint is enabled. WARNING: Disable (false) by default and use private endpoints or specific CIDRs."
+  type        = bool
+  default     = false
+}
+
 variable "public_access_cidrs" {
-  description = "List of CIDR blocks for public API access"
+  description = "List of CIDR blocks for public API access. NEVER use 0.0.0.0/0. Use specific /32 IPs or leave empty when public endpoint is disabled."
   type        = list(string)
-  default     = ["0.0.0.0/0"]
+  default     = []
+
+  validation {
+    condition     = length(var.public_access_cidrs) == 0 || alltrue([for cidr in var.public_access_cidrs : cidr != "0.0.0.0/0"])
+    error_message = "Public access CIDRs must not contain 0.0.0.0/0. Specify your exact IP ranges."
+  }
 }
 
 variable "cluster_log_types" {

@@ -75,7 +75,10 @@ module "eks" {
   
   public_subnet_ids  = module.vpc.public_subnet_ids
   private_subnet_ids = module.vpc.private_subnet_ids
-  
+
+  endpoint_public_access = false
+  public_access_cidrs    = []
+
   kms_key_arn = aws_kms_key.main.arn
   
   node_group_instance_types = var.node_group_instance_types
