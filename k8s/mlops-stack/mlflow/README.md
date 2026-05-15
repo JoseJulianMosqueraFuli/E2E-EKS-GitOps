@@ -1,6 +1,13 @@
-# MLflow Server Deployment
+# MLflow Server Deployment (Operational Overlay)
 
-This directory contains Kubernetes manifests for deploying MLflow server with S3 backend storage and PostgreSQL metadata store for the MLOps platform.
+> **IMPORTANT**: The canonical source of truth for MLflow base manifests has
+> moved to `gitops/applications/apps/mlflow/base/`.
+>
+> This directory is now a **Kustomize overlay** that adds operational resources
+> (HPA, NetworkPolicy, PodDisruptionBudget, Monitoring, Backup CronJob) on top
+> of the base manifests managed by ArgoCD/Flux.
+>
+> Do **not** edit base manifests here — edit them in the `gitops/` path.
 
 ## Overview
 
@@ -63,34 +70,33 @@ MLflow provides:
 
 ### 1. Update Configuration
 
-Before deploying, update the following configurations:
+Before deploying, update the following configurations in the base manifests
+under `gitops/applications/apps/mlflow/base/`:
 
 #### S3 Bucket Names
-Edit `deployment.yaml`:
+Edit `gitops/applications/apps/mlflow/base/configmap.yaml`:
 ```yaml
-env:
-- name: MLFLOW_ARTIFACT_ROOT
-  value: "s3://YOUR-MODEL-ARTIFACTS-BUCKET/mlflow-artifacts"
+data:
+  artifact_root: "s3://YOUR-MODEL-ARTIFACTS-BUCKET/mlflow-artifacts"
 ```
 
 #### IAM Role ARNs
-Update service account annotations:
+Update service account annotations in
+`gitops/applications/apps/mlflow/base/serviceaccount.yaml`:
 ```yaml
 annotations:
   eks.amazonaws.com/role-arn: arn:aws:iam::YOUR-ACCOUNT:role/mlops-mlflow-s3-role
 ```
 
-#### Database Passwords
-Update secrets with secure passwords:
-```yaml
-stringData:
-  postgres-password: "YOUR-SECURE-PASSWORD"
-```
+#### Secrets
+Secrets are managed via **External Secrets Operator** (ESO). Ensure the
+`ExternalSecret` resources in `gitops/applications/apps/mlflow/base/external-secrets.yaml`
+point to the correct AWS Secrets Manager paths.
 
 ### 2. Deploy MLflow
 
 ```bash
-# Apply all manifests using kustomize
+# Apply the overlay (includes base manifests from gitops/)
 kubectl apply -k k8s/mlops-stack/mlflow/
 
 # Verify deployment
@@ -314,7 +320,8 @@ kubectl exec -it mlflow-server-POD -n mlflow -- curl -v postgres:5432
 ## Maintenance
 
 ### Updating MLflow Version
-1. Update image tag in `kustomization.yaml`
+1. Update image tag in `k8s/mlops-stack/mlflow/kustomization.yaml` (overlay) or in
+   `gitops/applications/apps/mlflow/base/deployment.yaml` (base)
 2. Test in development environment
 3. Apply rolling update: `kubectl apply -k k8s/mlops-stack/mlflow/`
 

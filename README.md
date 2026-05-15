@@ -8,7 +8,7 @@ English | [Español](README.es.md)
 
 End-to-end MLOps platform on Amazon EKS. From training to production with monitoring included.
 
-> **Note**: ~~GitOps~~ - ArgoCD integration coming soon.
+> **Note**: GitOps with ArgoCD and Flux is fully implemented. See the `gitops/` directory.
 
 ## What is this?
 
