@@ -120,7 +120,7 @@ validate-terraform: ## Validate Terraform configuration
 
 validate-kubernetes: ## Validate Kubernetes manifests
 	@echo "Validating Kubernetes manifests..."
-	kubectl apply --dry-run=client -f k8s/mlops-stack/mlflow/deployment.yaml
+	kubectl apply --dry-run=client -k k8s/mlops-stack/mlflow/
 	kubectl apply --dry-run=client -f k8s/mlops-stack/seldon/seldon-core.yaml
 	kubectl apply --dry-run=client -f k8s/mlops-stack/monitoring/prometheus-stack.yaml
 
@@ -137,7 +137,12 @@ dev-setup: ## Setup development environment
 	@echo "Setting up development environment..."
 	pip install -r ml-platform/requirements.txt
 	pip install -r ml-platform/requirements-dev.txt
+	pip install pre-commit detect-secrets
 	pre-commit install
+	@if [ ! -f .secrets.baseline ]; then \
+		echo "Generating secrets baseline..."; \
+		detect-secrets scan > .secrets.baseline; \
+	fi
 
 dev-format: ## Format code
 	cd ml-platform && python -m black src/ tests/
