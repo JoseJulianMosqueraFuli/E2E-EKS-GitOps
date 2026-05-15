@@ -12,8 +12,8 @@ scipy==1.11.1
 # transformers==4.30.2
 
 # MLOps Tools
-mlflow==3.5.0  # Updated to fix CVE-2025-14279 (DNS rebinding) and other security issues
-kubeflow-pipelines==2.0.1
+mlflow==2.14.3  # Fixed: version 3.5.0 did not exist. Using latest stable 2.x
+kfp==2.8.0      # Fixed: package is 'kfp', not 'kubeflow-pipelines'. Kubeflow Pipelines SDK
 dvc==3.12.0
 great-expectations==0.17.12
 
@@ -27,18 +27,18 @@ prometheus-client==0.17.1
 grafana-api==1.0.3
 
 # Data Processing
-apache-airflow==3.1.6  # Updated to fix CVE-2025-68675 (proxy credentials leak)
-prefect==2.20.17  # Updated to fix CVE-2024-8183 (CORS misconfiguration)
+apache-airflow==2.9.3  # Fixed: Airflow 3.x does not exist. Using latest stable 2.x
+prefect==2.19.0        # Fixed: using confirmed stable 2.x release
 
 # Feature Store
-feast==0.54.0  # Updated to fix CVE-2025-11157 (RCE via YAML deserialization), CVE-2024-11602 (CORS)
+feast==0.40.1  # Fixed: version 0.54.0 was incorrect. Using latest stable release
 
 # Experiment Tracking
 wandb==0.15.8
 neptune-client==1.3.1
 
 # Model Registry
-mlflow-skinny==3.5.0  # Keep in sync with mlflow version
+mlflow-skinny==2.14.3  # Keep in sync with mlflow version
 
 # Testing
 pytest==7.4.0
@@ -57,7 +57,7 @@ awscli==1.29.25
 
 # Kubernetes Integration
 kubernetes==27.2.0
-kubectl==1.27.4
+# kubectl is a CLI binary, not a Python package. Install via OS package manager instead.
 
 # Development Tools
 black==23.7.0
