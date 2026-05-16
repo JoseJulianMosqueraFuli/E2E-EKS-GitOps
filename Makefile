@@ -6,7 +6,7 @@
 ENV ?= dev
 REGION ?= us-west-2
 CI_PROVIDER ?= github
-MLOPS_TOOLS ?= mlflow,kubeflow,seldon,monitoring
+MLOPS_TOOLS ?= mlflow,kubeflow,monitoring
 
 help: ## Show this help message
 	@echo 'Usage: make [target] [ENV=environment]'
@@ -83,8 +83,8 @@ mlops-monitoring-only: ## Install only monitoring stack
 mlops-core: ## Install core MLOps tools (MLflow + Monitoring)
 	MLOPS_TOOLS=mlflow,monitoring $(MAKE) mlops-install
 
-mlops-full: ## Install full MLOps stack
-	MLOPS_TOOLS=mlflow,kubeflow,seldon,monitoring $(MAKE) mlops-install
+mlops-full: ## Install full MLOps stack (MLflow + Kubeflow + Monitoring)
+	MLOPS_TOOLS=mlflow,kubeflow,monitoring $(MAKE) mlops-install
 
 # CI/CD Setup Targets
 setup-github: ## Setup GitHub Actions
@@ -121,8 +121,8 @@ validate-terraform: ## Validate Terraform configuration
 validate-kubernetes: ## Validate Kubernetes manifests
 	@echo "Validating Kubernetes manifests..."
 	kubectl apply --dry-run=client -k k8s/mlops-stack/mlflow/
-	kubectl apply --dry-run=client -f k8s/mlops-stack/seldon/seldon-core.yaml
 	kubectl apply --dry-run=client -f k8s/mlops-stack/monitoring/prometheus-stack.yaml
+	@echo "Helm charts validated during CI via 'helm lint' and 'helm template --debug'."
 
 validate-python: ## Validate Python code
 	@echo "Validating Python code..."
@@ -168,11 +168,11 @@ quickstart-prod: ## Quick start for production environment
 logs-mlflow: ## View MLflow logs
 	kubectl logs -f deployment/mlflow-server -n mlflow
 
-logs-seldon: ## View Seldon logs
-	kubectl logs -f deployment/seldon-controller-manager -n seldon-system
+logs-kserve: ## View KServe controller logs
+	kubectl logs -f deployment/kserve-controller-manager -n kserve --all-containers=true || true
 
-logs-kubeflow: ## View Kubeflow logs
-	kubectl logs -f deployment/ml-pipeline -n kubeflow
+logs-kubeflow: ## View Kubeflow Pipelines logs
+	kubectl logs -f deployment/ml-pipeline -n kubeflow --all-containers=true || true
 
 port-forward-mlflow: ## Port forward MLflow UI
 	@echo "MLflow UI will be available at http://localhost:5000"
