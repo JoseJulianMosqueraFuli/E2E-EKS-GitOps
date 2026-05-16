@@ -145,14 +145,21 @@ spec:
 
 ## 📋 Checklist de Seguridad
 
-- [ ] Secrets en AWS Secrets Manager (no hardcodeados)
-- [ ] IRSA configurado para cada service account
-- [ ] Network policies aplicadas
-- [ ] VPC endpoints habilitados
-- [ ] KMS encryption para datos en reposo
-- [ ] TLS habilitado para comunicaciones
-- [ ] Container image scanning habilitado
-- [ ] Pod Security Standards enforced
+- [x] Secrets en AWS Secrets Manager (no hardcodeados)
+- [x] IRSA configurado para cada service account
+- [x] Network policies aplicadas
+- [x] VPC endpoints habilitados
+- [x] KMS encryption para datos en reposo
+- [x] TLS habilitado para comunicaciones
+- [x] Container image scanning habilitado (ECR scan-on-push)
+- [x] Pod Security Standards enforced (restricted)
+- [x] seccompProfile: RuntimeDefault en todos los pods
+- [x] ResourceQuotas y LimitRanges por namespace
+- [x] automountServiceAccountToken: false por defecto
+- [x] Pre-commit hooks con detect-secrets
+- [x] Security Groups egress restringidos a VPC CIDR
+- [x] EKS API endpoint público deshabilitado por defecto
+- [x] S3 force_destroy eliminado (protección contra borrado)
 
 ## 🚨 Respuesta a Incidentes
 
