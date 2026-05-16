@@ -10,10 +10,14 @@ terraform {
   }
 
   backend "s3" {
-    # Configure backend in terraform init
-    # bucket = "mlops-terraform-state-dev"
-    # key    = "dev/terraform.tfstate"
-    # region = "us-east-1"
+    # REMINDER: Run scripts/bootstrap-terraform-backend.sh first to create
+    # the state bucket and DynamoDB lock table.
+    bucket         = "mlops-terraform-state-dev"
+    key            = "dev/terraform.tfstate"
+    region         = "us-west-2"
+    dynamodb_table = "mlops-terraform-locks-dev"
+    encrypt        = true
+    kms_key_id     = "alias/mlops-dev-key"
   }
 }
 
@@ -99,7 +103,8 @@ module "s3" {
     raw_data = {
       name               = "${local.name_prefix}-raw-data"
       versioning_enabled = true
-      force_destroy      = true
+      # force_destroy intentionally omitted (defaults to false) to prevent
+      # accidental data loss during terraform destroy.
       tags               = { Purpose = "raw-data-storage" }
       lifecycle_rules = [
         {
@@ -122,7 +127,8 @@ module "s3" {
     curated_data = {
       name               = "${local.name_prefix}-curated-data"
       versioning_enabled = true
-      force_destroy      = true
+      # force_destroy intentionally omitted (defaults to false) to prevent
+      # accidental data loss during terraform destroy.
       tags               = { Purpose = "curated-data-storage" }
       lifecycle_rules = [
         {
@@ -141,7 +147,8 @@ module "s3" {
     model_artifacts = {
       name               = "${local.name_prefix}-model-artifacts"
       versioning_enabled = true
-      force_destroy      = true
+      # force_destroy intentionally omitted (defaults to false) to prevent
+      # accidental data loss during terraform destroy.
       tags               = { Purpose = "model-storage" }
     }
   }
