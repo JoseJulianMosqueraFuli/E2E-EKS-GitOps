@@ -86,6 +86,18 @@ Configurados para acceso privado a servicios AWS:
 ### In Transit
 
 - TLS 1.2+ para todas las comunicaciones
+- ACM certificates for ALB Ingress (MLflow, Grafana, etc.)
+  ```bash
+  # Request a certificate for your domain
+  aws acm request-certificate \
+    --domain-name mlflow.mlops.company.com \
+    --validation-method DNS \
+    --region us-west-2
+
+  # Update the Helm values with the certificate ARN
+  # gitops/charts/mlflow/values.yaml
+  #   alb.ingress.kubernetes.io/certificate-arn: "arn:aws:acm:..."
+  ```
 - mTLS con Istio service mesh
 
 ## 📋 Checklist de Seguridad

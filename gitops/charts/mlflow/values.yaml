@@ -99,12 +99,21 @@ ingress:
     alb.ingress.kubernetes.io/target-type: ip
     alb.ingress.kubernetes.io/healthcheck-path: /health
     alb.ingress.kubernetes.io/ssl-redirect: "443"
+    # REQUIRED: Create an ACM certificate for the hostname and provide its ARN.
+    # Example: alb.ingress.kubernetes.io/certificate-arn: arn:aws:acm:us-west-2:123456789012:certificate/abcd1234-5678-90ab-cdef-example11111
+    alb.ingress.kubernetes.io/certificate-arn: ""
+    alb.ingress.kubernetes.io/listen-ports: '[{"HTTP":80},{"HTTPS":443}]'
   hosts:
     - host: mlflow.mlops.company.com
       paths:
         - path: /
           pathType: Prefix
-  tls: []
+  # TLS is handled by the ALB via ACM. This block ensures the Ingress resource
+  # itself declares the host for TLS termination.
+  tls:
+    - hosts:
+        - mlflow.mlops.company.com
+      secretName: mlflow-tls
 
 # PostgreSQL configuration (Bitnami subchart)
 postgresql:
