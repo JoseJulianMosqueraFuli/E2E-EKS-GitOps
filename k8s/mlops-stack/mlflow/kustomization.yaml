@@ -16,12 +16,14 @@ resources:
   - monitoring.yaml
   - backup-cronjob.yaml
 
-commonLabels:
-  app.kubernetes.io/name: mlflow
-  app.kubernetes.io/instance: mlops-mlflow
-  app.kubernetes.io/version: "2.14.3"
-  app.kubernetes.io/component: ml-platform
-  app.kubernetes.io/part-of: mlops-platform
+labels:
+  - pairs:
+      app.kubernetes.io/name: mlflow
+      app.kubernetes.io/instance: mlops-mlflow
+      app.kubernetes.io/version: "2.14.3"
+      app.kubernetes.io/component: ml-platform
+      app.kubernetes.io/part-of: mlops-platform
+    includeSelectors: true
 
 # Pin the MLflow image to the version matching requirements.txt
 images:
