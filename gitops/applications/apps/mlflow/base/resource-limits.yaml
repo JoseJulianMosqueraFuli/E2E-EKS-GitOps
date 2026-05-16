@@ -1,0 +1,46 @@
+---
+# ResourceQuota for the mlflow namespace
+# Prevents a single workload from exhausting cluster resources.
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: mlflow-quota
+  namespace: mlflow
+  labels:
+    app.kubernetes.io/name: mlflow
+    app.kubernetes.io/component: resource-quota
+spec:
+  hard:
+    requests.cpu: "2"
+    requests.memory: 4Gi
+    limits.cpu: "4"
+    limits.memory: 8Gi
+    persistentvolumeclaims: "4"
+    services: "5"
+    pods: "10"
+---
+# LimitRange for the mlflow namespace
+# Enforces minimum and maximum resource constraints for every container.
+apiVersion: v1
+kind: LimitRange
+metadata:
+  name: mlflow-limits
+  namespace: mlflow
+  labels:
+    app.kubernetes.io/name: mlflow
+    app.kubernetes.io/component: limit-range
+spec:
+  limits:
+    - default:
+        cpu: "500m"
+        memory: 512Mi
+      defaultRequest:
+        cpu: "100m"
+        memory: 256Mi
+      max:
+        cpu: "2"
+        memory: 2Gi
+      min:
+        cpu: "50m"
+        memory: 128Mi
+      type: Container
