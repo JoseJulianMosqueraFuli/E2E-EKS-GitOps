@@ -3,6 +3,7 @@ kind: Kustomization
 
 resources:
   - namespace.yaml
+  - resource-limits.yaml
   - serviceaccount.yaml
   - external-secrets.yaml
   - configmap.yaml

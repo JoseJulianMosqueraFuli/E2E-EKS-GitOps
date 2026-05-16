@@ -16,6 +16,9 @@ spec:
         app: mlflow-server
     spec:
       serviceAccountName: mlflow
+      # Explicitly enable token mount because this pod uses IRSA to call
+      # AWS Secrets Manager via the External Secrets Operator.
+      automountServiceAccountToken: true
       securityContext:
         runAsNonRoot: true
         runAsUser: 1000

@@ -21,6 +21,8 @@ spec:
         app.kubernetes.io/name: mlflow
         app.kubernetes.io/component: artifact-storage
     spec:
+      # MinIO does not need to call the Kubernetes API.
+      automountServiceAccountToken: false
       securityContext:
         runAsNonRoot: true
         runAsUser: 1000
