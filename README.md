@@ -77,12 +77,12 @@ aws configure
 
 | Package            | Version | Notes                                |
 | ------------------ | ------- | ------------------------------------ |
-| MLflow             | 3.5.0   | Experiment tracking & model registry |
-| Apache Airflow     | 3.1.6   | Workflow orchestration               |
-| Feast              | 0.54.0  | Feature store                        |
-| Prefect            | 2.20.17 | Data pipelines                       |
+| MLflow             | 2.14.3  | Experiment tracking & model registry |
+| Apache Airflow     | 2.9.3   | Workflow orchestration               |
+| Feast              | 0.40.1  | Feature store                        |
+| Prefect            | 2.19.0  | Data pipelines                       |
 | KServe             | 0.11.0  | Model serving                        |
-| Kubeflow Pipelines | 2.0.1   | ML pipelines                         |
+| Kubeflow Pipelines | 2.8.0   | ML pipelines (SDK: kfp)              |
 
 > **Security Note**: All dependencies are regularly updated to address CVEs. See `ml-platform/requirements.txt` for current versions.
 
@@ -137,8 +137,12 @@ make port-forward-grafana  # http://localhost:3000
 ├── infra/                    # Terraform infrastructure
 │   ├── modules/              # Reusable modules (vpc, eks, s3, ecr, glue)
 │   └── environments/         # Environment configs (dev, staging, prod)
-├── k8s/                      # Kubernetes manifests
-│   └── mlops-stack/          # MLflow, Kubeflow, KServe, monitoring
+├── k8s/                      # Kubernetes manifests (operational overlays)
+│   └── mlops-stack/          # MLflow overlay, KServe, monitoring
+├── gitops/                   # GitOps source of truth (ArgoCD + Flux)
+│   ├── applications/         # ArgoCD applications
+│   ├── charts/               # Helm charts (mlflow, kserve, kubeflow-pipelines)
+│   └── infrastructure/       # Cluster infrastructure configs
 ├── ml-platform/              # ML code and pipelines
 │   └── src/                  # Models, data processing, CLI
 ├── ci-cd/                    # CI/CD configurations
