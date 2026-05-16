@@ -6,7 +6,7 @@ This directory contains Helm charts for MLOps platform components, designed for 
 
 | Chart                  | Version | App Version | Description                                                            |
 | ---------------------- | ------- | ----------- | ---------------------------------------------------------------------- |
-| **mlflow**             | 1.0.0   | 2.8.1       | MLflow tracking server with PostgreSQL backend and S3 artifact storage |
+| **mlflow**             | 1.0.0   | 2.14.3      | MLflow tracking server with PostgreSQL backend and S3 artifact storage |
 | **kubeflow-pipelines** | 1.0.0   | 2.0.1       | Kubeflow Pipelines for ML workflow orchestration                       |
 | **kserve**             | 1.0.0   | 0.11.0      | KServe model serving platform for Kubernetes                           |
 | **monitoring-stack**   | 1.0.0   | 1.0.0       | MLOps monitoring with Prometheus, Grafana, and Evidently               |

@@ -6,7 +6,7 @@ apiVersion: v1
 entries:
   mlflow:
     - apiVersion: v2
-      appVersion: "2.8.1"
+      appVersion: "2.14.3"
       created: "2024-01-01T00:00:00Z"
       description: MLflow tracking server with PostgreSQL backend and S3 artifact storage
       digest: ""
