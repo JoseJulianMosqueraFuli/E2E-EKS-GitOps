@@ -10,14 +10,15 @@ terraform {
   }
 
   backend "s3" {
-    # REMINDER: Run scripts/bootstrap-terraform-backend.sh first to create
-    # the state bucket and DynamoDB lock table.
-    bucket         = "mlops-terraform-state-dev"
-    key            = "dev/terraform.tfstate"
-    region         = "us-west-2"
-    dynamodb_table = "mlops-terraform-locks-dev"
-    encrypt        = true
-    kms_key_id     = "alias/mlops-dev-key"
+    # Local backend is used by default when no S3 backend is configured.
+    # Uncomment and configure once the AWS account and bootstrap script
+    # (scripts/bootstrap-terraform-backend.sh) have been run.
+    # bucket         = "mlops-terraform-state-dev"
+    # key            = "dev/terraform.tfstate"
+    # region         = "us-west-2"
+    # dynamodb_table = "mlops-terraform-locks-dev"
+    # encrypt        = true
+    # kms_key_id     = "alias/mlops-dev-key"
   }
 }
 
