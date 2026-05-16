@@ -29,6 +29,17 @@ variable "enable_nat_gateway" {
   default     = true
 }
 
+variable "node_egress_cidrs" {
+  description = "Outbound CIDR blocks for EKS node security group. Use [aws_vpc.main.cidr_block] for restricted mode or [\"0.0.0.0/0\"] for open internet access (dev default)."
+  type        = list(string)
+  default     = ["0.0.0.0/0"]
+
+  validation {
+    condition     = length(var.node_egress_cidrs) > 0
+    error_message = "At least one egress CIDR must be specified for EKS nodes."
+  }
+}
+
 variable "tags" {
   description = "Tags to apply to all resources"
   type        = map(string)

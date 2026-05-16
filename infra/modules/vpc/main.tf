@@ -151,12 +151,14 @@ resource "aws_security_group" "eks_cluster" {
     cidr_blocks = [aws_vpc.main.cidr_block]
   }
 
+  # EKS Control Plane only needs to communicate with resources inside the VPC.
+  # Restricting egress to VPC CIDR follows least-privilege best practices.
   egress {
-    description = "All outbound traffic"
+    description = "Outbound to VPC only"
     from_port   = 0
     to_port     = 0
     protocol    = "-1"
-    cidr_blocks = ["0.0.0.0/0"]
+    cidr_blocks = [aws_vpc.main.cidr_block]
   }
 
   tags = merge(var.tags, {
@@ -205,12 +207,14 @@ resource "aws_security_group" "eks_nodes" {
     security_groups = [aws_security_group.eks_cluster.id]
   }
 
+  # Node egress is configurable: default open for dev (DockerHub, PyPI, etc.)
+  # but should be restricted to VPC CIDR + required prefixes in production.
   egress {
-    description = "All outbound traffic"
+    description = "Node outbound traffic"
     from_port   = 0
     to_port     = 0
     protocol    = "-1"
-    cidr_blocks = ["0.0.0.0/0"]
+    cidr_blocks = var.node_egress_cidrs
   }
 
   tags = merge(var.tags, {
@@ -235,12 +239,14 @@ resource "aws_security_group" "vpc_endpoints" {
     cidr_blocks = [aws_vpc.main.cidr_block]
   }
 
+  # VPC Endpoints are AWS services exposed inside the VPC.
+  # They only need to respond to traffic from within the VPC CIDR.
   egress {
-    description = "All outbound traffic"
+    description = "Outbound to VPC only"
     from_port   = 0
     to_port     = 0
     protocol    = "-1"
-    cidr_blocks = ["0.0.0.0/0"]
+    cidr_blocks = [aws_vpc.main.cidr_block]
   }
 
   tags = merge(var.tags, {
