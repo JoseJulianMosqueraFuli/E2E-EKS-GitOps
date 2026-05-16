@@ -161,6 +161,30 @@ spec:
 - [x] EKS API endpoint público deshabilitado por defecto
 - [x] S3 force_destroy eliminado (protección contra borrado)
 
+## 🔍 Pre-commit Hooks
+
+El proyecto incluye `.pre-commit-config.yaml` con:
+
+- **detect-secrets**: Escanea commits para detectar credenciales accidentalmente commiteadas.
+- **terraform_fmt**: Formatea automáticamente archivos Terraform.
+- **check-yaml**: Valida sintaxis YAML.
+- **check-added-large-files**: Previene commitear archivos grandes.
+- **detect-private-key**: Detecta claves privadas en commits.
+
+### Setup
+
+```bash
+make dev-setup  # Instala pre-commit y detect-secrets
+pre-commit install
+```
+
+### Generar baseline de secrets
+
+```bash
+detect-secrets scan > .secrets.baseline
+detect-secrets audit .secrets.baseline
+```
+
 ## 🚨 Respuesta a Incidentes
 
 1. **Rotación de Secrets**: Actualizar en AWS Secrets Manager, ESO sincroniza automáticamente
