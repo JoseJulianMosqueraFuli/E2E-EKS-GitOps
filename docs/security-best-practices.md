@@ -75,6 +75,49 @@ Configurados para acceso privado a servicios AWS:
 - ECR API/DKR Interface Endpoints
 - Secrets Manager Interface Endpoint
 
+## 🛡️ Pod Security Standards
+
+Todos los namespaces aplican **Pod Security Standards restricted**:
+
+```yaml
+metadata:
+  labels:
+    pod-security.kubernetes.io/enforce: restricted
+    pod-security.kubernetes.io/enforce-version: latest
+```
+
+### Security Contexts Requeridos
+
+Cada contenedor debe incluir:
+
+```yaml
+securityContext:
+  runAsNonRoot: true
+  runAsUser: 1000
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop:
+      - ALL
+  readOnlyRootFilesystem: true
+  seccompProfile:
+    type: RuntimeDefault
+```
+
+### ResourceQuotas y LimitRanges
+
+Cada namespace tiene límites de recursos para prevenir DoS:
+
+```yaml
+# ResourceQuota
+spec:
+  hard:
+    requests.cpu: "2"
+    requests.memory: 4Gi
+    limits.cpu: "4"
+    limits.memory: 8Gi
+    pods: "10"
+```
+
 ## 🔑 Encryption
 
 ### At Rest
