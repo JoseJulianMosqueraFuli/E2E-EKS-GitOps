@@ -110,36 +110,23 @@ deploy_mlflow() {
     log_info "MLflow UI available at: http://${MLFLOW_URL}"
 }
 
-# Deploy Kubeflow Pipelines
+# Deploy Kubeflow Pipelines via Helm
 deploy_kubeflow() {
-    log_info "Deploying Kubeflow Pipelines..."
-    
-    # Create namespace
-    kubectl create namespace kubeflow --dry-run=client -o yaml | kubectl apply -f -
-    
-    # Deploy using kustomize
-    kubectl apply -k k8s/mlops-stack/kubeflow/
-    
-    # Wait for deployment
-    kubectl wait --for=condition=available --timeout=600s deployment/ml-pipeline -n kubeflow || true
-    
+    log_info "Deploying Kubeflow Pipelines via Helm..."
+
+    helm upgrade --install kubeflow-pipelines \
+      gitops/charts/kubeflow-pipelines/ \
+      --namespace kubeflow --create-namespace \
+      --wait --timeout 600s
+
     log_success "Kubeflow Pipelines deployed successfully"
 }
 
-# Deploy Seldon Core
+# Deploy KServe via Helm (replaces legacy Seldon Core manifests)
 deploy_seldon() {
-    log_info "Deploying Seldon Core..."
-    
-    # Install Seldon Core CRDs first
-    kubectl apply -f https://github.com/SeldonIO/seldon-core/releases/download/v1.17.1/seldon-core-crd.yaml
-    
-    # Deploy Seldon Core
-    kubectl apply -f k8s/mlops-stack/seldon/seldon-core.yaml
-    
-    # Wait for deployment
-    kubectl wait --for=condition=available --timeout=300s deployment/seldon-controller-manager -n seldon-system
-    
-    log_success "Seldon Core deployed successfully"
+    log_warn "Seldon Core manual manifests have been removed."
+    log_warn "Install KServe (official successor) via Helm instead:"
+    log_warn "  helm upgrade --install kserve gitops/charts/kserve/ --namespace kserve --create-namespace"
 }
 
 # Deploy Monitoring Stack
