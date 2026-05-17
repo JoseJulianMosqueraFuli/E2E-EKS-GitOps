@@ -51,13 +51,13 @@ dependencies = [
     "awscli==1.29.25",
 
     # Kubernetes Integration
-    "kubernetes==27.2.0",
+    "kubernetes>=27.2.0,<29",
 ]
 
 [project.optional-dependencies]
 # Kubeflow Pipelines (heavy dependency, optional)
 kubeflow = [
-    "kfp==2.8.0",
+    "kfp>=2.8.0,<3",
 ]
 
 # Model Serving (choose one or both)
