@@ -1,0 +1,155 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "mlops-platform"
+version = "0.1.0"
+description = "End-to-end MLOps platform for training, inference, and monitoring"
+readme = "README.md"
+requires-python = ">=3.9"
+license = {text = "MIT"}
+authors = [
+    {name = "Jose Julian Mosquera", email = "jose@example.com"}
+]
+keywords = ["mlops", "machine-learning", "kubernetes", "aws", "eks"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
+
+dependencies = [
+    # Core ML Libraries
+    "numpy==1.24.3",
+    "pandas==2.0.3",
+    "scikit-learn==1.3.0",
+    "scipy==1.11.1",
+
+    # MLOps Core
+    "mlflow==2.14.3",
+    "dvc==3.12.0",
+    "great-expectations==0.17.12",
+
+    # Monitoring & Observability
+    "evidently==0.4.2",
+    "prometheus-client==0.17.1",
+
+    # Utilities
+    "click==8.1.6",
+    "pyyaml==6.0.1",
+    "python-dotenv==1.0.0",
+    "requests==2.31.0",
+
+    # AWS Integration
+    "boto3==1.28.25",
+    "awscli==1.29.25",
+
+    # Kubernetes Integration
+    "kubernetes==27.2.0",
+]
+
+[project.optional-dependencies]
+# Kubeflow Pipelines (heavy dependency, optional)
+kubeflow = [
+    "kfp==2.8.0",
+]
+
+# Model Serving (choose one or both)
+serving = [
+    "kserve==0.11.0",
+]
+
+# Orchestration (Airflow is heavy; Prefect is lighter)
+orchestration = [
+    "apache-airflow==2.9.3",
+    "prefect==2.19.0",
+]
+
+# Feature Store
+features = [
+    "feast==0.40.1",
+]
+
+# Experiment Tracking (optional alternates)
+tracking = [
+    "wandb==0.15.8",
+    "neptune-client==1.3.1",
+]
+
+# Deep Learning (uncomment as needed)
+deep-learning = [
+    # "tensorflow==2.13.0",
+    # "torch==2.0.1",
+    # "transformers==4.30.2",
+]
+
+# Development tools
+dev = [
+    "pytest==7.4.0",
+    "pytest-cov==4.1.0",
+    "pytest-mock==3.11.1",
+    "black==23.7.0",
+    "flake8==6.0.0",
+    "isort==5.12.0",
+    "mypy==1.5.1",
+]
+
+[project.scripts]
+mlops-train = "mlops_platform.cli:main"
+
+[project.urls]
+Homepage = "https://github.com/JoseJulianMosqueraFuli/E2E-EKS-GitOps"
+Repository = "https://github.com/JoseJulianMosqueraFuli/E2E-EKS-GitOps"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+include = ["mlops_platform*"]
+
+[tool.black]
+line-length = 100
+target-version = ['py39', 'py310', 'py311']
+include = '\.pyi?$'
+extend-exclude = '''
+/(
+  # directories
+  \.eggs
+  | \.git
+  | \.hg
+  | \.mypy_cache
+  | \.tox
+  | \.venv
+  | build
+  | dist
+)/
+'''
+
+[tool.isort]
+profile = "black"
+line_length = 100
+multi_line_output = 3
+include_trailing_comma = true
+force_grid_wrap = 0
+use_parentheses = true
+ensure_newline_before_comments = true
+known_first_party = ["mlops_platform"]
+
+[tool.mypy]
+python_version = "3.9"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = false
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+minversion = "7.0"
+testpaths = ["tests"]
+python_files = "test_*.py"
+python_classes = "Test*"
+python_functions = "test_*"
+addopts = "-v --tb=short"

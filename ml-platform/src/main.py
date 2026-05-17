@@ -6,16 +6,11 @@ inference, and data validation.
 """
 
 import os
-import sys
 import argparse
 import logging
-from pathlib import Path
 from typing import Optional
 
-# Add src to path for imports
-sys.path.append(str(Path(__file__).parent))
-
-from utils.logging_config import setup_logging, MLOpsLogger
+from src.utils.logging_config import setup_logging, MLOpsLogger
 from utils.config_manager import ConfigManager
 from pipelines.training_pipeline import TrainingPipeline
 from pipelines.inference_pipeline import InferencePipeline
