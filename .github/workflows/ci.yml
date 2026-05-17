@@ -155,6 +155,35 @@ jobs:
       with:
         sarif_file: 'trivy-results.sarif'
 
+  # Helm Chart Validation
+  helm-lint:
+    name: Helm Lint
+    runs-on: ubuntu-latest
+    if: contains(github.event.head_commit.modified, 'gitops/charts/') || github.event_name == 'pull_request'
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup Helm
+      uses: azure/setup-helm@v4
+      with:
+        version: 'v3.14.0'
+
+    - name: Lint Helm charts
+      run: |
+        for chart in gitops/charts/*/; do
+          echo "=== Linting $(basename "$chart") ==="
+          helm lint "$chart"
+        done
+
+    - name: Template Helm charts
+      run: |
+        for chart in gitops/charts/*/; do
+          echo "=== Template $(basename "$chart") ==="
+          helm template --debug "$chart" > /dev/null
+        done
+
   # MLOps Stack Validation
   mlops-validate:
     name: MLOps Stack Validation
