@@ -14,14 +14,14 @@ terraform {
     # This prevents team collaboration and risks state loss.
     #
     # To migrate to remote state:
-    #   1. Run: ./scripts/bootstrap-terraform-backend.sh prod us-west-2
+    #   1. Run: ./scripts/bootstrap-terraform-backend.sh dev us-west-2
     #   2. Uncomment the configuration below
-    #   3. Run: cd infra/environments/prod && terraform init -migrate-state
+    #   3. Run: cd infra/environments/dev && terraform init -migrate-state
     #
-    # bucket         = "mlops-terraform-state-prod"
-    # key            = "prod/terraform.tfstate"
+    # bucket         = "mlops-terraform-state-dev"
+    # key            = "dev/terraform.tfstate"
     # region         = "us-west-2"
-    # dynamodb_table = "mlops-terraform-locks-prod"
+    # dynamodb_table = "mlops-terraform-locks-dev"
     # encrypt        = true
     # kms_key_id     = "alias/mlops-prod-key"
   }
@@ -90,11 +90,18 @@ module "eks" {
   public_access_cidrs    = []
 
   kms_key_arn = aws_kms_key.main.arn
-  
+
   node_group_instance_types = var.node_group_instance_types
   node_group_desired_size   = var.node_group_desired_size
   node_group_max_size       = var.node_group_max_size
   node_group_min_size       = var.node_group_min_size
+
+  # Optional GPU node group (disabled by default)
+  enable_gpu_node_group         = var.enable_gpu_node_group
+  gpu_node_group_instance_types = var.gpu_node_group_instance_types
+  gpu_node_group_desired_size   = var.gpu_node_group_desired_size
+  gpu_node_group_max_size       = var.gpu_node_group_max_size
+  gpu_node_group_min_size       = var.gpu_node_group_min_size
 
   tags = local.common_tags
 }
@@ -109,8 +116,7 @@ module "s3" {
     raw_data = {
       name               = "${local.name_prefix}-raw-data"
       versioning_enabled = true
-      # force_destroy intentionally omitted (defaults to false) to prevent
-      # accidental data loss during terraform destroy.
+      force_destroy      = false
       tags               = { Purpose = "raw-data-storage" }
       lifecycle_rules = [
         {
@@ -129,12 +135,11 @@ module "s3" {
         }
       ]
     }
-    
+
     curated_data = {
       name               = "${local.name_prefix}-curated-data"
       versioning_enabled = true
-      # force_destroy intentionally omitted (defaults to false) to prevent
-      # accidental data loss during terraform destroy.
+      force_destroy      = false
       tags               = { Purpose = "curated-data-storage" }
       lifecycle_rules = [
         {
@@ -149,12 +154,11 @@ module "s3" {
         }
       ]
     }
-    
+
     model_artifacts = {
       name               = "${local.name_prefix}-model-artifacts"
       versioning_enabled = true
-      # force_destroy intentionally omitted (defaults to false) to prevent
-      # accidental data loss during terraform destroy.
+      force_destroy      = false
       tags               = { Purpose = "model-storage" }
     }
   }

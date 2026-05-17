@@ -27,10 +27,7 @@ output "s3_bucket_arns" {
 
 output "ecr_repository_urls" {
   description = "URLs of ECR repositories"
-  value = {
-    trainer   = aws_ecr_repository.trainer.repository_url
-    inference = aws_ecr_repository.inference.repository_url
-  }
+  value       = module.ecr.repository_urls
 }
 
 output "kms_key_arn" {
