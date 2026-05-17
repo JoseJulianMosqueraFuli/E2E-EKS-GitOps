@@ -1,0 +1,122 @@
+# Gatekeeper Constraints: enforce Pod Security Standards on MLOps namespaces.
+# Apply these AFTER the ConstraintTemplate is deployed.
+
+---
+apiVersion: constraints.gatekeeper.sh/v1beta1
+kind: K8sPodSecurity
+metadata:
+  name: mlflow-pod-security
+  labels:
+    app.kubernetes.io/name: gatekeeper
+    app.kubernetes.io/component: policy
+spec:
+  match:
+    kinds:
+      - apiGroups: [""]
+        kinds: ["Pod"]
+      - apiGroups: ["apps"]
+        kinds: ["Deployment", "StatefulSet", "DaemonSet", "ReplicaSet"]
+    namespaces:
+      - "mlflow"
+  parameters:
+    enforceRunAsNonRoot: true
+    enforceReadOnlyRootFilesystem: true
+    enforceAllowPrivilegeEscalation: true
+    enforceSeccompProfile: true
+    enforceCapabilitiesDropAll: true
+
+---
+apiVersion: constraints.gatekeeper.sh/v1beta1
+kind: K8sPodSecurity
+metadata:
+  name: kserve-pod-security
+  labels:
+    app.kubernetes.io/name: gatekeeper
+    app.kubernetes.io/component: policy
+spec:
+  match:
+    kinds:
+      - apiGroups: [""]
+        kinds: ["Pod"]
+      - apiGroups: ["apps"]
+        kinds: ["Deployment", "StatefulSet", "DaemonSet", "ReplicaSet"]
+    namespaces:
+      - "kserve"
+  parameters:
+    enforceRunAsNonRoot: true
+    enforceReadOnlyRootFilesystem: true
+    enforceAllowPrivilegeEscalation: true
+    enforceSeccompProfile: true
+    enforceCapabilitiesDropAll: true
+
+---
+apiVersion: constraints.gatekeeper.sh/v1beta1
+kind: K8sPodSecurity
+metadata:
+  name: monitoring-pod-security
+  labels:
+    app.kubernetes.io/name: gatekeeper
+    app.kubernetes.io/component: policy
+spec:
+  match:
+    kinds:
+      - apiGroups: [""]
+        kinds: ["Pod"]
+      - apiGroups: ["apps"]
+        kinds: ["Deployment", "StatefulSet", "DaemonSet", "ReplicaSet"]
+    namespaces:
+      - "monitoring"
+  parameters:
+    enforceRunAsNonRoot: true
+    enforceReadOnlyRootFilesystem: true
+    enforceAllowPrivilegeEscalation: true
+    enforceSeccompProfile: true
+    enforceCapabilitiesDropAll: true
+
+---
+apiVersion: constraints.gatekeeper.sh/v1beta1
+kind: K8sPodSecurity
+metadata:
+  name: kubeflow-pod-security
+  labels:
+    app.kubernetes.io/name: gatekeeper
+    app.kubernetes.io/component: policy
+spec:
+  match:
+    kinds:
+      - apiGroups: [""]
+        kinds: ["Pod"]
+      - apiGroups: ["apps"]
+        kinds: ["Deployment", "StatefulSet", "DaemonSet", "ReplicaSet"]
+    namespaces:
+      - "kubeflow"
+  parameters:
+    enforceRunAsNonRoot: true
+    enforceReadOnlyRootFilesystem: true
+    enforceAllowPrivilegeEscalation: true
+    enforceSeccompProfile: true
+    enforceCapabilitiesDropAll: true
+
+---
+apiVersion: constraints.gatekeeper.sh/v1beta1
+kind: K8sPodSecurity
+metadata:
+  name: argo-pod-security
+  labels:
+    app.kubernetes.io/name: gatekeeper
+    app.kubernetes.io/component: policy
+spec:
+  match:
+    kinds:
+      - apiGroups: [""]
+        kinds: ["Pod"]
+      - apiGroups: ["apps"]
+        kinds: ["Deployment", "StatefulSet", "DaemonSet", "ReplicaSet"]
+    namespaces:
+      - "argo-workflows"
+  parameters:
+    enforceRunAsNonRoot: true
+    enforceReadOnlyRootFilesystem: true
+    enforceAllowPrivilegeEscalation: true
+    enforceSeccompProfile: true
+    enforceCapabilitiesDropAll: true

@@ -1,0 +1,95 @@
+# Gatekeeper ConstraintTemplate: K8sPodSecurity
+# Enforces Pod Security Standards (restricted) fields on Pods and Deployments.
+# Requires Gatekeeper v3.13+ installed in the cluster.
+
+apiVersion: templates.gatekeeper.sh/v1
+kind: ConstraintTemplate
+metadata:
+  name: k8spodsecurity
+  labels:
+    app.kubernetes.io/name: gatekeeper
+    app.kubernetes.io/component: policy-template
+spec:
+  crd:
+    spec:
+      names:
+        kind: K8sPodSecurity
+      validation:
+        openAPIV3Schema:
+          type: object
+          properties:
+            enforceRunAsNonRoot:
+              type: boolean
+              default: true
+            enforceReadOnlyRootFilesystem:
+              type: boolean
+              default: true
+            enforceAllowPrivilegeEscalation:
+              type: boolean
+              default: true
+            enforceSeccompProfile:
+              type: boolean
+              default: true
+            enforceCapabilitiesDropAll:
+              type: boolean
+              default: true
+  targets:
+    - target: admission.k8s.gatekeeper.sh
+      rego: |
+        package k8spodsecurity
+
+        # Deny if any container fails the security checks
+        violation[{"msg": msg}] {
+          input.review.object.spec.template.spec.containers[_].securityContext
+          not container_passes(input.review.object.spec.template.spec.containers[_])
+          msg := sprintf("Deployment %v/%v: container does not meet Pod Security Standards", [input.review.object.metadata.namespace, input.review.object.metadata.name])
+        }
+
+        violation[{"msg": msg}] {
+          input.review.object.spec.containers[_].securityContext
+          not container_passes(input.review.object.spec.containers[_])
+          msg := sprintf("Pod %v/%v: container does not meet Pod Security Standards", [input.review.object.metadata.namespace, input.review.object.metadata.name])
+        }
+
+        # --- Individual checks ---
+        container_passes(container) {
+          data.parameters.enforceRunAsNonRoot == false
+        }
+        container_passes(container) {
+          data.parameters.enforceRunAsNonRoot == true
+          container.securityContext.runAsNonRoot == true
+        }
+
+        container_passes(container) {
+          data.parameters.enforceReadOnlyRootFilesystem == false
+        }
+        container_passes(container) {
+          data.parameters.enforceReadOnlyRootFilesystem == true
+          container.securityContext.readOnlyRootFilesystem == true
+        }
+
+        container_passes(container) {
+          data.parameters.enforceAllowPrivilegeEscalation == false
+        }
+        container_passes(container) {
+          data.parameters.enforceAllowPrivilegeEscalation == true
+          container.securityContext.allowPrivilegeEscalation == false
+        }
+
+        container_passes(container) {
+          data.parameters.enforceSeccompProfile == false
+        }
+        container_passes(container) {
+          data.parameters.enforceSeccompProfile == true
+          container.securityContext.seccompProfile
+          container.securityContext.seccompProfile.type == "RuntimeDefault"
+        }
+
+        container_passes(container) {
+          data.parameters.enforceCapabilitiesDropAll == false
+        }
+        container_passes(container) {
+          data.parameters.enforceCapabilitiesDropAll == true
+          drops := {cap | cap := container.securityContext.capabilities.drop[_]}
+          drops["ALL"]
+        }
