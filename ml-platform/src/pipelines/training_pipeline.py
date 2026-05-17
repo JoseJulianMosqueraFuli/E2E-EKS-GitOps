@@ -7,7 +7,6 @@ model training, and MLflow tracking.
 
 import logging
 import os
-import sys
 from typing import Dict, Any, Optional, Tuple, List
 import pandas as pd
 import numpy as np
@@ -16,14 +15,11 @@ import mlflow.sklearn
 from datetime import datetime
 import yaml
 
-# Add parent directory to path for imports
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-
-from data.data_loader import DataLoader
-from data.data_validator import DataValidator
-from data.feature_engineering import FeatureEngineer
-from models.classification_model import ClassificationModel
-from models.regression_model import RegressionModel
+from src.data.data_loader import DataLoader
+from src.data.data_validator import DataValidator
+from src.data.feature_engineering import FeatureEngineer
+from src.models.classification_model import ClassificationModel
+from src.models.regression_model import RegressionModel
 
 logger = logging.getLogger(__name__)
 

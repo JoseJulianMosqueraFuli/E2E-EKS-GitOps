@@ -11,11 +11,11 @@ import logging
 from typing import Optional
 
 from src.utils.logging_config import setup_logging, MLOpsLogger
-from utils.config_manager import ConfigManager
-from pipelines.training_pipeline import TrainingPipeline
-from pipelines.inference_pipeline import InferencePipeline
-from data.data_loader import DataLoader
-from data.data_validator import DataValidator
+from src.utils.config_manager import ConfigManager
+from src.pipelines.training_pipeline import TrainingPipeline
+from src.pipelines.inference_pipeline import InferencePipeline
+from src.data.data_loader import DataLoader
+from src.data.data_validator import DataValidator
 
 # Setup logging
 setup_logging()
