@@ -191,8 +191,49 @@ detect-secrets audit .secrets.baseline
 2. **Revocación de Acceso**: Modificar IAM policies o eliminar role bindings
 3. **Auditoría**: CloudTrail logs para todas las operaciones AWS
 
+## 🔒 Service Mesh mTLS (Istio)
+
+Todas las comunicaciones entre servicios MLOps están protegidas con **mutual TLS estricto**:
+
+```bash
+# PeerAuthentication enforce STRICT mTLS en cada namespace
+kubectl apply -f k8s/security/istio/peer-authentications.yaml
+
+# DestinationRules aseguran ISTIO_MUTUAL para tráfico interno
+kubectl apply -f k8s/security/istio/destination-rules.yaml
+```
+
+| Namespace       | Estado mTLS |
+| --------------- | ----------- |
+| mlflow          | STRICT      |
+| kserve          | STRICT      |
+| monitoring      | STRICT      |
+| kubeflow        | STRICT      |
+| argo-workflows  | STRICT      |
+
+> **Nota**: Requiere Istio control plane y sidecar injection habilitados.
+
+## 🛡️ Admission Control (Gatekeeper/OPA)
+
+Gatekeeper valida que todos los pods cumplan con **Pod Security Standards restricted**:
+
+```bash
+# Aplicar templates y constraints
+kubectl apply -f k8s/security/gatekeeper/templates/
+kubectl apply -f k8s/security/gatekeeper/constraints/
+```
+
+Políticas validadas antes de admitir un pod:
+- `runAsNonRoot: true`
+- `readOnlyRootFilesystem: true`
+- `allowPrivilegeEscalation: false`
+- `seccompProfile: RuntimeDefault`
+- `capabilities.drop: ["ALL"]`
+
 ## 📚 Referencias
 
 - [AWS Secrets Manager Best Practices](https://docs.aws.amazon.com/secretsmanager/latest/userguide/best-practices.html)
 - [EKS Security Best Practices](https://aws.github.io/aws-eks-best-practices/security/docs/)
 - [IRSA Documentation](https://docs.aws.amazon.com/eks/latest/userguide/iam-roles-for-service-accounts.html)
+- [Istio Security](https://istio.io/latest/docs/concepts/security/)
+- [Gatekeeper Policy Controller](https://open-policy-agent.github.io/gatekeeper/website/docs/)
