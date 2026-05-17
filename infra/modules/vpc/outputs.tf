@@ -59,3 +59,23 @@ output "ecr_api_vpc_endpoint_id" {
   description = "ID of the ECR API VPC endpoint"
   value       = aws_vpc_endpoint.ecr_api.id
 }
+
+output "ec2_vpc_endpoint_id" {
+  description = "ID of the EC2 VPC endpoint"
+  value       = aws_vpc_endpoint.ec2.id
+}
+
+output "logs_vpc_endpoint_id" {
+  description = "ID of the CloudWatch Logs VPC endpoint"
+  value       = aws_vpc_endpoint.logs.id
+}
+
+output "sts_vpc_endpoint_id" {
+  description = "ID of the STS VPC endpoint"
+  value       = aws_vpc_endpoint.sts.id
+}
+
+output "cloudwatch_monitoring_vpc_endpoint_id" {
+  description = "ID of the CloudWatch Monitoring VPC endpoint"
+  value       = aws_vpc_endpoint.cloudwatch_monitoring.id
+}

@@ -335,5 +335,18 @@ resource "aws_vpc_endpoint" "sts" {
   })
 }
 
+resource "aws_vpc_endpoint" "cloudwatch_monitoring" {
+  vpc_id              = aws_vpc.main.id
+  service_name        = "com.amazonaws.${data.aws_region.current.name}.monitoring"
+  vpc_endpoint_type   = "Interface"
+  subnet_ids          = aws_subnet.private[*].id
+  security_group_ids  = [aws_security_group.vpc_endpoints.id]
+  private_dns_enabled = true
+
+  tags = merge(var.tags, {
+    Name = "${var.name_prefix}-monitoring-endpoint"
+  })
+}
+
 # Data source for current AWS region
 data "aws_region" "current" {}

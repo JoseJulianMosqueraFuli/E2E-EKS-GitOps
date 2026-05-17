@@ -8,7 +8,7 @@ set -e
 # Configuration
 ENVIRONMENT=${ENVIRONMENT:-"dev"}
 CI_PROVIDER=${CI_PROVIDER:-"github"}
-MLOPS_TOOLS=${MLOPS_TOOLS:-"mlflow,kubeflow,seldon,monitoring"}
+MLOPS_TOOLS=${MLOPS_TOOLS:-"mlflow,kubeflow,kserve,monitoring"}
 AWS_REGION=${AWS_REGION:-"us-west-2"}
 CLUSTER_NAME=${CLUSTER_NAME:-"mlops-${ENVIRONMENT}-cluster"}
 
@@ -274,12 +274,12 @@ case "${1:-}" in
         ;;
     "uninstall")
         log_info "Uninstalling MLOps stack..."
-        kubectl delete namespace mlflow kubeflow seldon-system monitoring --ignore-not-found=true
+        kubectl delete namespace mlflow kubeflow kserve monitoring --ignore-not-found=true
         log_success "MLOps stack uninstalled"
         ;;
     "status")
         log_info "Checking MLOps stack status..."
-        for ns in mlflow kubeflow seldon-system monitoring; do
+        for ns in mlflow kubeflow kserve monitoring; do
             echo "=== Namespace: $ns ==="
             kubectl get pods -n "$ns" 2>/dev/null || echo "Namespace $ns not found or no pods"
             echo ""
@@ -291,7 +291,7 @@ case "${1:-}" in
         echo "Environment variables:"
         echo "  ENVIRONMENT     - Target environment (default: dev)"
         echo "  CI_PROVIDER     - CI/CD provider (github|gitlab|circleci|jenkins)"
-        echo "  MLOPS_TOOLS     - Comma-separated tools (mlflow,kubeflow,seldon,monitoring)"
+        echo "  MLOPS_TOOLS     - Comma-separated tools (mlflow,kubeflow,kserve,monitoring)"
         echo "  AWS_REGION      - AWS region (default: us-west-2)"
         echo "  CLUSTER_NAME    - EKS cluster name"
         echo ""

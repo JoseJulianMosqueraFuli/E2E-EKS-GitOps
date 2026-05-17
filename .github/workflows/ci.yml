@@ -69,18 +69,32 @@ jobs:
   k8s-validate:
     name: Kubernetes Validate
     runs-on: ubuntu-latest
-    if: contains(github.event.head_commit.modified, 'k8s/') || github.event_name == 'pull_request'
-    
+    if: contains(github.event.head_commit.modified, 'k8s/') || contains(github.event.head_commit.modified, 'gitops/') || github.event_name == 'pull_request'
+
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
-      
+
     - name: Setup kubectl
       uses: azure/setup-kubectl@v3
-      
-    - name: Validate Kubernetes manifests
+
+    - name: Setup Kustomize
+      uses: imranismail/setup-kustomize@v2
+      with:
+        kustomize-version: '5.3.0'
+
+    - name: Validate raw Kubernetes manifests
       run: |
-        find k8s/ -name "*.yaml" -o -name "*.yml" | xargs -I {} kubectl --dry-run=client apply -f {}
+        find k8s/ -name "*.yaml" -not -name "kustomization.yaml" | xargs -I {} kubectl --dry-run=client apply -f {}
+
+    - name: Validate Kustomize overlays
+      run: |
+        echo "=== MLflow overlay ==="
+        kustomize build k8s/mlops-stack/mlflow/ | kubectl --dry-run=client apply -f -
+        echo "=== KServe overlay ==="
+        kustomize build k8s/mlops-stack/kserve/ | kubectl --dry-run=client apply -f -
+        echo "=== Monitoring overlay ==="
+        kustomize build k8s/mlops-stack/monitoring/ | kubectl --dry-run=client apply -f -
 
   # ML Platform Tests
   ml-platform-test:
