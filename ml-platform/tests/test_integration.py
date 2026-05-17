@@ -74,24 +74,27 @@ class TestInferencePipelineIntegration:
         )
 
         assert predictions is not None
-        assert len(predictions) == len(sample_classification_data)
+        assert predictions['num_samples'] == len(sample_classification_data)
 
     def test_batch_inference(
         self, sample_classification_data, temp_project_dir, mock_mlflow_tracking_uri
     ):
         """Run batch inference and write predictions to disk."""
-        data_path = os.path.join(temp_project_dir, 'data', 'train.csv')
+        train_data_path = os.path.join(temp_project_dir, 'data', 'train.csv')
+        sample_classification_data.to_csv(train_data_path, index=False)
+        features_data = sample_classification_data.drop(columns=['target'])
+        infer_data_path = os.path.join(temp_project_dir, 'data', 'infer.csv')
+        features_data.to_csv(infer_data_path, index=False)
         output_path = os.path.join(temp_project_dir, 'data', 'predictions.json')
-        sample_classification_data.to_csv(data_path, index=False)
 
         train_pipeline = TrainingPipeline()
-        train_pipeline.run_pipeline(data_path)
+        train_pipeline.run_pipeline(train_data_path)
 
         model_path = os.path.join(temp_project_dir, 'models', 'model.joblib')
         train_pipeline.model.save_model(model_path)
 
         inf_pipeline = InferencePipeline(model_path=model_path)
-        results = inf_pipeline.predict_batch(data_path, output_path, batch_size=50)
+        results = inf_pipeline.predict_batch(infer_data_path, output_path, batch_size=50)
 
         assert results['num_samples'] == len(sample_classification_data)
         assert os.path.exists(output_path)

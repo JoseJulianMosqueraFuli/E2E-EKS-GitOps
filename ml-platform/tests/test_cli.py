@@ -7,7 +7,7 @@ import tempfile
 from click.testing import CliRunner
 import pytest
 
-from src.main import main
+from src.cli import main
 
 
 class TestCLI:
@@ -24,9 +24,9 @@ class TestCLI:
             return f.name
 
     def test_cli_no_args_shows_help(self, runner):
-        result = runner.invoke(main, [])
+        result = runner.invoke(main, ["--help"])
         assert result.exit_code == 0
-        assert 'Usage:' in result.output
+        assert "Usage:" in result.output
 
     def test_create_sample_command(self, runner):
         with tempfile.TemporaryDirectory() as tmpdir:

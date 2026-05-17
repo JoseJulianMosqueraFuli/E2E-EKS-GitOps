@@ -225,6 +225,8 @@ class FeatureEngineer:
     
     def save_pipeline(self, filepath: str):
         """Save the feature engineering pipeline."""
+        import os
+        os.makedirs(os.path.dirname(filepath), exist_ok=True)
         pipeline_data = {
             'preprocessor': self.preprocessor,
             'feature_selector': self.feature_selector,

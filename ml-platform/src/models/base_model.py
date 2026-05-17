@@ -114,7 +114,7 @@ class BaseModel(ABC):
         Returns:
             Dictionary of evaluation metrics
         """
-        with mlflow.start_run(run_name=f"{self.model_name}_training"):
+        with mlflow.start_run(run_name=f"{self.model_name}_training", nested=True):
             # Log parameters
             mlflow.log_params(model_params)
             mlflow.log_param("model_name", self.model_name)

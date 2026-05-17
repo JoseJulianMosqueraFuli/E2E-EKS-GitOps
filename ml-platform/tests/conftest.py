@@ -55,6 +55,14 @@ def temp_project_dir():
         yield tmpdir
 
 
+@pytest.fixture(autouse=True)
+def cleanup_mlflow():
+    """Ensure no active MLflow runs leak between tests."""
+    import mlflow
+    yield
+    mlflow.end_run()
+
+
 @pytest.fixture
 def mock_mlflow_tracking_uri(monkeypatch):
     """Set a temporary MLflow tracking URI to avoid polluting the local filesystem."""

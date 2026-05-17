@@ -302,6 +302,8 @@ class InferencePipeline:
                 predictions_df.to_csv(output_path, index=False)
             elif output_path.endswith('.parquet'):
                 predictions_df.to_parquet(output_path, index=False)
+            elif output_path.endswith('.json'):
+                predictions_df.to_json(output_path, orient='records', indent=2)
             
             logger.info(f"Saved predictions to: {output_path}")
         
