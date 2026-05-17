@@ -89,3 +89,5 @@ secrets/
 *.pem
 *.key
 !*.key.example
+
+.kiro/
