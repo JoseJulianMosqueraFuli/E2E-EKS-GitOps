@@ -1,0 +1,219 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: kserve-controller-manager
+  namespace: kserve-system
+  labels:
+    app.kubernetes.io/name: kserve
+    app.kubernetes.io/component: controller-manager
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: kserve-manager-role
+  labels:
+    app.kubernetes.io/name: kserve
+    app.kubernetes.io/component: rbac
+rules:
+- apiGroups:
+  - ""
+  resources:
+  - configmaps
+  - events
+  - secrets
+  - services
+  - serviceaccounts
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - ""
+  resources:
+  - namespaces
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - ""
+  resources:
+  - pods
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - apps
+  resources:
+  - deployments
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - autoscaling
+  resources:
+  - horizontalpodautoscalers
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - networking.k8s.io
+  resources:
+  - ingresses
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - serving.knative.dev
+  resources:
+  - configurations
+  - revisions
+  - routes
+  - services
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - serving.kserve.io
+  resources:
+  - inferenceservices
+  - servingruntimes
+  - clusterservingruntimes
+  - trainedmodels
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - serving.kserve.io
+  resources:
+  - inferenceservices/finalizers
+  - servingruntimes/finalizers
+  - trainedmodels/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - serving.kserve.io
+  resources:
+  - inferenceservices/status
+  - servingruntimes/status
+  - trainedmodels/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - networking.istio.io
+  resources:
+  - virtualservices
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: kserve-manager-rolebinding
+  labels:
+    app.kubernetes.io/name: kserve
+    app.kubernetes.io/component: rbac
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: kserve-manager-role
+subjects:
+- kind: ServiceAccount
+  name: kserve-controller-manager
+  namespace: kserve-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: kserve-leader-election-role
+  namespace: kserve-system
+  labels:
+    app.kubernetes.io/name: kserve
+    app.kubernetes.io/component: rbac
+rules:
+- apiGroups:
+  - ""
+  resources:
+  - configmaps
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - update
+  - patch
+  - delete
+- apiGroups:
+  - coordination.k8s.io
+  resources:
+  - leases
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - update
+  - patch
+  - delete
+- apiGroups:
+  - ""
+  resources:
+  - events
+  verbs:
+  - create
+  - patch
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: kserve-leader-election-rolebinding
+  namespace: kserve-system
+  labels:
+    app.kubernetes.io/name: kserve
+    app.kubernetes.io/component: rbac
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: kserve-leader-election-role
+subjects:
+- kind: ServiceAccount
+  name: kserve-controller-manager
+  namespace: kserve-system

@@ -1,0 +1,40 @@
+apiVersion: serving.kserve.io/v1alpha1
+kind: ClusterServingRuntime
+metadata:
+  name: kserve-sklearnserver
+  labels:
+    app.kubernetes.io/name: kserve
+    app.kubernetes.io/component: serving-runtime
+spec:
+  supportedModelFormats:
+  - name: sklearn
+    version: "1"
+    autoSelect: true
+  containers:
+  - name: kserve-container
+    image: kserve/sklearnserver:v0.11.0
+    env:
+    - name: STORAGE_URI
+      value: "{{.StorageUri}}"
+    resources:
+      requests:
+        cpu: 100m
+        memory: 128Mi
+      limits:
+        cpu: 1000m
+        memory: 2Gi
+    readinessProbe:
+      httpGet:
+        path: /v1/models/{{.ModelName}}
+        port: 8080
+      initialDelaySeconds: 10
+      periodSeconds: 10
+    livenessProbe:
+      httpGet:
+        path: /v1/models/{{.ModelName}}
+        port: 8080
+      initialDelaySeconds: 30
+      periodSeconds: 30
+  protocolVersions:
+  - v1
+  - v2

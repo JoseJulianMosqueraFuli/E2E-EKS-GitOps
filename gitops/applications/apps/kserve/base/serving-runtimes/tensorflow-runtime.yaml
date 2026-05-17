@@ -1,0 +1,49 @@
+apiVersion: serving.kserve.io/v1alpha1
+kind: ClusterServingRuntime
+metadata:
+  name: kserve-tensorflow-serving
+  labels:
+    app.kubernetes.io/name: kserve
+    app.kubernetes.io/component: serving-runtime
+spec:
+  supportedModelFormats:
+  - name: tensorflow
+    version: "1"
+    autoSelect: true
+  - name: tensorflow
+    version: "2"
+    autoSelect: true
+  containers:
+  - name: kserve-container
+    image: tensorflow/serving:2.6.2
+    command:
+    - /usr/bin/tensorflow_model_server
+    args:
+    - --port=9000
+    - --rest_api_port=8080
+    - --model_config_file=/var/config/model_config_list.pbtxt
+    - --monitoring_config_file=/var/config/monitoring_config.txt
+    env:
+    - name: STORAGE_URI
+      value: "{{.StorageUri}}"
+    resources:
+      requests:
+        cpu: 100m
+        memory: 256Mi
+      limits:
+        cpu: 2000m
+        memory: 4Gi
+    readinessProbe:
+      httpGet:
+        path: /v1/models/{{.ModelName}}
+        port: 8080
+      initialDelaySeconds: 15
+      periodSeconds: 10
+    livenessProbe:
+      httpGet:
+        path: /v1/models/{{.ModelName}}
+        port: 8080
+      initialDelaySeconds: 30
+      periodSeconds: 30
+  protocolVersions:
+  - v1
