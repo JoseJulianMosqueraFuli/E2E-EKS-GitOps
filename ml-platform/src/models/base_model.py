@@ -6,12 +6,12 @@ Provides common functionality for training, validation, and MLflow integration.
 """
 
 import os
-import pickle
 import logging
 from abc import ABC, abstractmethod
 from typing import Any, Dict, Optional, Tuple, Union
 import pandas as pd
 import numpy as np
+import joblib
 import mlflow
 import mlflow.sklearn
 from sklearn.model_selection import train_test_split
@@ -36,6 +36,15 @@ class BaseModel(ABC):
         self.model = None
         self.is_trained = False
         self.feature_names = None
+        
+        # Validate MLflow tracking URI is configured for remote tracking
+        tracking_uri = mlflow.get_tracking_uri()
+        if tracking_uri == "file:///./mlruns":
+            logger.warning(
+                "MLFLOW_TRACKING_URI is not set. Using local filesystem tracking. "
+                "Set MLFLOW_TRACKING_URI to a remote server (e.g., http://mlflow-server:5000) "
+                "for production use."
+            )
         
         # Setup MLflow
         mlflow.set_experiment(experiment_name)
@@ -171,7 +180,7 @@ class BaseModel(ABC):
     
     def save_model(self, filepath: str) -> None:
         """
-        Save model to disk.
+        Save model to disk using joblib (more efficient for numpy/scipy objects).
         
         Args:
             filepath: Path to save model
@@ -181,13 +190,15 @@ class BaseModel(ABC):
             
         os.makedirs(os.path.dirname(filepath), exist_ok=True)
         
-        with open(filepath, 'wb') as f:
-            pickle.dump({
-                'model': self.model,
-                'model_name': self.model_name,
-                'feature_names': self.feature_names,
-                'is_trained': self.is_trained
-            }, f)
+        model_data = {
+            'model': self.model,
+            'model_name': self.model_name,
+            'feature_names': self.feature_names,
+            'is_trained': self.is_trained,
+            'format': 'joblib',
+            'version': '1.0'
+        }
+        joblib.dump(model_data, filepath)
             
         logger.info(f"Model saved to {filepath}")
     
@@ -198,8 +209,7 @@ class BaseModel(ABC):
         Args:
             filepath: Path to load model from
         """
-        with open(filepath, 'rb') as f:
-            model_data = pickle.load(f)
+        model_data = joblib.load(filepath)
             
         self.model = model_data['model']
         self.model_name = model_data['model_name']

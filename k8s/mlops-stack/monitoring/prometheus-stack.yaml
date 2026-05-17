@@ -65,12 +65,15 @@ data:
         - targets: ['mlflow-server.mlflow:5000']
         metrics_path: /metrics
       
-      # Seldon Deployments
-      - job_name: 'seldon-deployments'
+      # KServe Inference Services
+      - job_name: 'kserve-inference-services'
         kubernetes_sd_configs:
         - role: pod
+          namespaces:
+            names:
+            - kserve
         relabel_configs:
-        - source_labels: [__meta_kubernetes_pod_label_seldon_deployment_id]
+        - source_labels: [__meta_kubernetes_pod_label_serving_kserve_io_inferenceservice]
           action: keep
           regex: (.+)
         - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_scrape]
@@ -127,15 +130,19 @@ data:
           target_label: __address__
 
 ---
-# Prometheus Deployment
+# Prometheus StatefulSet
+# StatefulSet provides stable network identity and persistent storage,
+# which is critical for Prometheus to retain time-series data across restarts.
+# For true HA, run Thanos or Cortex alongside; this is a single-replica baseline.
 apiVersion: apps/v1
-kind: Deployment
+kind: StatefulSet
 metadata:
   name: prometheus
   namespace: monitoring
   labels:
     app: prometheus
 spec:
+  serviceName: prometheus
   replicas: 1
   selector:
     matchLabels:
@@ -156,7 +163,6 @@ spec:
             - "--web.console.templates=/etc/prometheus/consoles"
             - "--storage.tsdb.retention.time=200h"
             - "--web.enable-lifecycle"
-            - "--web.enable-admin-api"
           ports:
             - containerPort: 9090
           resources:
@@ -169,7 +175,7 @@ spec:
           volumeMounts:
             - name: prometheus-config-volume
               mountPath: /etc/prometheus/
-            - name: prometheus-storage-volume
+            - name: prometheus-storage
               mountPath: /prometheus/
           livenessProbe:
             httpGet:
@@ -188,23 +194,16 @@ spec:
           configMap:
             defaultMode: 420
             name: prometheus-config
-        - name: prometheus-storage-volume
-          persistentVolumeClaim:
-            claimName: prometheus-pvc
-
----
-apiVersion: v1
-kind: PersistentVolumeClaim
-metadata:
-  name: prometheus-pvc
-  namespace: monitoring
-spec:
-  accessModes:
-    - ReadWriteOnce
-  resources:
-    requests:
-      storage: 50Gi
-  storageClassName: gp3
+  volumeClaimTemplates:
+    - metadata:
+        name: prometheus-storage
+      spec:
+        accessModes:
+          - ReadWriteOnce
+        resources:
+          requests:
+            storage: 50Gi
+        storageClassName: gp3
 
 ---
 apiVersion: v1
@@ -356,19 +355,15 @@ spec:
       targetPort: 3000
 
 ---
-# NOTE: grafana-secrets is now managed by External Secrets Operator
+# NOTE: grafana-secrets is managed by External Secrets Operator.
 # See k8s/mlops-stack/secrets/external-secrets.yaml
-# The ExternalSecret will create this secret automatically from AWS Secrets Manager
+# The ExternalSecret creates this secret automatically from AWS Secrets Manager.
 #
-# For local development without ESO, uncomment and use a secure password:
-# apiVersion: v1
-# kind: Secret
-# metadata:
-#   name: grafana-secrets
-#   namespace: monitoring
-# type: Opaque
-# stringData:
-#   admin-password: "CHANGE_ME_USE_SECURE_PASSWORD"
+# For local development without ESO, create a Secret manually via:
+#   kubectl create secret generic grafana-secrets \
+#     --from-literal=admin-password="$(openssl rand -base64 32)" \
+#     -n monitoring
+# Never commit plaintext secrets to version control.
 
 ---
 apiVersion: v1

@@ -47,7 +47,7 @@ spec:
     - protocol: TCP
       port: 5432
   egress:
-  # Allow egress to PostgreSQL
+  # Allow egress to PostgreSQL within the same namespace
   - to:
     - podSelector:
         matchLabels:
@@ -55,17 +55,34 @@ spec:
     ports:
     - protocol: TCP
       port: 5432
-  # Allow egress to AWS services (S3, etc.)
-  - to: []
+  # Allow egress to MinIO (S3-compatible) within the same namespace
+  - to:
+    - podSelector:
+        matchLabels:
+          app: minio
     ports:
     - protocol: TCP
-      port: 443  # HTTPS
-    - protocol: TCP
-      port: 80   # HTTP
-  # Allow DNS resolution
-  - to: []
+      port: 9000
+  # Allow DNS resolution (CoreDNS in kube-system)
+  - to:
+    - namespaceSelector:
+        matchLabels:
+          kubernetes.io/metadata.name: kube-system
+      podSelector:
+        matchLabels:
+          k8s-app: kube-dns
     ports:
     - protocol: UDP
       port: 53
     - protocol: TCP
       port: 53
+  # Allow egress to VPC CIDR for AWS VPC endpoints (S3, ECR, Secrets Manager, etc.)
+  # Restrict this to your actual VPC CIDR in production, e.g. 10.0.0.0/16
+  - to:
+    - ipBlock:
+        cidr: 10.0.0.0/8
+    ports:
+    - protocol: TCP
+      port: 443
+    - protocol: TCP
+      port: 80
