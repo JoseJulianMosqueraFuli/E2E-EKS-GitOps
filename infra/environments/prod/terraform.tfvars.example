@@ -1,0 +1,17 @@
+# Example Terraform variables for PRODUCTION environment
+# Copy this file to terraform.tfvars and customize as needed
+
+aws_region = "us-west-2"
+
+# VPC Configuration (separate CIDR from dev/staging to avoid conflicts)
+vpc_cidr              = "10.2.0.0/16"
+public_subnet_count   = 3
+private_subnet_count  = 3
+enable_nat_gateway    = true
+
+# EKS Configuration
+kubernetes_version         = "1.28"
+node_group_instance_types  = ["m5.xlarge"]
+node_group_desired_size    = 3
+node_group_max_size        = 10
+node_group_min_size        = 2
