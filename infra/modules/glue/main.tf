@@ -24,7 +24,9 @@ resource "aws_glue_catalog_database" "databases" {
     for_each = each.value.create_table_default_permissions != null ? each.value.create_table_default_permissions : []
     content {
       permissions = create_table_default_permission.value.permissions
-      principal   = create_table_default_permission.value.principal
+      principal {
+        data_lake_principal_identifier = create_table_default_permission.value.principal
+      }
     }
   }
 
