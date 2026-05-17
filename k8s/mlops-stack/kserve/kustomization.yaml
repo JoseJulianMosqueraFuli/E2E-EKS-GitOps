@@ -1,38 +1,27 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 
-metadata:
-  name: kserve
-  namespace: kserve-system
+# ------------------------------------------------------------------------------
+# SOURCE OF TRUTH
+# The base KServe manifests (CRDs, controller, webhook, serving-runtimes, etc.)
+# live in gitops/applications/apps/kserve/base/ and are maintained there.
+# This overlay adds operational resources (monitoring, network-policy, istio).
+# ------------------------------------------------------------------------------
 
 resources:
-  # Core KServe components
-  - namespace.yaml
-  - crds.yaml
-  - rbac.yaml
-  - configmap.yaml
-  - controller-deployment.yaml
-  - webhook.yaml
-  - service.yaml
-  - cert-manager.yaml
-  - storage-config.yaml
-  
-  # Serving runtimes
-  - serving-runtimes/sklearn-runtime.yaml
-  - serving-runtimes/pytorch-runtime.yaml
-  - serving-runtimes/tensorflow-runtime.yaml
-  
-  # Monitoring and networking
+  - ../../../gitops/applications/apps/kserve/base
   - monitoring.yaml
   - network-policy.yaml
   - istio-config.yaml
 
-commonLabels:
-  app.kubernetes.io/name: kserve
-  app.kubernetes.io/instance: mlops-kserve
-  app.kubernetes.io/version: "v0.11.0"
-  app.kubernetes.io/component: model-serving
-  app.kubernetes.io/part-of: mlops-platform
+labels:
+  - pairs:
+      app.kubernetes.io/name: kserve
+      app.kubernetes.io/instance: mlops-kserve
+      app.kubernetes.io/version: "v0.11.0"
+      app.kubernetes.io/component: model-serving
+      app.kubernetes.io/part-of: mlops-platform
+    includeSelectors: true
 
 images:
   - name: kserve/kserve-controller

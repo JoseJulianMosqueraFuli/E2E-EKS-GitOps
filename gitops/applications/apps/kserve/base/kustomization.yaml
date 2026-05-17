@@ -3,9 +3,19 @@ kind: Kustomization
 
 resources:
   - namespace.yaml
-  - serving-runtime.yaml
-  - configmap.yaml
+  - crds.yaml
   - serviceaccount.yaml
+  - rbac.yaml
+  - configmap.yaml
+  - storage-config.yaml
+  - cert-manager.yaml
+  - webhook.yaml
+  - controller-deployment.yaml
+  - service.yaml
+  - serving-runtime.yaml
+  - serving-runtimes/sklearn-runtime.yaml
+  - serving-runtimes/pytorch-runtime.yaml
+  - serving-runtimes/tensorflow-runtime.yaml
 
 labels:
   - pairs:
