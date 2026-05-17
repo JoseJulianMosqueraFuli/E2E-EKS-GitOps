@@ -1,0 +1,73 @@
+# PeerAuthentication resources enforce STRICT mTLS within MLOps namespaces.
+# All pod-to-pod traffic must be encrypted with mutual TLS.
+# Apply after Istio control plane and sidecar injection are configured.
+
+---
+# MLflow namespace: strict mTLS for all workloads
+apiVersion: security.istio.io/v1beta1
+kind: PeerAuthentication
+metadata:
+  name: mlflow-strict-mtls
+  namespace: mlflow
+  labels:
+    app.kubernetes.io/name: mlflow
+    app.kubernetes.io/component: security
+spec:
+  mtls:
+    mode: STRICT
+
+---
+# KServe namespace: strict mTLS for all workloads
+apiVersion: security.istio.io/v1beta1
+kind: PeerAuthentication
+metadata:
+  name: kserve-strict-mtls
+  namespace: kserve
+  labels:
+    app.kubernetes.io/name: kserve
+    app.kubernetes.io/component: security
+spec:
+  mtls:
+    mode: STRICT
+
+---
+# Monitoring namespace: strict mTLS for all workloads
+apiVersion: security.istio.io/v1beta1
+kind: PeerAuthentication
+metadata:
+  name: monitoring-strict-mtls
+  namespace: monitoring
+  labels:
+    app.kubernetes.io/name: monitoring
+    app.kubernetes.io/component: security
+spec:
+  mtls:
+    mode: STRICT
+
+---
+# Kubeflow namespace: strict mTLS for all workloads
+apiVersion: security.istio.io/v1beta1
+kind: PeerAuthentication
+metadata:
+  name: kubeflow-strict-mtls
+  namespace: kubeflow
+  labels:
+    app.kubernetes.io/name: kubeflow
+    app.kubernetes.io/component: security
+spec:
+  mtls:
+    mode: STRICT
+
+---
+# Argo Workflows namespace: strict mTLS for all workloads
+apiVersion: security.istio.io/v1beta1
+kind: PeerAuthentication
+metadata:
+  name: argo-strict-mtls
+  namespace: argo-workflows
+  labels:
+    app.kubernetes.io/name: argo-workflows
+    app.kubernetes.io/component: security
+spec:
+  mtls:
+    mode: STRICT
