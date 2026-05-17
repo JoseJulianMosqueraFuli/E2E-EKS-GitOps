@@ -8,7 +8,7 @@
 
 Plataforma MLOps completa sobre Amazon EKS. Desde entrenamiento hasta producción con monitoreo incluido.
 
-> **Nota**: ~~GitOps~~ - Integración con ArgoCD próximamente.
+> **Nota**: GitOps con ArgoCD y Flux está completamente implementado. Ver el directorio `gitops/`.
 
 ## Qué es esto?
 
@@ -77,12 +77,12 @@ aws configure
 
 | Paquete            | Versión | Notas                                          |
 | ------------------ | ------- | ---------------------------------------------- |
-| MLflow             | 3.5.0   | Tracking de experimentos y registro de modelos |
-| Apache Airflow     | 3.1.6   | Orquestación de workflows                      |
-| Feast              | 0.54.0  | Feature store                                  |
-| Prefect            | 2.20.17 | Pipelines de datos                             |
+| MLflow             | 2.14.3  | Tracking de experimentos y registro de modelos |
+| Apache Airflow     | 2.9.3   | Orquestación de workflows                      |
+| Feast              | 0.40.1  | Feature store                                  |
+| Prefect            | 2.19.0  | Pipelines de datos                             |
 | KServe             | 0.11.0  | Serving de modelos                             |
-| Kubeflow Pipelines | 2.0.1   | Pipelines de ML                                |
+| Kubeflow Pipelines | 2.8.0   | Pipelines de ML                                |
 
 > **Nota de Seguridad**: Todas las dependencias se actualizan regularmente para corregir CVEs. Ver `ml-platform/requirements.txt` para versiones actuales.
 

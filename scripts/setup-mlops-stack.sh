@@ -97,8 +97,8 @@ deploy_mlflow() {
     # Create namespace
     kubectl create namespace mlflow --dry-run=client -o yaml | kubectl apply -f -
     
-    # Deploy MLflow stack
-    kubectl apply -f k8s/mlops-stack/mlflow/deployment.yaml
+    # Deploy MLflow stack from GitOps source of truth
+    kubectl apply -k k8s/mlops-stack/mlflow/
     
     # Wait for deployment
     kubectl wait --for=condition=available --timeout=300s deployment/mlflow-server -n mlflow
@@ -124,9 +124,9 @@ deploy_kubeflow() {
 
 # Deploy KServe via Helm (replaces legacy Seldon Core manifests)
 deploy_seldon() {
-    log_warn "Seldon Core manual manifests have been removed."
-    log_warn "Install KServe (official successor) via Helm instead:"
-    log_warn "  helm upgrade --install kserve gitops/charts/kserve/ --namespace kserve --create-namespace"
+    log_warning "Seldon Core manual manifests have been removed."
+    log_warning "Install KServe (official successor) via Helm instead:"
+    log_warning "  helm upgrade --install kserve gitops/charts/kserve/ --namespace kserve --create-namespace"
 }
 
 # Deploy Monitoring Stack
@@ -157,8 +157,11 @@ setup_irsa_roles() {
     OIDC_ID=$(echo $OIDC_ISSUER | cut -d '/' -f 5)
     ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
     
-    # Create trust policy template
-    cat > /tmp/trust-policy.json << EOF
+    # Create trust policy inline (avoid predictable temp files)
+    create_trust_policy() {
+        local ns=$1
+        local sa=$2
+        cat <<EOF
 {
   "Version": "2012-10-17",
   "Statement": [
@@ -170,7 +173,7 @@ setup_irsa_roles() {
       "Action": "sts:AssumeRoleWithWebIdentity",
       "Condition": {
         "StringEquals": {
-          "${OIDC_ISSUER#https://}:sub": "system:serviceaccount:NAMESPACE:SERVICE_ACCOUNT",
+          "${OIDC_ISSUER#https://}:sub": "system:serviceaccount:${ns}:${sa}",
           "${OIDC_ISSUER#https://}:aud": "sts.amazonaws.com"
         }
       }
@@ -178,17 +181,19 @@ setup_irsa_roles() {
   ]
 }
 EOF
+    }
 
-    # Create MLflow role
-    sed "s/NAMESPACE/mlflow/g; s/SERVICE_ACCOUNT/mlflow-sa/g" /tmp/trust-policy.json > /tmp/mlflow-trust-policy.json
-    aws iam create-role --role-name mlops-${ENVIRONMENT}-mlflow-role --assume-role-policy-document file:///tmp/mlflow-trust-policy.json || true
-    aws iam attach-role-policy --role-name mlops-${ENVIRONMENT}-mlflow-role --policy-arn arn:aws:iam::aws:policy/AmazonS3FullAccess || true
-    
-    # Create Seldon role
-    sed "s/NAMESPACE/seldon-system/g; s/SERVICE_ACCOUNT/seldon-sa/g" /tmp/trust-policy.json > /tmp/seldon-trust-policy.json
-    aws iam create-role --role-name mlops-${ENVIRONMENT}-seldon-role --assume-role-policy-document file:///tmp/seldon-trust-policy.json || true
-    aws iam attach-role-policy --role-name mlops-${ENVIRONMENT}-seldon-role --policy-arn arn:aws:iam::aws:policy/AmazonS3ReadOnlyAccess || true
-    
+    # Create MLflow role with least-privilege S3 policy (specific buckets should be attached separately)
+    mlflow_trust=$(create_trust_policy "mlflow" "mlflow-sa")
+    aws iam create-role --role-name mlops-${ENVIRONMENT}-mlflow-role --assume-role-policy-document "$mlflow_trust" 2>/dev/null || true
+    # NOTE: Attach a custom policy scoped to mlops S3 buckets instead of AmazonS3FullAccess
+    log_warning "mlops-${ENVIRONMENT}-mlflow-role created. Attach a least-privilege S3 policy manually."
+
+    # Create KServe role (replaces legacy Seldon)
+    kserve_trust=$(create_trust_policy "kserve" "kserve-sa")
+    aws iam create-role --role-name mlops-${ENVIRONMENT}-kserve-role --assume-role-policy-document "$kserve_trust" 2>/dev/null || true
+    log_warning "mlops-${ENVIRONMENT}-kserve-role created. Attach a least-privilege S3 read policy manually."
+
     log_success "IRSA roles configured"
 }
 
@@ -220,7 +225,7 @@ deploy_tools() {
 # Cleanup function
 cleanup() {
     log_info "Cleaning up temporary files..."
-    rm -f /tmp/*-trust-policy.json
+    : # No temp files with predictable names are created anymore
 }
 
 # Main execution
@@ -259,7 +264,11 @@ case "${1:-}" in
         ;;
     "status")
         log_info "Checking MLOps stack status..."
-        kubectl get pods -n mlflow -n kubeflow -n seldon-system -n monitoring
+        for ns in mlflow kubeflow seldon-system monitoring; do
+            echo "=== Namespace: $ns ==="
+            kubectl get pods -n "$ns" 2>/dev/null || echo "Namespace $ns not found or no pods"
+            echo ""
+        done
         ;;
     *)
         echo "Usage: $0 {install|uninstall|status}"
