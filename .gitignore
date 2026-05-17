@@ -72,6 +72,13 @@ kubeconfig
 # MLflow
 mlruns/
 mlartifacts/
+mlflow.db
+
+# ML artifacts
+artifacts/
+*.joblib
+*.pkl
+regression_plots.png
 
 # Jupyter
 .ipynb_checkpoints/
