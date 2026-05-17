@@ -200,12 +200,13 @@ make port-forward-kubeflow  # Kubeflow en localhost:8080
 
 ## Documentación
 
-| Documento                                              | Descripción                         |
-| ------------------------------------------------------ | ----------------------------------- |
-| [Guía de Inicio Rápido](docs/quick-start-guide.md)     | Configuración paso a paso           |
-| [Guía de Plataforma ML](docs/ml-platform-guide.md)     | Detalles de la plataforma ML        |
-| [Monitoreo de Modelos](docs/model-monitoring-guide.md) | Configuración de detección de drift |
-| [Seguridad](docs/security-best-practices.md)           | Guías de seguridad                  |
+| Documento                                                             | Descripción                               |
+| --------------------------------------------------------------------- | ----------------------------------------- |
+| [Guía de Inicio Rápido](docs/quick-start-guide.md)                    | Configuración paso a paso                 |
+| [Guía de Plataforma ML](docs/ml-platform-guide.md)                    | Detalles de la plataforma ML              |
+| [Monitoreo de Modelos](docs/model-monitoring-guide.md)                | Configuración de detección de drift       |
+| [Seguridad](docs/security-best-practices.md)                          | Guías de seguridad (mTLS, Gatekeeper)    |
+| [GPU Operator Setup](gitops/applications/apps/gpu-operator/README.md) | NVIDIA GPU opcional en EKS               |
 
 ## Contribuir
 
