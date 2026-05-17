@@ -116,8 +116,7 @@ module "s3" {
     raw_data = {
       name               = "${local.name_prefix}-raw-data"
       versioning_enabled = true
-      # force_destroy intentionally omitted (defaults to false) to prevent
-      # accidental data loss during terraform destroy.
+      force_destroy      = false
       tags               = { Purpose = "raw-data-storage" }
       lifecycle_rules = [
         {
@@ -136,12 +135,11 @@ module "s3" {
         }
       ]
     }
-    
+
     curated_data = {
       name               = "${local.name_prefix}-curated-data"
       versioning_enabled = true
-      # force_destroy intentionally omitted (defaults to false) to prevent
-      # accidental data loss during terraform destroy.
+      force_destroy      = false
       tags               = { Purpose = "curated-data-storage" }
       lifecycle_rules = [
         {
@@ -156,12 +154,11 @@ module "s3" {
         }
       ]
     }
-    
+
     model_artifacts = {
       name               = "${local.name_prefix}-model-artifacts"
       versioning_enabled = true
-      # force_destroy intentionally omitted (defaults to false) to prevent
-      # accidental data loss during terraform destroy.
+      force_destroy      = false
       tags               = { Purpose = "model-storage" }
     }
   }
