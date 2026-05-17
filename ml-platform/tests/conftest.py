@@ -55,6 +55,27 @@ def temp_project_dir():
         yield tmpdir
 
 
+import glob
+import shutil
+
+
+@pytest.fixture(autouse=True, scope="session")
+def cleanup_runtime_artifacts():
+    """Remove runtime artifacts (MLflow DB, artifacts dir, plots) after test session."""
+    yield
+    project_root = os.path.join(os.path.dirname(__file__), '..')
+    artifacts = [
+        os.path.join(project_root, 'mlflow.db'),
+        os.path.join(project_root, 'regression_plots.png'),
+        os.path.join(project_root, 'artifacts'),
+    ] + glob.glob(os.path.join(project_root, 'artifacts', '*.joblib'))
+    for path in artifacts:
+        if os.path.isfile(path):
+            os.remove(path)
+        elif os.path.isdir(path):
+            shutil.rmtree(path)
+
+
 @pytest.fixture(autouse=True)
 def cleanup_mlflow():
     """Ensure no active MLflow runs leak between tests."""
