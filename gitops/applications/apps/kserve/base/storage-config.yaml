@@ -2,7 +2,7 @@ apiVersion: v1
 kind: Secret
 metadata:
   name: storage-config
-  namespace: kserve-system
+  namespace: kserve
   labels:
     app.kubernetes.io/name: kserve
     app.kubernetes.io/component: storage-config

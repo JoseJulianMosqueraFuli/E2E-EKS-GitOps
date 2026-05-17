@@ -13,7 +13,7 @@ rules:
 clientConfig:
   service:
     name: kserve-webhook-server-service
-    namespace: kserve-system
+    namespace: kserve
     path: "/mutate-serving-kserve-io-v1beta1-inferenceservice"
 admissionReviewVersions: ["v1", "v1beta1"]
 sideEffects: None
@@ -34,7 +34,7 @@ rules:
 clientConfig:
   service:
     name: kserve-webhook-server-service
-    namespace: kserve-system
+    namespace: kserve
     path: "/validate-serving-kserve-io-v1beta1-inferenceservice"
 admissionReviewVersions: ["v1", "v1beta1"]
 sideEffects: None
@@ -55,7 +55,7 @@ rules:
 clientConfig:
   service:
     name: kserve-webhook-server-service
-    namespace: kserve-system
+    namespace: kserve
     path: "/mutate-serving-kserve-io-v1alpha1-trainedmodel"
 admissionReviewVersions: ["v1", "v1beta1"]
 sideEffects: None
@@ -76,7 +76,7 @@ rules:
 clientConfig:
   service:
     name: kserve-webhook-server-service
-    namespace: kserve-system
+    namespace: kserve
     path: "/validate-serving-kserve-io-v1alpha1-trainedmodel"
 admissionReviewVersions: ["v1", "v1beta1"]
 sideEffects: None

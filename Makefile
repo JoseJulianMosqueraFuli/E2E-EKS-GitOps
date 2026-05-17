@@ -38,13 +38,17 @@ apply: ## Apply Terraform changes
 destroy: ## Destroy Terraform resources
 	cd infra/environments/$(ENV) && terraform destroy
 
-test: ## Run infrastructure tests
-	@echo "Running Terraform tests..."
+test: ## Run infrastructure tests (requires AWS credentials)
+	@echo "WARNING: These tests run terraform apply against REAL AWS. Ensure you have cleanup configured."
 	cd infra/modules/vpc/test && go test -v -timeout 30m
 	cd infra/modules/eks/test && go test -v -timeout 45m
 	cd infra/modules/s3/test && go test -v -timeout 20m
 	cd infra/modules/ecr/test && go test -v -timeout 15m
 	cd infra/modules/glue/test && go test -v -timeout 25m
+
+test-terraform-plan: ## Run terraform plan tests (no AWS required, validates syntax)
+	@echo "Running Terraform plan tests (no AWS credentials needed)..."
+	cd infra/environments/$(ENV) && terraform init -backend=false && terraform validate && terraform plan -input=false -out=/dev/null
 
 test-unit: ## Run unit tests only (faster)
 	@echo "Running unit tests..."

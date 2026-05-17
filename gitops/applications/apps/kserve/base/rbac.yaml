@@ -2,7 +2,7 @@ apiVersion: v1
 kind: ServiceAccount
 metadata:
   name: kserve-controller-manager
-  namespace: kserve-system
+  namespace: kserve
   labels:
     app.kubernetes.io/name: kserve
     app.kubernetes.io/component: controller-manager
@@ -158,13 +158,13 @@ roleRef:
 subjects:
 - kind: ServiceAccount
   name: kserve-controller-manager
-  namespace: kserve-system
+  namespace: kserve
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata:
   name: kserve-leader-election-role
-  namespace: kserve-system
+  namespace: kserve
   labels:
     app.kubernetes.io/name: kserve
     app.kubernetes.io/component: rbac
@@ -205,7 +205,7 @@ apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata:
   name: kserve-leader-election-rolebinding
-  namespace: kserve-system
+  namespace: kserve
   labels:
     app.kubernetes.io/name: kserve
     app.kubernetes.io/component: rbac
@@ -216,4 +216,4 @@ roleRef:
 subjects:
 - kind: ServiceAccount
   name: kserve-controller-manager
-  namespace: kserve-system
+  namespace: kserve
