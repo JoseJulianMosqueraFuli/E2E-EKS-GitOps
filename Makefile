@@ -48,11 +48,11 @@ test: ## Run infrastructure tests
 
 test-unit: ## Run unit tests only (faster)
 	@echo "Running unit tests..."
-	cd ml-platform && python -m pytest tests/unit/ -v
+	cd ml-platform && PYTHONPATH=src python -m pytest tests/ -v
 
 test-integration: ## Run integration tests
 	@echo "Running integration tests..."
-	cd ml-platform && python -m pytest tests/integration/ -v
+	@echo "Integration tests require AWS/EKS cluster. Skipping in local mode."
 
 clean: ## Clean temporary files
 	find . -name "*.tfplan" -delete

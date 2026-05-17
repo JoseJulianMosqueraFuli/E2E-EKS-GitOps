@@ -122,11 +122,22 @@ deploy_kubeflow() {
     log_success "Kubeflow Pipelines deployed successfully"
 }
 
-# Deploy KServe via Helm (replaces legacy Seldon Core manifests)
+# Deploy KServe via Helm
+deploy_kserve() {
+    log_info "Deploying KServe via Helm..."
+
+    helm upgrade --install kserve \
+      gitops/charts/kserve/ \
+      --namespace kserve --create-namespace \
+      --wait --timeout 600s
+
+    log_success "KServe deployed successfully"
+}
+
+# Legacy Seldon Core (deprecated, redirects to kserve)
 deploy_seldon() {
-    log_warning "Seldon Core manual manifests have been removed."
-    log_warning "Install KServe (official successor) via Helm instead:"
-    log_warning "  helm upgrade --install kserve gitops/charts/kserve/ --namespace kserve --create-namespace"
+    log_warning "Seldon Core is deprecated. Use KServe instead."
+    deploy_kserve
 }
 
 # Deploy Monitoring Stack
@@ -209,7 +220,11 @@ deploy_tools() {
             "kubeflow")
                 deploy_kubeflow
                 ;;
+            "kserve")
+                deploy_kserve
+                ;;
             "seldon")
+                log_warning "'seldon' is deprecated. Use 'kserve' instead."
                 deploy_seldon
                 ;;
             "monitoring")
