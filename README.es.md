@@ -68,7 +68,7 @@ terraform >= 1.0
 kubectl >= 1.25
 helm >= 3.0
 aws-cli >= 2.0
-python >= 3.9
+python >= 3.10
 go >= 1.21
 make
 
@@ -78,16 +78,15 @@ aws configure
 
 ## Dependencias Clave
 
-| Paquete            | Versión | Notas                                          |
-| ------------------ | ------- | ---------------------------------------------- |
-| MLflow             | 2.14.3  | Tracking de experimentos y registro de modelos |
-| Apache Airflow     | 2.9.3   | Orquestación de workflows                      |
-| Feast              | 0.40.1  | Feature store                                  |
-| Prefect            | 2.19.0  | Pipelines de datos                             |
-| KServe             | 0.11.0  | Serving de modelos                             |
-| Kubeflow Pipelines | 2.8.0   | Pipelines de ML                                |
+| Paquete            | Versión   | Notas                                          |
+| ------------------ | --------- | ---------------------------------------------- |
+| MLflow             | >= 2.18   | Tracking de experimentos y registro de modelos |
+| Great Expectations | >= 0.17   | Validación de datos (1.x fluent API)          |
+| Evidently          | >= 0.4    | Detección de data drift                       |
+| scikit-learn       | >= 1.3    | Entrenamiento de modelos                       |
+| Kubernetes         | >= 27.2   | Gestión de cluster                            |
 
-> **Nota de Seguridad**: Todas las dependencias se actualizan regularmente para corregir CVEs. Ver `ml-platform/requirements.txt` para versiones actuales.
+> Lista completa de dependencias y extras opcionales en `ml-platform/pyproject.toml`. Instalar con Poetry.
 
 ## Inicio Rápido
 
@@ -97,14 +96,16 @@ aws configure
 git clone https://github.com/JoseJulianMosqueraFuli/E2E-EKS-GitOps.git
 cd E2E-EKS-GitOps/ml-platform
 
-pip install -r requirements.txt
+# Instalar con Poetry (recomendado)
+pip install poetry
+poetry install -E dev
 
 # Crear datos de ejemplo y entrenar
-python src/main.py create-sample data/sample.csv --n-samples 1000
-python src/main.py train data/sample.csv
+poetry run python -m src.cli create-sample data/sample.csv --n-samples 1000
+poetry run python -m src.cli train data/sample.csv
 
 # Ejecutar inferencia
-python src/main.py inference data/sample.csv \
+poetry run python -m src.cli inference data/sample.csv \
     --model-path artifacts/model_*.joblib \
     --output-path predictions.json
 ```
@@ -181,13 +182,13 @@ make port-forward-grafana  # http://localhost:3000
 
 ```bash
 # Entrenar
-python src/main.py train data/dataset.csv
+poetry run python -m src.cli train data/dataset.csv
 
 # Inferencia
-python src/main.py inference data/input.csv --model-path artifacts/model.joblib
+poetry run python -m src.cli inference data/input.csv --model-path artifacts/model.joblib
 
 # Validar datos
-python src/main.py validate data/production.csv --create-suite
+poetry run python -m src.cli validate data/production.csv --create-suite
 ```
 
 ### Acceder a Servicios
@@ -229,11 +230,13 @@ Las contribuciones son bienvenidas. Por favor lee las siguientes guías.
 git clone https://github.com/TU_USUARIO/E2E-EKS-GitOps.git
 cd E2E-EKS-GitOps
 
-# Instalar dependencias de desarrollo
-cd ml-platform && pip install -r requirements-dev.txt
+# Instalar dependencias de desarrollo con Poetry
+cd ml-platform
+pip install poetry
+poetry install -E dev
 
 # Ejecutar tests
-make test
+poetry run pytest tests/ -v
 ```
 
 ### Estilo de Código
