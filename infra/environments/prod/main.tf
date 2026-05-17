@@ -10,13 +10,18 @@ terraform {
   }
 
   backend "s3" {
-    # Local backend is used by default when no S3 backend is configured.
-    # Uncomment and configure once the AWS account and bootstrap script
-    # (scripts/bootstrap-terraform-backend.sh) have been run.
-    # bucket         = "mlops-terraform-state-dev"
-    # key            = "dev/terraform.tfstate"
+    # WARNING: Using local backend means Terraform state is stored locally.
+    # This prevents team collaboration and risks state loss.
+    #
+    # To migrate to remote state:
+    #   1. Run: ./scripts/bootstrap-terraform-backend.sh prod us-west-2
+    #   2. Uncomment the configuration below
+    #   3. Run: cd infra/environments/prod && terraform init -migrate-state
+    #
+    # bucket         = "mlops-terraform-state-prod"
+    # key            = "prod/terraform.tfstate"
     # region         = "us-west-2"
-    # dynamodb_table = "mlops-terraform-locks-dev"
+    # dynamodb_table = "mlops-terraform-locks-prod"
     # encrypt        = true
     # kms_key_id     = "alias/mlops-prod-key"
   }
