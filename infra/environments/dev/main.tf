@@ -90,11 +90,18 @@ module "eks" {
   public_access_cidrs    = []
 
   kms_key_arn = aws_kms_key.main.arn
-  
+
   node_group_instance_types = var.node_group_instance_types
   node_group_desired_size   = var.node_group_desired_size
   node_group_max_size       = var.node_group_max_size
   node_group_min_size       = var.node_group_min_size
+
+  # Optional GPU node group (disabled by default)
+  enable_gpu_node_group         = var.enable_gpu_node_group
+  gpu_node_group_instance_types = var.gpu_node_group_instance_types
+  gpu_node_group_desired_size   = var.gpu_node_group_desired_size
+  gpu_node_group_max_size       = var.gpu_node_group_max_size
+  gpu_node_group_min_size       = var.gpu_node_group_min_size
 
   tags = local.common_tags
 }

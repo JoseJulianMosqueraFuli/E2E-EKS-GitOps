@@ -477,3 +477,61 @@ resource "aws_eks_addon" "kube_proxy" {
 
   tags = var.tags
 }
+
+# ------------------------------------------------------------------------------
+# Optional GPU Node Group (NVIDIA)
+# ------------------------------------------------------------------------------
+resource "aws_eks_node_group" "gpu" {
+  count = var.enable_gpu_node_group ? 1 : 0
+
+  cluster_name    = aws_eks_cluster.main.name
+  node_group_name = "${var.cluster_name}-gpu-node-group"
+  node_role_arn   = aws_iam_role.node_group.arn
+  subnet_ids      = var.private_subnet_ids
+
+  capacity_type  = var.gpu_node_group_capacity_type
+  instance_types = var.gpu_node_group_instance_types
+  ami_type       = var.gpu_node_group_ami_type
+  disk_size      = var.gpu_node_group_disk_size
+
+  scaling_config {
+    desired_size = var.gpu_node_group_desired_size
+    max_size     = var.gpu_node_group_max_size
+    min_size     = var.gpu_node_group_min_size
+  }
+
+  update_config {
+    max_unavailable = var.node_group_max_unavailable
+  }
+
+  dynamic "taint" {
+    for_each = var.gpu_node_taints
+    content {
+      key    = taint.value.key
+      value  = taint.value.value
+      effect = taint.value.effect
+    }
+  }
+
+  labels = {
+    "nvidia.com/gpu.present" = "true"
+    "k8s.io/cluster-autoscaler/${var.cluster_name}" = "owned"
+    "k8s.io/cluster-autoscaler/enabled"             = "true"
+  }
+
+  depends_on = [
+    aws_iam_role_policy_attachment.node_group_AmazonEKSWorkerNodePolicy,
+    aws_iam_role_policy_attachment.node_group_AmazonEKS_CNI_Policy,
+    aws_iam_role_policy_attachment.node_group_AmazonEC2ContainerRegistryReadOnly,
+  ]
+
+  tags = merge(var.tags, {
+    Name                                        = "${var.cluster_name}-gpu-node"
+    "k8s.io/cluster-autoscaler/${var.cluster_name}" = "owned"
+    "k8s.io/cluster-autoscaler/enabled"             = "true"
+  })
+
+  lifecycle {
+    ignore_changes = [scaling_config[0].desired_size]
+  }
+}

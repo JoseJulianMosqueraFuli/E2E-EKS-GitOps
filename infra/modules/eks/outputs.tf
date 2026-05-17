@@ -69,3 +69,13 @@ output "oidc_provider_url" {
   description = "URL of the OIDC Provider"
   value       = replace(aws_iam_openid_connect_provider.cluster.url, "https://", "")
 }
+
+output "gpu_node_group_arn" {
+  description = "ARN of the GPU EKS Node Group (if enabled)"
+  value       = var.enable_gpu_node_group ? aws_eks_node_group.gpu[0].arn : null
+}
+
+output "gpu_node_group_status" {
+  description = "Status of the GPU EKS Node Group (if enabled)"
+  value       = var.enable_gpu_node_group ? aws_eks_node_group.gpu[0].status : null
+}

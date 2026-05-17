@@ -59,3 +59,36 @@ variable "node_group_min_size" {
   type        = number
   default     = 1
 }
+
+# ------------------------------------------------------------------------------
+# Optional GPU Node Group Variables
+# ------------------------------------------------------------------------------
+variable "enable_gpu_node_group" {
+  description = "Enable GPU node group for NVIDIA workloads (e.g., training with CUDA)"
+  type        = bool
+  default     = false
+}
+
+variable "gpu_node_group_instance_types" {
+  description = "GPU instance types (g4dn.xlarge = cheapest with 1 GPU, p3.2xlarge = V100, p4d = A100)"
+  type        = list(string)
+  default     = ["g4dn.xlarge"]
+}
+
+variable "gpu_node_group_desired_size" {
+  description = "Desired number of GPU nodes"
+  type        = number
+  default     = 0
+}
+
+variable "gpu_node_group_max_size" {
+  description = "Maximum number of GPU nodes"
+  type        = number
+  default     = 2
+}
+
+variable "gpu_node_group_min_size" {
+  description = "Minimum number of GPU nodes"
+  type        = number
+  default     = 0
+}

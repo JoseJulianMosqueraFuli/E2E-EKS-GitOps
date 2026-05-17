@@ -126,3 +126,70 @@ variable "kube_proxy_version" {
   type        = string
   default     = null
 }
+
+# ------------------------------------------------------------------------------
+# Optional GPU Node Group
+# ------------------------------------------------------------------------------
+variable "enable_gpu_node_group" {
+  description = "Whether to create a GPU-enabled managed node group for NVIDIA workloads"
+  type        = bool
+  default     = false
+}
+
+variable "gpu_node_group_instance_types" {
+  description = "Instance types for the GPU node group (e.g., p3.2xlarge, g4dn.xlarge, p4d.24xlarge)"
+  type        = list(string)
+  default     = ["g4dn.xlarge"]
+}
+
+variable "gpu_node_group_desired_size" {
+  description = "Desired number of GPU nodes"
+  type        = number
+  default     = 1
+}
+
+variable "gpu_node_group_max_size" {
+  description = "Maximum number of GPU nodes"
+  type        = number
+  default     = 2
+}
+
+variable "gpu_node_group_min_size" {
+  description = "Minimum number of GPU nodes"
+  type        = number
+  default     = 0
+}
+
+variable "gpu_node_group_disk_size" {
+  description = "Disk size in GiB for GPU worker nodes"
+  type        = number
+  default     = 100
+}
+
+variable "gpu_node_group_ami_type" {
+  description = "AMI type for GPU nodes. Must be AL2_x86_64_GPU for NVIDIA GPUs"
+  type        = string
+  default     = "AL2_x86_64_GPU"
+}
+
+variable "gpu_node_group_capacity_type" {
+  description = "Capacity type for GPU nodes (ON_DEMAND or SPOT)"
+  type        = string
+  default     = "ON_DEMAND"
+}
+
+variable "gpu_node_taints" {
+  description = "Taints to apply to GPU nodes to prevent non-GPU workloads from scheduling"
+  type = list(object({
+    key    = string
+    value  = string
+    effect = string
+  }))
+  default = [
+    {
+      key    = "nvidia.com/gpu"
+      value  = "true"
+      effect = "NoSchedule"
+    }
+  ]
+}
