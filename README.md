@@ -35,17 +35,20 @@ A complete setup to run ML workloads on Kubernetes:
 
 ## What you get
 
-| Component                | Purpose                                       |
-| ------------------------ | --------------------------------------------- |
-| **Terraform modules**    | VPC, EKS, S3, ECR, Glue - reusable and tested |
-| **ML Platform**          | Ready-to-use models, training pipelines, CLI  |
-| **MLflow**               | Track experiments, register models            |
-| **Kubeflow**             | Orchestrate ML workflows                      |
-| **KServe**               | Serve models with autoscaling                 |
-| **Prometheus + Grafana** | Metrics and dashboards                        |
-| **Evidently**            | Detect data drift automatically               |
-| **Multi-environment**    | Dev, staging, prod configs                    |
-| **CI/CD templates**      | GitHub Actions, GitLab, CircleCI, Jenkins     |
+| Component                      | Purpose                                              |
+| ------------------------------ | ---------------------------------------------------- |
+| **Terraform modules**          | VPC, EKS, S3, ECR, Glue - reusable and tested        |
+| **ML Platform**                | Ready-to-use models, training pipelines, CLI         |
+| **MLflow**                     | Track experiments, register models                   |
+| **Kubeflow**                   | Orchestrate ML workflows                             |
+| **KServe**                     | Serve models with autoscaling                        |
+| **Prometheus + Grafana**       | Metrics, dashboards, and cost monitoring             |
+| **Evidently**                  | Detect data drift automatically                      |
+| **Optional NVIDIA GPU**        | GPU node groups + GPU Operator for CUDA workloads    |
+| **Istio mTLS**                 | Strict mutual TLS between all MLOps services       |
+| **Gatekeeper/OPA**             | Enforce Pod Security Standards via admission control |
+| **Multi-environment**          | Dev, staging, prod configs                           |
+| **CI/CD templates**            | GitHub Actions, GitLab, CircleCI, Jenkins            |
 
 ## Table of Contents
 
@@ -138,13 +141,17 @@ make port-forward-grafana  # http://localhost:3000
 │   ├── modules/              # Reusable modules (vpc, eks, s3, ecr, glue)
 │   └── environments/         # Environment configs (dev, staging, prod)
 ├── k8s/                      # Kubernetes manifests (operational overlays)
-│   └── mlops-stack/          # MLflow overlay, KServe, monitoring
+│   ├── mlops-stack/          # MLflow, KServe, monitoring overlays
+│   └── security/             # Istio mTLS, Gatekeeper policies
 ├── gitops/                   # GitOps source of truth (ArgoCD + Flux)
 │   ├── applications/         # ArgoCD applications
+│   │   └── gpu-operator/     # Optional NVIDIA GPU Operator docs
 │   ├── charts/               # Helm charts (mlflow, kserve, kubeflow-pipelines)
 │   └── infrastructure/       # Cluster infrastructure configs
 ├── ml-platform/              # ML code and pipelines
-│   └── src/                  # Models, data processing, CLI
+│   ├── src/                  # Models, data processing, CLI
+│   ├── tests/                # Unit and integration tests
+│   └── pyproject.toml        # Python packaging with optional extras
 ├── ci-cd/                    # CI/CD configurations
 ├── scripts/                  # Automation scripts
 └── docs/                     # Documentation
@@ -193,12 +200,13 @@ make port-forward-kubeflow  # Kubeflow at localhost:8080
 
 ## Documentation
 
-| Document                                           | Description           |
-| -------------------------------------------------- | --------------------- |
-| [Quick Start Guide](docs/quick-start-guide.md)     | Step-by-step setup    |
-| [ML Platform Guide](docs/ml-platform-guide.md)     | ML platform details   |
-| [Model Monitoring](docs/model-monitoring-guide.md) | Drift detection setup |
-| [Security](docs/security-best-practices.md)        | Security guidelines   |
+| Document                                                      | Description                           |
+| ------------------------------------------------------------- | ------------------------------------- |
+| [Quick Start Guide](docs/quick-start-guide.md)                | Step-by-step setup                    |
+| [ML Platform Guide](docs/ml-platform-guide.md)                | ML platform details                   |
+| [Model Monitoring](docs/model-monitoring-guide.md)            | Drift detection setup                 |
+| [Security](docs/security-best-practices.md)                   | Security guidelines (mTLS, Gatekeeper)|
+| [GPU Operator Setup](gitops/applications/apps/gpu-operator/README.md) | Optional NVIDIA GPU on EKS      |
 
 ## Contributing
 

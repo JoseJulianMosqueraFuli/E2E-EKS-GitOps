@@ -35,17 +35,20 @@ Un setup completo para correr workloads de ML en Kubernetes:
 
 ## Qué obtienes
 
-| Componente               | Propósito                                            |
-| ------------------------ | ---------------------------------------------------- |
-| **Módulos Terraform**    | VPC, EKS, S3, ECR, Glue - reutilizables y testeados  |
-| **Plataforma ML**        | Modelos listos para usar, pipelines de training, CLI |
-| **MLflow**               | Trackear experimentos, registrar modelos             |
-| **Kubeflow**             | Orquestar workflows de ML                            |
-| **KServe**               | Servir modelos con autoscaling                       |
-| **Prometheus + Grafana** | Métricas y dashboards                                |
-| **Evidently**            | Detectar data drift automáticamente                  |
-| **Multi-ambiente**       | Configs para dev, staging, prod                      |
-| **Templates CI/CD**      | GitHub Actions, GitLab, CircleCI, Jenkins            |
+| Componente                     | Propósito                                                  |
+| ------------------------------ | ---------------------------------------------------------- |
+| **Módulos Terraform**          | VPC, EKS, S3, ECR, Glue - reutilizables y testeados        |
+| **Plataforma ML**              | Modelos listos para usar, pipelines de training, CLI     |
+| **MLflow**                     | Trackear experimentos, registrar modelos                   |
+| **Kubeflow**                   | Orquestar workflows de ML                                  |
+| **KServe**                     | Servir modelos con autoscaling                             |
+| **Prometheus + Grafana**       | Métricas, dashboards y monitoreo de costos                 |
+| **Evidently**                  | Detectar data drift automáticamente                        |
+| **NVIDIA GPU (opcional)**    | Node groups GPU + GPU Operator para workloads CUDA         |
+| **Istio mTLS**                 | TLS mutuo estricto entre todos los servicios MLOps         |
+| **Gatekeeper/OPA**             | Políticas de seguridad en admisión del cluster             |
+| **Multi-ambiente**             | Configs para dev, staging, prod                            |
+| **Templates CI/CD**            | GitHub Actions, GitLab, CircleCI, Jenkins                  |
 
 ## Tabla de Contenidos
 
@@ -138,9 +141,17 @@ make port-forward-grafana  # http://localhost:3000
 │   ├── modules/              # Módulos reutilizables (vpc, eks, s3, ecr, glue)
 │   └── environments/         # Configs por ambiente (dev, staging, prod)
 ├── k8s/                      # Manifiestos Kubernetes
-│   └── mlops-stack/          # MLflow, Kubeflow, KServe, monitoreo
+│   ├── mlops-stack/          # MLflow, KServe, monitoreo (overlays)
+│   └── security/             # Istio mTLS, políticas Gatekeeper
+├── gitops/                   # Fuente de verdad GitOps (ArgoCD + Flux)
+│   ├── applications/         # Aplicaciones ArgoCD
+│   │   └── gpu-operator/     # NVIDIA GPU Operator (opcional)
+│   ├── charts/               # Helm charts (mlflow, kserve, kubeflow-pipelines)
+│   └── infrastructure/       # Configs de infraestructura del cluster
 ├── ml-platform/              # Código ML y pipelines
-│   └── src/                  # Modelos, procesamiento de datos, CLI
+│   ├── src/                  # Modelos, procesamiento de datos, CLI
+│   ├── tests/                # Tests unitarios e integración
+│   └── pyproject.toml        # Paquete Python con extras opcionales
 ├── ci-cd/                    # Configuraciones CI/CD
 ├── scripts/                  # Scripts de automatización
 └── docs/                     # Documentación
