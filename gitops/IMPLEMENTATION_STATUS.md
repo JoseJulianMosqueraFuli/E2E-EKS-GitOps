@@ -175,14 +175,38 @@ kubectl port-forward svc/argocd-server -n argocd 8080:443
 # Access at https://localhost:8080
 ```
 
-### Next Steps
+### Tasks Completadas
 
-The foundation is now ready for:
+- [x] **Task 1**: Setup GitOps Infrastructure Foundation - Controller, RBAC, namespaces
+- [x] **Task 2**: Create repository structure and organization - ArgoCD ApplicationSet, overlays
+- [x] **Task 3**: Implement MLOps application management with ArgoCD - 4 apps (mlflow, kserve, kubeflow, monitoring) x 3 envs
+- [x] **Task 4**: Implement infrastructure management with Flux - Flux controllers + Kustomize overlays
+- [x] **Task 5**: Helm charts for all applications - mlflow, kserve, kubeflow-pipelines, monitoring-stack
+- [x] **Task 6**: Property-based tests - Hypothesis, 100+ iterations
+- [x] **Task 7**: Promotion pipeline - promote.py + GitHub Actions + Jenkins
 
-- **Task 2**: Create repository structure and organization
-- **Task 3**: Implement MLOps application management with ArgoCD
-- **Task 4**: Implement infrastructure management with Flux
-- **Task 5**: Validate core GitOps functionality
+### Tasks Pendientes
+
+- [ ] **Task 8**: Deploy ArgoCD Notifications Controller + Slack webhook config
+- [ ] **Task 9**: Alertmanager ConfigMap con routing real de alertas
+- [ ] **Task 10**: Auto-retraining template con carga real de MLflow (reemplazar valores simulados)
+- [ ] **Task 11**: Feature Store con Feast (feature definitions, feature server, backend)
+- [ ] **Task 12**: A/B Testing Framework (experiment assignment, statistical metrics, auto-traffic-splitting)
+- [ ] **Task 13**: Kubecost/OpenCost para costos reales (reemplazar dashboard estimado)
+- [ ] **Task 14**: Model Governance - CRDs de approval, OPA policies, approval gates en ArgoCD
+- [ ] **Task 15**: Staging/Prod hardening - nodos mas grandes, mas replicas, tighter security, corregir headers
+- [ ] **Task 16**: Multi-cluster deployment - ArgoCD ApplicationSet con cluster generator
+
+### Changelog
+
+| Fecha       | Cambio                                                      |
+|-------------|-------------------------------------------------------------|
+| 2026-05-16  | Task 1-6 completadas: infra, apps, charts, tests           |
+| 2026-05-16  | Task 7: promotion pipeline con validacion                    |
+| 2026-05-18  | Actualizado estado real: ArgoCD, Slack, Cost Monitoring,    |
+|             | Auto-retraining son parciales. Feast, A/B Testing,          |
+|             | Governance no existen. Staging/Prod necesitas hardening.    |
+| 2026-05-18  | Regla: actualizar este changelog con cada cambio significativo |
 
 ### Notes
 
@@ -191,3 +215,4 @@ The foundation is now ready for:
 - Poetry is now the recommended package manager for the project
 - Both Poetry and pip installation methods are supported
 - RBAC policies are in place but will be enhanced in later tasks
+- Vease `docs/PENDING.md` para el estado detallado de cada item pendiente

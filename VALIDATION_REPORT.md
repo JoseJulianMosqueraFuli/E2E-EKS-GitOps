@@ -106,12 +106,12 @@ El proyecto ha sido **auditoría y corregido** en todas las áreas críticas y d
 | Métrica           | Valor      | Estado        |
 | ----------------- | ---------- | ------------- |
 | Módulos Terraform | 5          | ✅ Completo   |
-| Ambientes         | 1/3        | 🟡 Parcial    |
+| Ambientes         | 3/3        | 🟡 Parcial (copia de dev, sin hardening) |
 | Manifests K8s     | 50+        | ✅ Completo   |
 | Helm Charts       | 4          | ✅ Completo   |
 | Tests             | 15+        | ✅ Presente   |
 | Documentación     | 10+ archivos | ✅ Excelente |
-| CI/CD Providers   | 4          | ✅ Completo   |
+| CI/CD Providers   | 2 (GitHub Actions + Jenkins) | ✅ Completo |
 | Líneas de código  | ~5000+     | ✅ Sustancial |
 
 ---
@@ -261,8 +261,14 @@ make plan ENV=dev
 - [x] MLflow: versión alineada en todos los archivos
 - [x] Dependencias Python: versiones reales
 - [x] Manifiestos legacy: eliminados, migrados a Helm
-- [ ] Staging/Prod environments (opcional)
+- [ ] Staging/Prod hardening (copiar de dev listo, falta ajustar para produccion)
 - [ ] End-to-end test (requiere AWS)
+- [ ] ArgoCD Notifications Controller deployado
+- [ ] Alertmanager ConfigMap con routing real
+- [ ] Auto-retraining template conectado a MLflow real (actualmente usa valores simulados)
+- [ ] Feature Store con Feast
+- [ ] A/B Testing Framework
+- [ ] Kubecost/OpenCost para costos reales
 
 ---
 
