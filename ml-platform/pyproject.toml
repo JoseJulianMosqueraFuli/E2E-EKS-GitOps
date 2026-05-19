@@ -21,9 +21,9 @@ classifiers = [
     "Intended Audience :: Developers",
     "License :: OSI Approved :: MIT License",
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
     "Topic :: Scientific/Engineering :: Artificial Intelligence",
 ]
 
@@ -63,7 +63,7 @@ dev = [
 ]
 
 [project.scripts]
-mlops-train = "mlops_platform.cli:main"
+mlops-train = "cli:main"
 
 [project.urls]
 Homepage = "https://github.com/JoseJulianMosqueraFuli/E2E-EKS-GitOps"
@@ -71,11 +71,10 @@ Repository = "https://github.com/JoseJulianMosqueraFuli/E2E-EKS-GitOps"
 
 [tool.setuptools.packages.find]
 where = ["src"]
-include = ["mlops_platform*"]
 
 [tool.black]
 line-length = 100
-target-version = ['py39', 'py310', 'py311']
+target-version = ['py310', 'py311', 'py312']
 include = '\.pyi?$'
 extend-exclude = '''
 /(
@@ -102,7 +101,7 @@ ensure_newline_before_comments = true
 known_first_party = ["mlops_platform"]
 
 [tool.mypy]
-python_version = "3.9"
+python_version = "3.10"
 warn_return_any = true
 warn_unused_configs = true
 disallow_untyped_defs = false
