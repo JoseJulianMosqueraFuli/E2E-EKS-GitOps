@@ -7,6 +7,9 @@ resources:
   - grafana-deployment.yaml
   - configmap.yaml
   - serviceaccount.yaml
+  - alertmanager-config.yaml
+  - argocd-notifications.yaml
+  - mlops-alerts.yaml
 
 labels:
   - pairs:

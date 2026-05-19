@@ -1,0 +1,253 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: argocd-notifications-controller
+  namespace: argocd
+  labels:
+    app.kubernetes.io/name: argocd-notifications-controller
+    app.kubernetes.io/component: notifications
+    app.kubernetes.io/part-of: argocd
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: argocd-notifications-controller
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: argocd-notifications-controller
+        app.kubernetes.io/component: notifications
+        app.kubernetes.io/part-of: argocd
+    spec:
+      serviceAccountName: argocd-notifications-controller
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 999
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: controller
+          image: quay.io/argoproj/argocd-notifications:v1.2.1
+          command:
+            - /app/argocd-notifications
+            - --argocd-repo-server=argocd-repo-server.argocd:8081
+            - --loglevel=info
+            - --metrics-port=9001
+          ports:
+            - name: metrics
+              containerPort: 9001
+              protocol: TCP
+          env:
+            - name: ARGOCD_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            - name: ARGOCD_SERVER
+              value: "argocd-server.argocd"
+            - name: ARGOCD_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: argocd-notifications-secret
+                  key: argocd-token
+          volumeMounts:
+            - name: templates
+              mountPath: /app/config/templates
+            - name: triggers
+              mountPath: /app/config/triggers
+            - name: argocd-tls-certs-cm
+              mountPath: /app/config/tls
+            - name: argocd-notifications-cm
+              mountPath: /app/config/notifications
+          livenessProbe:
+            tcpSocket:
+              port: metrics
+            initialDelaySeconds: 30
+            periodSeconds: 20
+          readinessProbe:
+            tcpSocket:
+              port: metrics
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 256Mi
+      volumes:
+        - name: templates
+          configMap:
+            name: argocd-notifications-cm
+            items:
+              - key: template.slack
+                path: template.slack
+              - key: template.email
+                path: template.email
+        - name: triggers
+          configMap:
+            name: argocd-notifications-cm
+            items:
+              - key: trigger.on-sync-failed
+                path: trigger.on-sync-failed
+              - key: trigger.on-sync-succeeded
+                path: trigger.on-sync-succeeded
+              - key: trigger.on-health-degraded
+                path: trigger.on-health-degraded
+              - key: trigger.on-deployed
+                path: trigger.on-deployed
+        - name: argocd-tls-certs-cm
+          configMap:
+            name: argocd-tls-certs-cm
+            optional: true
+        - name: argocd-notifications-cm
+          configMap:
+            name: argocd-notifications-cm
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: argocd-notifications-cm
+  namespace: argocd
+  labels:
+    app.kubernetes.io/name: argocd-notifications-controller
+    app.kubernetes.io/component: notifications
+data:
+  service.slack: |
+    token: $slack-token
+
+  template.slack: |
+    message: |
+      {{if eq .app.status.operationState.phase "Error"}}
+      :red_circle: *Sync Failed* for `{{.app.metadata.name}}` in `{{.app.spec.destination.namespace}}`
+      {{else if eq .app.status.operationState.phase "Succeeded"}}
+      :green_circle: *Sync Succeeded* for `{{.app.metadata.name}}` in `{{.app.spec.destination.namespace}}`
+      {{else if eq .app.status.health.status "Degraded"}}
+      :warning: *Health Degraded* for `{{.app.metadata.name}}` in `{{.app.spec.destination.namespace}}`
+      {{end}}
+      {{if .app.status.operationState}}
+      *Operation:* {{.app.status.operationState.operation.sync.revision}}
+      *Phase:* {{.app.status.operationState.phase}}
+      *Duration:* {{.app.status.operationState.finishedAt | timeSince .app.status.operationState.startedAt}}
+      {{end}}
+      {{if .app.status.health}}
+      *Health:* {{.app.status.health.status}}
+      {{end}}
+      {{if .app.status.sync}}
+      *Sync:* {{.app.status.sync.status}}
+      *Revision:* {{.app.status.sync.revision}}
+      {{end}}
+      {{if .app.status.operationState.syncResult.resources}}
+      *Resources:*
+      {{range .app.status.operationState.syncResult.resources}}
+      - `{{.kind}}/{{.name}}`: {{.status}} {{if .message}}({{.message}}){{end}}
+      {{end}}
+      {{end}}
+      <{{.context.argocdUrl}}/applications/{{.app.metadata.name}}|View in ArgoCD>
+    slack:
+      attachments: |
+        [{
+          "color": "{{if eq .app.status.operationState.phase "Error"}}#FF0000{{else if eq .app.status.operationState.phase "Succeeded"}}#18BE52{{else if eq .app.status.health.status "Degraded"}}#FFA500{{else}}#888888{{end}}",
+          "blocks": [
+            {
+              "type": "section",
+              "text": {
+                "type": "mrkdwn",
+                "text": "{{.message}}"
+              }
+            }
+          ]
+        }]
+
+  template.email: |
+    subject: |
+      [{{.app.metadata.namespace}}] Application {{.app.metadata.name}} {{if eq .app.status.operationState.phase "Succeeded"}}Synced{{else}}Sync Failed{{end}}
+    body: |
+      Application: {{.app.metadata.name}}
+      Namespace: {{.app.spec.destination.namespace}}
+      Status: {{.app.status.sync.status}}
+      Health: {{.app.status.health.status}}
+      Revision: {{.app.status.sync.revision}}
+      {{if .app.status.operationState}}
+      Operation: {{.app.status.operationState.phase}}
+      Duration: {{.app.status.operationState.finishedAt | timeSince .app.status.operationState.startedAt}}
+      {{end}}
+
+  trigger.on-sync-failed: |
+    - when: app.status.operationState.phase == "Error"
+      send: [slack]
+      oncePer: app.status.operationState.finishedAt
+
+  trigger.on-sync-succeeded: |
+    - when: app.status.operationState.phase == "Succeeded"
+      send: [slack]
+      oncePer: app.status.operationState.finishedAt
+
+  trigger.on-health-degraded: |
+    - when: app.status.health.status == "Degraded"
+      send: [slack]
+      oncePer: app.status.health.status
+
+  trigger.on-deployed: |
+    - when: app.status.sync.status == "Synced" and app.status.health.status == "Healthy"
+      send: [slack]
+      oncePer: app.status.sync.revision
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: argocd-notifications-controller
+  namespace: argocd
+  labels:
+    app.kubernetes.io/name: argocd-notifications-controller
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: argocd-notifications-controller
+  labels:
+    app.kubernetes.io/name: argocd-notifications-controller
+rules:
+  - apiGroups: ["argoproj.io"]
+    resources: ["applications"]
+    verbs: ["get", "list", "watch", "update", "patch"]
+  - apiGroups: [""]
+    resources: ["configmaps", "secrets"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: [""]
+    resources: ["events"]
+    verbs: ["create"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: argocd-notifications-controller
+  labels:
+    app.kubernetes.io/name: argocd-notifications-controller
+subjects:
+  - kind: ServiceAccount
+    name: argocd-notifications-controller
+    namespace: argocd
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: argocd-notifications-controller
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: argocd-notifications-controller-metrics
+  namespace: argocd
+  labels:
+    app.kubernetes.io/name: argocd-notifications-controller
+spec:
+  type: ClusterIP
+  ports:
+    - name: metrics
+      port: 9001
+      targetPort: 9001
+      protocol: TCP
+  selector:
+    app.kubernetes.io/name: argocd-notifications-controller

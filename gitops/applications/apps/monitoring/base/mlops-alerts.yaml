@@ -1,0 +1,169 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: mlops-alerts
+  namespace: monitoring
+  labels:
+    app.kubernetes.io/name: prometheus
+    app.kubernetes.io/component: alerting
+    release: prometheus
+spec:
+  groups:
+    - name: mlflow.rules
+      rules:
+        - alert: MLflowDown
+          expr: up{job="mlflow-server"} == 0
+          for: 2m
+          labels:
+            severity: critical
+            category: infrastructure
+          annotations:
+            summary: "MLflow server is down"
+            description: "MLflow has been unreachable for more than 2 minutes."
+            runbook_url: "https://docs.example.com/runbooks/mlflow-down"
+            dashboard_url: "https://grafana.example.com/d/mlflow-dashboard"
+
+        - alert: MLflowHighLatency
+          expr: histogram_quantile(0.95, rate(http_request_duration_seconds_bucket{job="mlflow-server"}[5m])) > 2
+          for: 5m
+          labels:
+            severity: warning
+            category: infrastructure
+          annotations:
+            summary: "MLflow high latency detected"
+            description: "95th percentile latency is above 2 seconds."
+            runbook_url: "https://docs.example.com/runbooks/mlflow-latency"
+            dashboard_url: "https://grafana.example.com/d/mlflow-dashboard"
+
+        - alert: MLflowHighErrorRate
+          expr: rate(http_requests_total{job="mlflow-server", status=~"5.."}[5m]) / rate(http_requests_total{job="mlflow-server"}[5m]) > 0.05
+          for: 5m
+          labels:
+            severity: critical
+            category: infrastructure
+          annotations:
+            summary: "MLflow high error rate"
+            description: "More than 5% of MLflow requests are returning 5xx errors."
+            runbook_url: "https://docs.example.com/runbooks/mlflow-errors"
+
+    - name: postgresql.rules
+      rules:
+        - alert: PostgreSQLDown
+          expr: up{job="mlflow-postgresql"} == 0
+          for: 1m
+          labels:
+            severity: critical
+            category: infrastructure
+          annotations:
+            summary: "PostgreSQL is down"
+            description: "PostgreSQL for MLflow has been unreachable for more than 1 minute."
+            runbook_url: "https://docs.example.com/runbooks/postgres-down"
+
+        - alert: PostgreSQLHighConnections
+          expr: pg_stat_activity_count{datname="mlflow"} > 80
+          for: 5m
+          labels:
+            severity: warning
+            category: infrastructure
+          annotations:
+            summary: "PostgreSQL high connection count"
+            description: "More than 80 active connections to MLflow database."
+
+        - alert: PostgreSQLReplicationLag
+          expr: pg_stat_replication_flush_lag_seconds > 30
+          for: 5m
+          labels:
+            severity: warning
+            category: infrastructure
+          annotations:
+            summary: "PostgreSQL replication lag"
+            description: "Replication lag is above 30 seconds for standby."
+
+    - name: kserve.rules
+      rules:
+        - alert: KServeControllerDown
+          expr: up{job="kserve-controller"} == 0
+          for: 3m
+          labels:
+            severity: critical
+            category: infrastructure
+          annotations:
+            summary: "KServe controller is down"
+            description: "KServe controller has been unreachable for more than 3 minutes."
+            dashboard_url: "https://grafana.example.com/d/kserve-dashboard"
+
+        - alert: InferenceServiceDown
+          expr: kserve_inference_service_status{status="False"} == 1
+          for: 3m
+          labels:
+            severity: critical
+            category: ml_serving
+          annotations:
+            summary: "InferenceService {{ $labels.service }} is down"
+            description: "InferenceService {{ $labels.service }} in namespace {{ $labels.namespace }} is not ready."
+
+        - alert: KServeHighErrorRate
+          expr: rate(http_requests_total{job="kserve", status=~"5.."}[5m]) / rate(http_requests_total{job="kserve"}[5m]) > 0.05
+          for: 5m
+          labels:
+            severity: critical
+            category: ml_serving
+          annotations:
+            summary: "KServe high error rate"
+            description: "More than 5% of inference requests are failing."
+            runbook_url: "https://docs.example.com/runbooks/kserve-errors"
+            dashboard_url: "https://grafana.example.com/d/kserve-dashboard"
+
+        - alert: InferenceServiceHighLatency
+          expr: histogram_quantile(0.95, rate(kserve_inference_duration_seconds_bucket[5m])) > 5
+          for: 10m
+          labels:
+            severity: warning
+            category: ml_serving
+          annotations:
+            summary: "Inference high latency detected"
+            description: "95th percentile inference latency is above 5 seconds for model {{ $labels.model_name }}."
+
+    - name: drift.rules
+      rules:
+        - alert: ModelDriftDetected
+          expr: ml_data_drift_detected == 1
+          for: 5m
+          labels:
+            severity: warning
+            category: ml_monitoring
+          annotations:
+            summary: "Data drift detected for model {{ $labels.model_name }}"
+            description: "Model {{ $labels.model_name }} (v{{ $labels.model_version }}) has drift share of {{ $value }}."
+
+        - alert: ModelRetrainingRequired
+          expr: ml_data_drift_share > 0.3 or ml_model_accuracy < 0.7
+          for: 10m
+          labels:
+            severity: warning
+            category: ml_monitoring
+          annotations:
+            summary: "Model retraining recommended for {{ $labels.model_name }}"
+            description: "Either drift share > 30% or accuracy < 70%. Trigger auto-retraining pipeline."
+
+    - name: kubernetes.rules
+      rules:
+        - alert: PodCrashLooping
+          expr: rate(kube_pod_container_status_restarts_total[15m]) > 0
+          for: 5m
+          labels:
+            severity: warning
+            category: kubernetes
+          annotations:
+            summary: "Pod {{ $labels.pod }} is crash looping"
+            description: "Pod {{ $labels.namespace }}/{{ $labels.pod }} has restarted {{ $value }} times in 15 minutes."
+
+        - alert: NodeDiskPressure
+          expr: kube_node_status_condition{condition="DiskPressure", status="true"} == 1
+          for: 5m
+          labels:
+            severity: critical
+            category: kubernetes
+          annotations:
+            summary: "Node {{ $labels.node }} has disk pressure"
+            description: "Disk usage on node {{ $labels.node }} is critically high."
