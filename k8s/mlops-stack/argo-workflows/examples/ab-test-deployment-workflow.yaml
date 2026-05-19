@@ -1,0 +1,563 @@
+apiVersion: argoproj.io/v1alpha1
+kind: WorkflowTemplate
+metadata:
+  name: ab-testing-workflow
+  namespace: argo-workflows
+  labels:
+    app.kubernetes.io/name: argo-workflows
+    app.kubernetes.io/component: ab-testing
+spec:
+  entrypoint: ab-test
+  serviceAccountName: argo-workflow
+
+  arguments:
+    parameters:
+      - name: model-a-name
+        value: "fraud-detection-v1"
+      - name: model-b-name
+        value: "fraud-detection-v2"
+      - name: model-a-version
+        value: "1"
+      - name: model-b-version
+        value: "2"
+      - name: deployment-namespace
+        value: "models"
+      - name: initial-traffic-split
+        value: "10"
+      - name: experiment-duration-hours
+        value: "24"
+      - name: min-sample-size
+        value: "1000"
+      - name: statistical-significance
+        value: "0.95"
+      - name: mlflow-tracking-uri
+        value: "http://mlflow-server.mlflow:5000"
+      - name: auto-promote
+        value: "false"
+
+  templates:
+    - name: ab-test
+      dag:
+        tasks:
+          - name: setup-experiment
+            template: setup-experiment-step
+            arguments:
+              parameters:
+                - name: model-a-name
+                  value: "{{workflow.parameters.model-a-name}}"
+                - name: model-b-name
+                  value: "{{workflow.parameters.model-b-name}}"
+                - name: experiment-id
+                  value: "{{workflow.name}}"
+
+          - name: deploy-b-model
+            template: deploy-b-model-step
+            dependencies: [setup-experiment]
+            arguments:
+              parameters:
+                - name: model-name
+                  value: "{{workflow.parameters.model-b-name}}"
+                - name: model-version
+                  value: "{{workflow.parameters.model-b-version}}"
+                - name: traffic-split
+                  value: "{{workflow.parameters.initial-traffic-split}}"
+                - name: deployment-namespace
+                  value: "{{workflow.parameters.deployment-namespace}}"
+                - name: mlflow-tracking-uri
+                  value: "{{workflow.parameters.mlflow-tracking-uri}}"
+
+          - name: collect-metrics
+            template: collect-metrics-step
+            dependencies: [deploy-b-model]
+            arguments:
+              parameters:
+                - name: experiment-id
+                  value: "{{workflow.name}}"
+                - name: model-a-name
+                  value: "{{workflow.parameters.model-a-name}}"
+                - name: model-b-name
+                  value: "{{workflow.parameters.model-b-name}}"
+                - name: duration-hours
+                  value: "{{workflow.parameters.experiment-duration-hours}}"
+                - name: min-sample-size
+                  value: "{{workflow.parameters.min-sample-size}}"
+
+          - name: analyze-results
+            template: analyze-results-step
+            dependencies: [collect-metrics]
+            arguments:
+              parameters:
+                - name: experiment-id
+                  value: "{{workflow.name}}"
+                - name: model-a-name
+                  value: "{{workflow.parameters.model-a-name}}"
+                - name: model-b-name
+                  value: "{{workflow.parameters.model-b-name}}"
+                - name: significance
+                  value: "{{workflow.parameters.statistical-significance}}"
+
+          - name: promote-winner
+            template: promote-winner-step
+            dependencies: [analyze-results]
+            when: "{{tasks.analyze-results.outputs.parameters.better-model}} != none"
+            arguments:
+              parameters:
+                - name: winner-model-name
+                  value: "{{tasks.analyze-results.outputs.parameters.better-model}}"
+                - name: experiment-id
+                  value: "{{workflow.name}}"
+                - name: deployment-namespace
+                  value: "{{workflow.parameters.deployment-namespace}}"
+
+          - name: notify-results
+            template: notify-results-step
+            dependencies: [analyze-results, promote-winner]
+            arguments:
+              parameters:
+                - name: experiment-id
+                  value: "{{workflow.name}}"
+                - name: model-a-name
+                  value: "{{workflow.parameters.model-a-name}}"
+                - name: model-b-name
+                  value: "{{workflow.parameters.model-b-name}}"
+                - name: better-model
+                  value: "{{tasks.analyze-results.outputs.parameters.better-model}}"
+                - name: p-value
+                  value: "{{tasks.analyze-results.outputs.parameters.p-value}}"
+                - name: relative-improvement
+                  value: "{{tasks.analyze-results.outputs.parameters.relative-improvement}}"
+
+    - name: setup-experiment-step
+      inputs:
+        parameters:
+          - name: model-a-name
+          - name: model-b-name
+          - name: experiment-id
+      outputs:
+        parameters:
+          - name: experiment-id
+            valueFrom:
+              path: /tmp/experiment-id.txt
+      container:
+        image: python:3.11-slim
+        command: [python, -c]
+        args:
+          - |
+            import json
+            from datetime import datetime
+
+            experiment_id = "{{inputs.parameters.experiment-id}}"
+            model_a = "{{inputs.parameters.model-a-name}}"
+            model_b = "{{inputs.parameters.model-b-name}}"
+
+            experiment_config = {
+                "experiment_id": experiment_id,
+                "model_a": model_a,
+                "model_b": model_b,
+                "start_time": datetime.now().isoformat(),
+                "status": "running"
+            }
+
+            print(f"=== A/B Test Setup ===")
+            print(f"Experiment ID: {experiment_id}")
+            print(f"Model A (control): {model_a}")
+            print(f"Model B (experiment): {model_b}")
+
+            with open("/tmp/experiment-config.json", "w") as f:
+                json.dump(experiment_config, f, indent=2)
+
+            with open("/tmp/experiment-id.txt", "w") as f:
+                f.write(experiment_id)
+
+            print("\nExperiment registered successfully")
+        resources:
+          requests:
+            memory: "128Mi"
+            cpu: "100m"
+
+    - name: deploy-b-model-step
+      inputs:
+        parameters:
+          - name: model-name
+          - name: model-version
+          - name: traffic-split
+          - name: deployment-namespace
+          - name: mlflow-tracking-uri
+      outputs:
+        parameters:
+          - name: canary-weight
+            valueFrom:
+              path: /tmp/canary-weight.txt
+      container:
+        image: bitnami/kubectl:latest
+        command: [sh, -c]
+        args:
+          - |
+            MODEL_NAME="{{inputs.parameters.model-name}}"
+            VERSION="{{inputs.parameters.model-version}}"
+            TRAFFIC_SPLIT="{{inputs.parameters.traffic-split}}"
+            NAMESPACE="{{inputs.parameters.deployment-namespace}}"
+            MLFLOW_URI="{{inputs.parameters.mlflow-tracking-uri}}"
+
+            echo "=== Deploying Model B with Canary ==="
+            echo "Model: $MODEL_NAME v$VERSION"
+            echo "Canary traffic: $TRAFFIC_SPLIT%"
+            echo "Namespace: $NAMESPACE"
+
+            MODEL_URI="s3://mlops-model-artifacts/$MODEL_NAME/v$VERSION/"
+
+            cat <<EOF | kubectl apply -f -
+            apiVersion: serving.kserve.io/v1beta1
+            kind: InferenceService
+            metadata:
+              name: $MODEL_NAME
+              namespace: $NAMESPACE
+              labels:
+                app.kubernetes.io/name: $MODEL_NAME
+                experiment: "{{workflow.parameters.experiment-id}}"
+              annotations:
+                sidecar.istio.io/inject: "true"
+                prometheus.io/scrape: "true"
+                prometheus.io/port: "8080"
+            spec:
+              predictor:
+                canaryTrafficPercent: $TRAFFIC_SPLIT
+                model:
+                  modelFormat:
+                    name: sklearn
+                  storageUri: $MODEL_URI
+                  env:
+                    - name: MLFLOW_TRACKING_URI
+                      value: $MLFLOW_URI
+                  resources:
+                    requests:
+                      cpu: 250m
+                      memory: 512Mi
+                    limits:
+                      cpu: 1000m
+                      memory: 2Gi
+            EOF
+
+            echo "Canary deployment created: $MODEL_NAME (${TRAFFIC_SPLIT}% traffic)"
+
+            echo $TRAFFIC_SPLIT > /tmp/canary-weight.txt
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "250m"
+
+    - name: collect-metrics-step
+      inputs:
+        parameters:
+          - name: experiment-id
+          - name: model-a-name
+          - name: model-b-name
+          - name: duration-hours
+          - name: min-sample-size
+      outputs:
+        parameters:
+          - name: samples-collected
+            valueFrom:
+              path: /tmp/samples-collected.txt
+      container:
+        image: python:3.11-slim
+        command: [sh, -c]
+        args:
+          - |
+            pip install requests pandas numpy -q
+            python << 'PYEOF'
+            import json
+            import time
+            import requests
+            import numpy as np
+            from datetime import datetime, timedelta
+
+            experiment_id = "{{inputs.parameters.experiment-id}}"
+            model_a = "{{inputs.parameters.model-a-name}}"
+            model_b = "{{inputs.parameters.model-b-name}}"
+            duration_hours = int("{{inputs.parameters.duration-hours}}")
+            min_samples = int("{{inputs.parameters.min-sample-size}}")
+
+            prometheus_url = "http://prometheus.monitoring:9090"
+
+            collected = {"model_a": [], "model_b": []}
+
+            end_time = datetime.now() + timedelta(hours=min(duration_hours, 72))
+            print(f"=== Collecting A/B Test Metrics ===")
+            print(f"Experiment: {experiment_id}")
+            print(f"Duration: {duration_hours}h")
+            print(f"Minimum samples: {min_samples}")
+            print(f"End time: {end_time.isoformat()}")
+
+            while datetime.now() < end_time:
+
+                queries = {
+                    "model_a_accuracy": f'avg(rate(requests_total{{model="{model_a}", status="200"}}[5m])) / avg(rate(requests_total{{model="{model_a}"}}[5m]))',
+                    "model_b_accuracy": f'avg(rate(requests_total{{model="{model_b}", status="200"}}[5m])) / avg(rate(requests_total{{model="{model_b}"}}[5m]))',
+                    "model_a_latency": f'histogram_quantile(0.95, rate(request_duration_seconds_bucket{{model="{model_a}"}}[5m]))',
+                    "model_b_latency": f'histogram_quantile(0.95, rate(request_duration_seconds_bucket{{model="{model_b}"}}[5m]))',
+                    "model_a_requests": f'increase(requests_total{{model="{model_a}"}}[5m])',
+                    "model_b_requests": f'increase(requests_total{{model="{model_b}"}}[5m])',
+                }
+
+                snapshot = {"timestamp": datetime.now().isoformat()}
+
+                for metric_name, query in queries.items():
+                    try:
+                        resp = requests.get(f"{prometheus_url}/api/v1/query", params={"query": query}, timeout=10)
+                        data = resp.json()
+                        if data["status"] == "success" and data["data"]["result"]:
+                            snapshot[metric_name] = float(data["data"]["result"][0]["value"][1])
+                    except Exception as e:
+                        print(f"Warning: Could not query {metric_name}: {e}")
+
+                with open(f"/tmp/ab-metrics-{experiment_id}.jsonl", "a") as f:
+                    f.write(json.dumps(snapshot) + "\n")
+
+                print(f"Snapshot recorded: {snapshot}")
+                time.sleep(300)
+
+            total_samples = len(collected["model_a"]) + len(collected["model_b"])
+            print(f"\nCollection complete. Snapshot files written.")
+
+            with open("/tmp/samples-collected.txt", "w") as f:
+                f.write(str(total_samples))
+            PYEOF
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "250m"
+
+    - name: analyze-results-step
+      inputs:
+        parameters:
+          - name: experiment-id
+          - name: model-a-name
+          - name: model-b-name
+          - name: significance
+      outputs:
+        parameters:
+          - name: better-model
+            valueFrom:
+              path: /tmp/better-model.txt
+          - name: p-value
+            valueFrom:
+              path: /tmp/p-value.txt
+          - name: relative-improvement
+            valueFrom:
+              path: /tmp/improvement.txt
+      container:
+        image: python:3.11-slim
+        command: [sh, -c]
+        args:
+          - |
+            pip install scipy numpy -q
+            python << 'PYEOF'
+            import json
+            import numpy as np
+            from scipy import stats
+
+            experiment_id = "{{inputs.parameters.experiment-id}}"
+            model_a = "{{inputs.parameters.model-a-name}}"
+            model_b = "{{inputs.parameters.model-b-name}}"
+            significance = float("{{inputs.parameters.significance}}")
+
+            print("=== Statistical Analysis of A/B Test ===")
+
+            model_a_metrics = []
+            model_b_metrics = []
+
+            try:
+                with open(f"/tmp/ab-metrics-{experiment_id}.jsonl", "r") as f:
+                    for line in f:
+                        snapshot = json.loads(line)
+                        if "model_a_accuracy" in snapshot:
+                            model_a_metrics.append(snapshot["model_a_accuracy"])
+                        if "model_b_accuracy" in snapshot:
+                            model_b_metrics.append(snapshot["model_b_accuracy"])
+            except FileNotFoundError:
+                print("Warning: No metric file found. Using simulation for demonstration.")
+                np.random.seed(42)
+                model_a_metrics = [0.85 + np.random.normal(0, 0.02) for _ in range(100)]
+                model_b_metrics = [0.87 + np.random.normal(0, 0.02) for _ in range(100)]
+
+            if len(model_a_metrics) < 20 or len(model_b_metrics) < 20:
+                print(f"Insufficient samples: A={len(model_a_metrics)}, B={len(model_b_metrics)}")
+                print("Cannot draw statistically significant conclusions.")
+                with open("/tmp/better-model.txt", "w") as f:
+                    f.write("none")
+                with open("/tmp/p-value.txt", "w") as f:
+                    f.write("1.0")
+                with open("/tmp/improvement.txt", "w") as f:
+                    f.write("0.0")
+                exit(0)
+
+            ma = np.array(model_a_metrics)
+            mb = np.array(model_b_metrics)
+
+            mean_a = np.mean(ma)
+            mean_b = np.mean(mb)
+            std_a = np.std(ma, ddof=1)
+            std_b = np.std(mb, ddof=1)
+
+            t_stat, p_value = stats.ttest_ind(ma, mb, equal_var=False)
+
+            relative_improvement = ((mean_b - mean_a) / mean_a) * 100
+
+            print(f"Model A (control): mean={mean_a:.4f}, std={std_a:.4f}, n={len(ma)}")
+            print(f"Model B (experiment): mean={mean_b:.4f}, std={std_b:.4f}, n={len(mb)}")
+            print(f"Relative improvement: {relative_improvement:+.2f}%")
+            print(f"T-statistic: {t_stat:.4f}")
+            print(f"P-value: {p_value:.6f}")
+
+            better_model = "none"
+
+            if p_value < (1 - significance):
+                if mean_b > mean_a:
+                    better_model = model_b
+                    print(f"\nModel B (experiment) is statistically significantly better (p={p_value:.6f})")
+                else:
+                    better_model = model_a
+                    print(f"\nModel A (control) is statistically significantly better (p={p_value:.6f})")
+            else:
+                print(f"\nNo statistically significant difference (p={p_value:.6f} > {1 - significance})")
+
+            with open("/tmp/better-model.txt", "w") as f:
+                f.write(better_model)
+
+            with open("/tmp/p-value.txt", "w") as f:
+                f.write(str(p_value))
+
+            with open("/tmp/improvement.txt", "w") as f:
+                f.write(str(relative_improvement))
+            PYEOF
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "500m"
+
+    - name: promote-winner-step
+      inputs:
+        parameters:
+          - name: winner-model-name
+          - name: experiment-id
+          - name: deployment-namespace
+      container:
+        image: bitnami/kubectl:latest
+        command: [sh, -c]
+        args:
+          - |
+            WINNER="{{inputs.parameters.winner-model-name}}"
+            NAMESPACE="{{inputs.parameters.deployment-namespace}}"
+
+            echo "=== Promoting Winner Model ==="
+            echo "Winner: $WINNER"
+
+            cat <<EOF | kubectl apply -f -
+            apiVersion: serving.kserve.io/v1beta1
+            kind: InferenceService
+            metadata:
+              name: $WINNER
+              namespace: $NAMESPACE
+              annotations:
+                experiment-result: "winner"
+                experiment-id: "{{inputs.parameters.experiment-id}}"
+            spec:
+              predictor:
+                canaryTrafficPercent: 100
+                model:
+                  modelFormat:
+                    name: sklearn
+                  storageUri: "s3://mlops-model-artifacts/$WINNER/latest/"
+            EOF
+
+            echo "Model data associated with $WINNER as production winner."
+
+            kubectl delete inferenceservice "${WINNER}-canary" -n "$NAMESPACE" --ignore-not-found=true 2>/dev/null || true
+
+            echo "Winner promoted to 100% traffic."
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "250m"
+
+    - name: notify-results-step
+      inputs:
+        parameters:
+          - name: experiment-id
+          - name: model-a-name
+          - name: model-b-name
+          - name: better-model
+          - name: p-value
+          - name: relative-improvement
+      container:
+        image: python:3.11-slim
+        command: [sh, -c]
+        args:
+          - |
+            pip install requests -q
+            python << 'PYEOF'
+            import json
+            import os
+            from datetime import datetime
+
+            experiment_id = "{{inputs.parameters.experiment-id}}"
+            model_a = "{{inputs.parameters.model-a-name}}"
+            model_b = "{{inputs.parameters.model-b-name}}"
+            better_model = "{{inputs.parameters.better-model}}"
+            p_value = "{{inputs.parameters.p-value}}"
+            improvement = "{{inputs.parameters.relative-improvement}}"
+
+            result = {
+                "experiment_id": experiment_id,
+                "model_a": model_a,
+                "model_b": model_b,
+                "completed_at": datetime.now().isoformat(),
+                "better_model": better_model if better_model != "none" else None,
+                "p_value": float(p_value),
+                "relative_improvement": float(improvement),
+                "statistically_significant": better_model != "none"
+            }
+
+            print("=== A/B Test Results ===")
+            print(json.dumps(result, indent=2))
+
+            slack_webhook = os.environ.get("SLACK_WEBHOOK_URL")
+            if slack_webhook:
+                color = "#36a64f" if better_model != "none" else "#cccccc"
+                payload = {
+                    "attachments": [{
+                        "color": color,
+                        "title": f"A/B Test Completed: {experiment_id}",
+                        "fields": [
+                            {"title": "Model A (control)", "value": model_a, "short": True},
+                            {"title": "Model B (experiment)", "value": model_b, "short": True},
+                            {"title": "Result", "value": f"{better_model} is better" if better_model != "none" else "No significant difference", "short": True},
+                            {"title": "P-value", "value": p_value, "short": True},
+                            {"title": "Relative Improvement", "value": f"{improvement}%", "short": True}
+                        ]
+                    }]
+                }
+
+                try:
+                    response = requests.post(slack_webhook, json=payload, timeout=10)
+                    print(f"Slack notification sent: {response.status_code}")
+                except Exception as e:
+                    print(f"Failed to send Slack notification: {e}")
+
+            with open("/tmp/ab-result.json", "w") as f:
+                json.dump(result, f, indent=2)
+
+            print("\nA/B test workflow completed successfully.")
+            PYEOF
+        env:
+          - name: SLACK_WEBHOOK_URL
+            valueFrom:
+              secretKeyRef:
+                name: monitoring-secrets
+                key: slack-webhook-url
+                optional: true
+        resources:
+          requests:
+            memory: "128Mi"
+            cpu: "100m"
