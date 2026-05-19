@@ -1,4 +1,4 @@
-# Development Environment Variables
+# Production Environment Variables
 
 variable "aws_region" {
   description = "AWS region"

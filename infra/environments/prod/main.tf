@@ -1,4 +1,4 @@
-# Development Environment Configuration
+# Production Environment Configuration
 
 terraform {
   required_version = ">= 1.0"
@@ -14,14 +14,14 @@ terraform {
     # This prevents team collaboration and risks state loss.
     #
     # To migrate to remote state:
-    #   1. Run: ./scripts/bootstrap-terraform-backend.sh dev us-west-2
+    #   1. Run: ./scripts/bootstrap-terraform-backend.sh production us-west-2
     #   2. Uncomment the configuration below
-    #   3. Run: cd infra/environments/dev && terraform init -migrate-state
+    #   3. Run: cd infra/environments/prod && terraform init -migrate-state
     #
-    # bucket         = "mlops-terraform-state-dev"
-    # key            = "dev/terraform.tfstate"
+    # bucket         = "mlops-terraform-state-prod"
+    # key            = "prod/terraform.tfstate"
     # region         = "us-west-2"
-    # dynamodb_table = "mlops-terraform-locks-dev"
+    # dynamodb_table = "mlops-terraform-locks-prod"
     # encrypt        = true
     # kms_key_id     = "alias/mlops-prod-key"
   }
@@ -53,7 +53,8 @@ locals {
 # KMS Key for encryption
 resource "aws_kms_key" "main" {
   description             = "KMS key for MLOps platform encryption"
-  deletion_window_in_days = 7
+  deletion_window_in_days = 30
+  enable_key_rotation     = true
 
   tags = local.common_tags
 }
@@ -73,6 +74,8 @@ module "vpc" {
   private_subnet_count  = var.private_subnet_count
   enable_nat_gateway    = var.enable_nat_gateway
 
+  node_egress_cidrs = [var.vpc_cidr, "10.0.0.0/8"]
+
   tags = local.common_tags
 }
 
@@ -82,7 +85,7 @@ module "eks" {
 
   cluster_name       = "${local.name_prefix}-cluster"
   kubernetes_version = var.kubernetes_version
-  
+   
   public_subnet_ids  = module.vpc.public_subnet_ids
   private_subnet_ids = module.vpc.private_subnet_ids
 
@@ -175,19 +178,19 @@ module "ecr" {
   repositories = {
     trainer = {
       name                 = "${local.name_prefix}-trainer"
-      image_tag_mutability = "MUTABLE"
+      image_tag_mutability = "IMMUTABLE"
       scan_on_push         = true
       tags                 = { Purpose = "ml-training" }
     }
     inference = {
       name                 = "${local.name_prefix}-inference"
-      image_tag_mutability = "MUTABLE"
+      image_tag_mutability = "IMMUTABLE"
       scan_on_push         = true
       tags                 = { Purpose = "ml-inference" }
     }
     feature_transformer = {
       name                 = "${local.name_prefix}-feature-transformer"
-      image_tag_mutability = "MUTABLE"
+      image_tag_mutability = "IMMUTABLE"
       scan_on_push         = true
       tags                 = { Purpose = "feature-processing" }
     }

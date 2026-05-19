@@ -1,4 +1,4 @@
-# Development Environment Configuration
+# Staging Environment Configuration
 
 terraform {
   required_version = ">= 1.0"
@@ -14,14 +14,14 @@ terraform {
     # This prevents team collaboration and risks state loss.
     #
     # To migrate to remote state:
-    #   1. Run: ./scripts/bootstrap-terraform-backend.sh dev us-west-2
+    #   1. Run: ./scripts/bootstrap-terraform-backend.sh staging us-west-2
     #   2. Uncomment the configuration below
-    #   3. Run: cd infra/environments/dev && terraform init -migrate-state
+    #   3. Run: cd infra/environments/staging && terraform init -migrate-state
     #
-    # bucket         = "mlops-terraform-state-dev"
-    # key            = "dev/terraform.tfstate"
+    # bucket         = "mlops-terraform-state-staging"
+    # key            = "staging/terraform.tfstate"
     # region         = "us-west-2"
-    # dynamodb_table = "mlops-terraform-locks-dev"
+    # dynamodb_table = "mlops-terraform-locks-staging"
     # encrypt        = true
     # kms_key_id     = "alias/mlops-staging-key"
   }
@@ -53,7 +53,8 @@ locals {
 # KMS Key for encryption
 resource "aws_kms_key" "main" {
   description             = "KMS key for MLOps platform encryption"
-  deletion_window_in_days = 7
+  deletion_window_in_days = 14
+  enable_key_rotation     = true
 
   tags = local.common_tags
 }

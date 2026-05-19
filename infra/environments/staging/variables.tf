@@ -1,4 +1,4 @@
-# Development Environment Variables
+# Staging Environment Variables
 
 variable "aws_region" {
   description = "AWS region"

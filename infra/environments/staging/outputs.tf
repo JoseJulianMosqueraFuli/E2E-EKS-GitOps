@@ -1,4 +1,4 @@
-# Development Environment Outputs
+# Staging Environment Outputs
 
 output "vpc_id" {
   description = "ID of the VPC"
