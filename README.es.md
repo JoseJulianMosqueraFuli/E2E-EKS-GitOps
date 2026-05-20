@@ -35,20 +35,20 @@ Un setup completo para correr workloads de ML en Kubernetes:
 
 ## Qué obtienes
 
-| Componente                     | Propósito                                                  |
-| ------------------------------ | ---------------------------------------------------------- |
-| **Módulos Terraform**          | VPC, EKS, S3, ECR, Glue - reutilizables y testeados        |
-| **Plataforma ML**              | Modelos listos para usar, pipelines de training, CLI     |
-| **MLflow**                     | Trackear experimentos, registrar modelos                   |
-| **Kubeflow**                   | Orquestar workflows de ML                                  |
-| **KServe**                     | Servir modelos con autoscaling                             |
-| **Prometheus + Grafana**       | Métricas, dashboards y monitoreo de costos                 |
-| **Evidently**                  | Detectar data drift automáticamente                        |
-| **NVIDIA GPU (opcional)**    | Node groups GPU + GPU Operator para workloads CUDA         |
-| **Istio mTLS**                 | TLS mutuo estricto entre todos los servicios MLOps         |
-| **Gatekeeper/OPA**             | Políticas de seguridad en admisión del cluster             |
-| **Multi-ambiente**             | Configs para dev, staging, prod                            |
-| **Templates CI/CD**            | GitHub Actions, GitLab, CircleCI, Jenkins                  |
+| Componente                | Propósito                                            |
+| ------------------------- | ---------------------------------------------------- |
+| **Módulos Terraform**     | VPC, EKS, S3, ECR, Glue - reutilizables y testeados  |
+| **Plataforma ML**         | Modelos listos para usar, pipelines de training, CLI |
+| **MLflow**                | Trackear experimentos, registrar modelos             |
+| **Kubeflow**              | Orquestar workflows de ML                            |
+| **KServe**                | Servir modelos con autoscaling                       |
+| **Prometheus + Grafana**  | Métricas, dashboards y monitoreo de costos           |
+| **Evidently**             | Detectar data drift automáticamente                  |
+| **NVIDIA GPU (opcional)** | Node groups GPU + GPU Operator para workloads CUDA   |
+| **Istio mTLS**            | TLS mutuo estricto entre todos los servicios MLOps   |
+| **Gatekeeper/OPA**        | Políticas de seguridad en admisión del cluster       |
+| **Multi-ambiente**        | Configs para dev, staging, prod                      |
+| **Templates CI/CD**       | GitHub Actions, GitLab, CircleCI, Jenkins            |
 
 ## Tabla de Contenidos
 
@@ -78,13 +78,13 @@ aws configure
 
 ## Dependencias Clave
 
-| Paquete            | Versión   | Notas                                          |
-| ------------------ | --------- | ---------------------------------------------- |
-| MLflow             | >= 2.18   | Tracking de experimentos y registro de modelos |
-| Great Expectations | >= 0.17   | Validación de datos (1.x fluent API)          |
-| Evidently          | >= 0.4    | Detección de data drift                       |
-| scikit-learn       | >= 1.3    | Entrenamiento de modelos                       |
-| Kubernetes         | >= 27.2   | Gestión de cluster                            |
+| Paquete            | Versión | Notas                                          |
+| ------------------ | ------- | ---------------------------------------------- |
+| MLflow             | >= 2.18 | Tracking de experimentos y registro de modelos |
+| Great Expectations | >= 0.17 | Validación de datos (1.x fluent API)           |
+| Evidently          | >= 0.4  | Detección de data drift                        |
+| scikit-learn       | >= 1.3  | Entrenamiento de modelos                       |
+| Kubernetes         | >= 27.2 | Gestión de cluster                             |
 
 > Lista completa de dependencias y extras opcionales en `ml-platform/pyproject.toml`. Instalar con Poetry.
 
@@ -146,7 +146,9 @@ make port-forward-grafana  # http://localhost:3000
 │   └── security/             # Istio mTLS, políticas Gatekeeper
 ├── gitops/                   # Fuente de verdad GitOps (ArgoCD + Flux)
 │   ├── applications/         # Aplicaciones ArgoCD
-│   │   └── gpu-operator/     # NVIDIA GPU Operator (opcional)
+│   │   ├── apps/             # mlflow, kubeflow, kserve, monitoring, gpu-operator
+│   │   ├── environments/     # Overlays por ambiente (dev/staging/production)
+│   │   └── projects/         # Proyectos ArgoCD + ApplicationSet
 │   ├── charts/               # Helm charts (mlflow, kserve, kubeflow-pipelines)
 │   └── infrastructure/       # Configs de infraestructura del cluster
 ├── ml-platform/              # Código ML y pipelines
@@ -201,13 +203,13 @@ make port-forward-kubeflow  # Kubeflow en localhost:8080
 
 ## Documentación
 
-| Documento                                                             | Descripción                               |
-| --------------------------------------------------------------------- | ----------------------------------------- |
-| [Guía de Inicio Rápido](docs/quick-start-guide.md)                    | Configuración paso a paso                 |
-| [Guía de Plataforma ML](docs/ml-platform-guide.md)                    | Detalles de la plataforma ML              |
-| [Monitoreo de Modelos](docs/model-monitoring-guide.md)                | Configuración de detección de drift       |
-| [Seguridad](docs/security-best-practices.md)                          | Guías de seguridad (mTLS, Gatekeeper)    |
-| [GPU Operator Setup](gitops/applications/apps/gpu-operator/README.md) | NVIDIA GPU opcional en EKS               |
+| Documento                                                             | Descripción                           |
+| --------------------------------------------------------------------- | ------------------------------------- |
+| [Guía de Inicio Rápido](docs/quick-start-guide.md)                    | Configuración paso a paso             |
+| [Guía de Plataforma ML](docs/ml-platform-guide.md)                    | Detalles de la plataforma ML          |
+| [Monitoreo de Modelos](docs/model-monitoring-guide.md)                | Configuración de detección de drift   |
+| [Seguridad](docs/security-best-practices.md)                          | Guías de seguridad (mTLS, Gatekeeper) |
+| [GPU Operator Setup](gitops/applications/apps/gpu-operator/README.md) | NVIDIA GPU opcional en EKS            |
 
 ## Contribuir
 
