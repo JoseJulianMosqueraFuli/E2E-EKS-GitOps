@@ -26,9 +26,16 @@ gitops/
 │       ├── staging/
 │       └── production/
 ├── applications/          # ArgoCD-managed applications
-│   ├── projects/          # ArgoCD projects
-│   │   └── mlops-core.yaml
-│   ├── apps/             # Application definitions (to be added)
+│   ├── projects/          # ArgoCD projects + ApplicationSet
+│   │   ├── mlops-core.yaml
+│   │   ├── mlops-applicationset.yaml
+│   │   └── mlops-helm-repository.yaml
+│   ├── apps/             # Application bases + overlays
+│   │   ├── mlflow/
+│   │   ├── kubeflow/
+│   │   ├── kserve/
+│   │   ├── monitoring/    # Includes Alertmanager + ArgoCD Notifications
+│   │   └── gpu-operator/  # Optional NVIDIA GPU Operator
 │   └── environments/     # Environment overlays
 │       ├── dev/
 │       ├── staging/
@@ -105,14 +112,21 @@ kubectl port-forward svc/argocd-server -n argocd 8080:443
 - ✅ **ArgoCD**: Application deployment and management
 - ✅ **Repository Structure**: Organized for multi-environment deployments
 - ✅ **Property-Based Tests**: Automated testing for controller health
+- ✅ **MLOps Applications**: MLflow, Kubeflow, KServe, Monitoring (dev/staging/production overlays)
+- ✅ **External Secrets Operator**: Secure secret management for MLflow and other components
+- ✅ **ArgoCD Notifications**: Slack notifications for sync events (`mlops-deployments`, `mlops-alerts`)
+- ✅ **ApplicationSet**: Auto-generates applications across environments
+- ✅ **Promotion Pipeline**: `scripts/promote.py` + GitHub Actions + Jenkins for env-to-env promotion
+- ✅ **A/B Testing Workflow**: Argo Workflows template for model A/B experiments
 
-### To Be Added (Subsequent Tasks)
+### Pending
 
-- ⏳ **MLOps Applications**: MLflow, Kubeflow, KServe, Monitoring
-- ⏳ **External Secrets Operator**: Secure secret management
-- ⏳ **ArgoCD Image Updater**: Automated image updates
-- ⏳ **Multi-Environment Promotion**: Automated promotion pipelines
-- ⏳ **Monitoring & Alerting**: GitOps operations monitoring
+See [docs/PENDING.md](../docs/PENDING.md) for the authoritative status. Key open items:
+
+- ⏳ **Kubecost / OpenCost**: Replace estimated cost dashboard with a real exporter
+- ⏳ **Feature Store with Feast**: Feature definitions, server, and online/offline backends
+- ⏳ **ArgoCD Image Updater**: Automated image bumps from registry
+- ⏳ **End-to-end test on AWS**: Full Terraform → EKS → ArgoCD → MLflow → KServe validation
 
 ## Documentation
 
@@ -151,9 +165,7 @@ Tests validate:
 
 After completing this foundation:
 
-1. **Task 2**: Create repository structure and organization
-2. **Task 3**: Implement MLOps application management with ArgoCD
-3. **Task 4**: Implement infrastructure management with Flux
-4. **Task 5**: Validate core GitOps functionality
-
-See [.kiro/specs/gitops-implementation/tasks.md](../.kiro/specs/gitops-implementation/tasks.md) for the complete implementation plan.
+1. Review [docs/PENDING.md](../docs/PENDING.md) for the current backlog
+2. Run an end-to-end test on a real EKS cluster (Terraform → ArgoCD → MLflow → KServe)
+3. Wire ArgoCD Image Updater for automated image bumps
+4. Replace the estimated cost dashboard with Kubecost / OpenCost

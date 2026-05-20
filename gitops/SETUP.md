@@ -8,8 +8,9 @@ The GitOps implementation uses:
 
 - **Flux v2** for infrastructure management
 - **ArgoCD** for application management
-- **External Secrets Operator** for secret management (to be added)
-- **ArgoCD Image Updater** for automated image updates (to be added)
+- **External Secrets Operator** for secret management (deployed under `applications/apps/mlflow/base/external-secrets.yaml` and per-app overlays)
+- **ArgoCD Notifications Controller** for Slack delivery (under `applications/apps/monitoring/base/argocd-notifications.yaml`)
+- **ArgoCD Image Updater** for automated image updates (pending)
 
 ## Prerequisites
 
@@ -92,12 +93,23 @@ argocd repo add https://github.com/org/my-app-repo
 
 ### Step 4: Deploy MLOps Applications
 
-Applications will be deployed in subsequent tasks. The structure is ready for:
+MLOps application manifests live in `gitops/applications/apps/` with environment overlays in `gitops/applications/environments/{dev,staging,production}/`. Apply the desired environment:
 
-- MLflow
+```bash
+# Apply ArgoCD project + ApplicationSet
+kubectl apply -f gitops/applications/projects/
+
+# Apply environment overlays (Kustomize)
+kubectl apply -k gitops/applications/environments/dev/
+```
+
+Currently included:
+
+- MLflow (with External Secrets Operator integration)
 - Kubeflow Pipelines
 - KServe
-- Monitoring Stack
+- Monitoring stack (Prometheus, Grafana, Alertmanager, ArgoCD Notifications)
+- Optional NVIDIA GPU Operator
 
 ## Repository Structure
 
