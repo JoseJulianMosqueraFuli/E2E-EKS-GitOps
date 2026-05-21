@@ -209,11 +209,13 @@ argocd app sync <app-name>
 
 After completing this setup:
 
-1. **Configure Secret Management**: Deploy External Secrets Operator
-2. **Deploy MLOps Applications**: MLflow, Kubeflow, KServe
-3. **Setup Image Automation**: Configure ArgoCD Image Updater
-4. **Configure Monitoring**: Deploy Prometheus and Grafana for GitOps metrics
-5. **Setup Multi-Environment Promotion**: Configure promotion pipelines
+1. **Run an end-to-end test on AWS**: Terraform apply → EKS deploy → ArgoCD sync → MLflow → KServe inference
+2. **Configure ArgoCD Image Updater**: Automate image bumps from ECR / GHCR
+3. **Replace estimated cost dashboard with Kubecost or OpenCost**
+4. **Add Feature Store (Feast)**: Definitions, server, and online/offline backends
+5. **Multi-cluster deployment**: ArgoCD ApplicationSet with cluster generator
+
+See [docs/PENDING.md](../docs/PENDING.md) for the prioritized backlog.
 
 ## Security Considerations
 
