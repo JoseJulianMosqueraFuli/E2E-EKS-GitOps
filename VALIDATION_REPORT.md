@@ -1,6 +1,6 @@
 # 🔍 Reporte de Validación del Proyecto MLOps
 
-**Fecha**: 16 de Mayo, 2026  
+**Fecha**: 20 de Mayo, 2026  
 **Proyecto**: E2E MLOps Platform on EKS
 
 ---
@@ -103,16 +103,16 @@ El proyecto ha sido **auditoría y corregido** en todas las áreas críticas y d
 
 ## 📈 Métricas del Proyecto
 
-| Métrica           | Valor      | Estado        |
-| ----------------- | ---------- | ------------- |
-| Módulos Terraform | 5          | ✅ Completo   |
-| Ambientes         | 3/3        | 🟡 Parcial (copia de dev, sin hardening) |
-| Manifests K8s     | 50+        | ✅ Completo   |
-| Helm Charts       | 4          | ✅ Completo   |
-| Tests             | 15+        | ✅ Presente   |
-| Documentación     | 10+ archivos | ✅ Excelente |
-| CI/CD Providers   | 2 (GitHub Actions + Jenkins) | ✅ Completo |
-| Líneas de código  | ~5000+     | ✅ Sustancial |
+| Métrica           | Valor                        | Estado                                             |
+| ----------------- | ---------------------------- | -------------------------------------------------- |
+| Módulos Terraform | 5                            | ✅ Completo                                        |
+| Ambientes         | 3/3                          | ✅ Completo (dev/staging/prod, hardening aplicado) |
+| Manifests K8s     | 50+                          | ✅ Completo                                        |
+| Helm Charts       | 4                            | ✅ Completo                                        |
+| Tests             | 15+                          | ✅ Presente                                        |
+| Documentación     | 10+ archivos                 | ✅ Excelente                                       |
+| CI/CD Providers   | 2 (GitHub Actions + Jenkins) | ✅ Completo                                        |
+| Líneas de código  | ~5000+                       | ✅ Sustancial                                      |
 
 ---
 
@@ -178,20 +178,25 @@ El proyecto ha sido **auditoría y corregido** en todas las áreas críticas y d
 
 ## 🚀 Próximos Pasos Recomendados
 
+> Ver [docs/PENDING.md](docs/PENDING.md) como fuente canonica del backlog.
+
 ### 🟡 Prioridad MEDIA (cuando tengas cuenta AWS)
 
 1. **Configurar backend S3 de Terraform**: Ejecutar script de bootstrap cuando tengas acceso a AWS.
-2. **Crear ambientes staging y prod**: Copiar estructura de dev.
-3. **Solicitar certificado ACM**: Para el Ingress de MLflow (documentación incluida).
-4. **Testear un pipeline CI/CD**: Elegir GitHub Actions o GitLab CI.
-5. **Ejecutar tests de Terraform**: Validar módulos con Terratest.
+2. **Solicitar certificado ACM**: Para los Ingress de MLflow / KServe / Grafana.
+3. **End-to-end test en AWS**: Terraform → EKS → ArgoCD → MLflow → KServe.
+4. **Ejecutar Terratest**: La suite Go ya existe en `infra/modules/*/tests/`.
+5. **Kubecost / OpenCost**: Reemplazar dashboard de costos estimados con un exportador real.
 
-### 🟢 Prioridad BAJA (cuando tengas tiempo)
+### 🟢 Prioridad BAJA
 
-6. **Implementar mTLS con Istio**: Para comunicaciones internas.
-7. **Agregar OPA/Gatekeeper**: Para políticas de admisión avanzadas.
-8. **Documentar troubleshooting común**: Basado en experiencia real.
-9. **Agregar más tests de integración**: Para ML platform.
+6. **Feature Store con Feast**: Definitions, server, backend (Redis o DynamoDB).
+7. **ArgoCD Image Updater**: Bumps automaticos desde ECR / GHCR.
+8. **Model Governance**: Approval workflows con OPA / Gatekeeper.
+9. **mTLS con Istio**: Comunicaciones internas cifradas (manifiestos base ya presentes en `k8s/security/istio/`).
+10. **Multi-cluster con ApplicationSet**: Cluster generator para fan-out.
+11. **Teams Notifications**: Integracion con Microsoft Teams ademas de Slack.
+12. **Documentar troubleshooting**: Basado en experiencia real de deploy.
 
 ---
 
@@ -246,8 +251,8 @@ make plan ENV=dev
 - [x] Kubernetes manifests
 - [x] Python code
 - [x] Documentation
-- [x] CI/CD configs
-- [x] GitOps setup
+- [x] CI/CD configs (GitHub Actions + Jenkins)
+- [x] GitOps setup (ArgoCD + Flux + ApplicationSet)
 - [x] Poetry dependencies
 - [x] Security: secrets hardcodeados eliminados
 - [x] Security: seccompProfile en todos los pods
@@ -258,17 +263,19 @@ make plan ENV=dev
 - [x] Security: force_destroy eliminado
 - [x] Security: Pre-commit hooks con detect-secrets
 - [x] MLflow: imagen pre-baked (sin pip install en runtime)
-- [x] MLflow: versión alineada en todos los archivos
-- [x] Dependencias Python: versiones reales
+- [x] MLflow: versión alineada en todos los archivos (mlflow >= 2.18)
+- [x] Dependencias Python: Poetry como gestor canonico, requirements.txt eliminado
+- [x] CLI: entry point alineado a `cli:main`, soporte Python 3.10/3.11/3.12
 - [x] Manifiestos legacy: eliminados, migrados a Helm
-- [ ] Staging/Prod hardening (copiar de dev listo, falta ajustar para produccion)
+- [x] Staging/Prod hardening: KMS retention, ECR IMMUTABLE, node egress restringido
+- [x] Slack notifications: ArgoCD Notifications Controller + Alertmanager routing real
+- [x] Auto-retraining template: carga real de MLflow + Evidently (sin valores simulados)
+- [x] A/B Testing: WorkflowTemplate con metricas estadisticas y auto-promotion
 - [ ] End-to-end test (requiere AWS)
-- [ ] ArgoCD Notifications Controller deployado
-- [ ] Alertmanager ConfigMap con routing real
-- [ ] Auto-retraining template conectado a MLflow real (actualmente usa valores simulados)
 - [ ] Feature Store con Feast
-- [ ] A/B Testing Framework
-- [ ] Kubecost/OpenCost para costos reales
+- [ ] Kubecost / OpenCost exportador real
+- [ ] Certificado ACM emitido para Ingress reales
+- [ ] Backend S3 de Terraform configurado en los tres ambientes
 
 ---
 
