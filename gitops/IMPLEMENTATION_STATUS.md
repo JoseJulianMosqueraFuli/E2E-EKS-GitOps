@@ -187,26 +187,36 @@ kubectl port-forward svc/argocd-server -n argocd 8080:443
 
 ### Tasks Pendientes
 
-- [ ] **Task 8**: Deploy ArgoCD Notifications Controller + Slack webhook config
-- [ ] **Task 9**: Alertmanager ConfigMap con routing real de alertas
-- [ ] **Task 10**: Auto-retraining template con carga real de MLflow (reemplazar valores simulados)
-- [ ] **Task 11**: Feature Store con Feast (feature definitions, feature server, backend)
-- [ ] **Task 12**: A/B Testing Framework (experiment assignment, statistical metrics, auto-traffic-splitting)
-- [ ] **Task 13**: Kubecost/OpenCost para costos reales (reemplazar dashboard estimado)
-- [ ] **Task 14**: Model Governance - CRDs de approval, OPA policies, approval gates en ArgoCD
-- [ ] **Task 15**: Staging/Prod hardening - nodos mas grandes, mas replicas, tighter security, corregir headers
-- [ ] **Task 16**: Multi-cluster deployment - ArgoCD ApplicationSet con cluster generator
+Ver [docs/PENDING.md](../docs/PENDING.md) para el estado canonico. Resumen:
+
+- [ ] **End-to-end test on AWS**: Validar Terraform → EKS → ArgoCD → MLflow → KServe
+- [ ] **Feature Store con Feast**: Definitions, server, backend (Redis/DynamoDB)
+- [ ] **Kubecost / OpenCost**: Reemplazar dashboard de costos estimado
+- [ ] **Certificado ACM para Ingress**: Solicitar y configurar TLS real
+- [ ] **Backend S3 de Terraform**: Descomentar y configurar cuando se tenga cuenta AWS
+- [ ] **Terratest**: Ejecutar suite Go en `infra/modules/*/tests/`
+- [ ] **Model Governance**: Approval workflows y OPA policies
+- [ ] **Multi-cluster deployment**: ApplicationSet con cluster generator
+- [ ] **mTLS con Istio**: Comunicaciones internas cifradas
+- [ ] **Teams Notifications**: Integracion con Microsoft Teams
+- [ ] **Tests de integracion ML Platform**: Ampliar coverage
 
 ### Changelog
 
-| Fecha       | Cambio                                                      |
-|-------------|-------------------------------------------------------------|
-| 2026-05-16  | Task 1-6 completadas: infra, apps, charts, tests           |
-| 2026-05-16  | Task 7: promotion pipeline con validacion                    |
-| 2026-05-18  | Actualizado estado real: ArgoCD, Slack, Cost Monitoring,    |
-|             | Auto-retraining son parciales. Feast, A/B Testing,          |
-|             | Governance no existen. Staging/Prod necesitas hardening.    |
-| 2026-05-18  | Regla: actualizar este changelog con cada cambio significativo |
+| Fecha      | Cambio                                                               |
+| ---------- | -------------------------------------------------------------------- |
+| 2026-05-16 | Task 1-6 completadas: infra, apps, charts, tests                     |
+| 2026-05-16 | Task 7: promotion pipeline con validacion                            |
+| 2026-05-18 | Actualizado estado real: ArgoCD, Slack, Cost Monitoring,             |
+|            | Auto-retraining son parciales. Feast, A/B Testing,                   |
+|            | Governance no existen. Staging/Prod necesitas hardening.             |
+| 2026-05-18 | Regla: actualizar este changelog con cada cambio significativo       |
+| 2026-05-19 | Slack notifications COMPLETO (ArgoCD Notifications Controller,       |
+|            | Alertmanager routing, Jenkins slackSend, Python notifier)            |
+| 2026-05-19 | Auto-retraining template COMPLETO (carga real de MLflow + Evidently) |
+| 2026-05-19 | A/B Testing Framework COMPLETO (WorkflowTemplate con metricas)       |
+| 2026-05-19 | Hardening staging/prod COMPLETO (KMS, ECR IMMUTABLE, egress)         |
+| 2026-05-20 | Pendings sincronizados con docs/PENDING.md como fuente unica         |
 
 ### Notes
 
