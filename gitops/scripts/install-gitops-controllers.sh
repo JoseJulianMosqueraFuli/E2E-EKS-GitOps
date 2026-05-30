@@ -137,7 +137,7 @@ get_argocd_password() {
     log_info "Retrieving ArgoCD admin password..."
     
     # Wait for the secret to be created
-    kubectl wait --for=condition=complete --timeout=60s job/argocd-server -n argocd 2>/dev/null || true
+    kubectl wait --for=condition=available --timeout=60s deployment/argocd-server -n argocd 2>/dev/null || true
     
     # Get the password
     ARGOCD_PASSWORD=$(kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath="{.data.password}" | base64 -d)

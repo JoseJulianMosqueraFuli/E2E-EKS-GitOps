@@ -1,6 +1,14 @@
 # Makefile for MLOps Platform
 
-.PHONY: help init plan apply destroy test clean mlops-install mlops-uninstall mlops-status
+.PHONY: help init plan apply destroy test test-terraform-plan test-unit test-integration clean \
+        mlops-install mlops-uninstall mlops-status mlops-mlflow-only mlops-monitoring-only mlops-core mlops-full \
+        setup-github setup-gitlab setup-circleci setup-jenkins \
+        validate-terraform validate-kubernetes validate-python validate-all \
+        dev-setup dev-format dev-lint \
+        quickstart-dev quickstart-prod \
+        logs-mlflow logs-kserve logs-kubeflow \
+        port-forward-mlflow port-forward-grafana port-forward-kubeflow \
+        backup-mlflow restore-mlflow docs
 
 # Default environment
 ENV ?= dev
@@ -139,8 +147,8 @@ validate-all: validate-terraform validate-kubernetes validate-python ## Validate
 # Development Targets
 dev-setup: ## Setup development environment
 	@echo "Setting up development environment..."
-	pip install -r ml-platform/requirements.txt
-	pip install -r ml-platform/requirements-dev.txt
+	pip install -e ml-platform/
+	pip install -e ml-platform/[dev]
 	pip install pre-commit detect-secrets
 	pre-commit install
 	@if [ ! -f .secrets.baseline ]; then \

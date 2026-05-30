@@ -105,7 +105,7 @@ resource "aws_route_table" "public" {
 }
 
 resource "aws_route_table" "private" {
-  count = var.enable_nat_gateway ? var.public_subnet_count : 1
+  count = var.enable_nat_gateway ? var.private_subnet_count : 1
 
   vpc_id = aws_vpc.main.id
 

@@ -299,25 +299,17 @@ module "glue" {
     training_data_quality = {
       name        = "${local.name_prefix}-training-data-quality"
       description = "Data quality rules for training data"
-      ruleset = jsonencode([
-        {
-          Name = "Completeness"
-          Rules = [
-            "ColumnCount > 0",
-            "IsComplete \"feature_1\"",
-            "IsComplete \"feature_2\"",
-            "IsComplete \"target\""
-          ]
-        },
-        {
-          Name = "Validity"
-          Rules = [
-            "ColumnDataType \"feature_1\" = \"NUMERIC\"",
-            "ColumnDataType \"feature_2\" = \"NUMERIC\"",
-            "ColumnDataType \"target\" = \"NUMERIC\""
-          ]
-        }
-      ])
+      ruleset = <<-EOT
+        Rules = [
+          ColumnCount > 0,
+          IsComplete "feature_1",
+          IsComplete "feature_2",
+          IsComplete "target",
+          ColumnDataType "feature_1" = "NUMERIC",
+          ColumnDataType "feature_2" = "NUMERIC",
+          ColumnDataType "target" = "NUMERIC"
+        ]
+      EOT
       target_table = {
         database_name = "${local.name_prefix}-raw-data"
         table_name    = "training_data"

@@ -63,7 +63,7 @@ dev = [
 ]
 
 [project.scripts]
-mlops-train = "cli:main"
+mlops-train = "src.cli:main"
 
 [project.urls]
 Homepage = "https://github.com/JoseJulianMosqueraFuli/E2E-EKS-GitOps"

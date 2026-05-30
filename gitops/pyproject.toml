@@ -37,10 +37,6 @@ pylint = "^3.0.3"
 mkdocs = "^1.5.3"
 mkdocs-material = "^9.5.3"
 
-[tool.poetry.scripts]
-gitops-setup = "scripts.setup:main"
-gitops-test = "tests.run_tests:main"
-
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
