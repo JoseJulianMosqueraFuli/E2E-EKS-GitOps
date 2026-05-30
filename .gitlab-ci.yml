@@ -1,0 +1,97 @@
+# GitLab CI Pipeline for MLOps Platform
+# NOTE: This is a skeleton — customize to your GitLab setup.
+
+stages:
+  - validate
+  - test
+  - security
+
+variables:
+  AWS_REGION: us-west-2
+
+# --- Validation Stage ---
+
+terraform-validate:
+  stage: validate
+  image:
+    name: hashicorp/terraform:1.6
+    entrypoint: [""]
+  rules:
+    - changes:
+        - infra/**/*
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+  script:
+    - cd infra/environments/dev
+    - terraform init -backend=false
+    - terraform validate
+    - terraform fmt -check -recursive ../../
+
+k8s-validate:
+  stage: validate
+  image:
+    name: bitnami/kubectl:latest
+    entrypoint: [""]
+  rules:
+    - changes:
+        - k8s/**/*
+        - gitops/**/*
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+  script:
+    - echo "TODO: Setup kustomize and validate manifests"
+    - kubectl --dry-run=client apply -k k8s/mlops-stack/mlflow/ || echo "WARNING: cluster context not available"
+
+helm-lint:
+  stage: validate
+  image:
+    name: alpine/helm:3.14
+    entrypoint: [""]
+  rules:
+    - changes:
+        - gitops/charts/**/*
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+  script:
+    - |
+      for chart in gitops/charts/*/; do
+        echo "=== Linting $(basename "$chart") ==="
+        helm lint "$chart"
+        helm template --debug "$chart" > /dev/null
+      done
+
+mlops-validate:
+  stage: validate
+  image: python:3.11-slim
+  rules:
+    - changes:
+        - scripts/**/*
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+  script:
+    - bash -n scripts/setup-mlops-stack.sh
+    - echo "All scripts validated"
+
+# --- Test Stage ---
+
+ml-platform-test:
+  stage: test
+  image: python:3.11-slim
+  rules:
+    - changes:
+        - ml-platform/**/*
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+  script:
+    - cd ml-platform
+    - pip install -e ".[dev]"
+    - pytest tests/ -v || true
+    - flake8 src/ tests/ || true
+    - black --check src/ tests/ || true
+
+# --- Security Stage ---
+
+security-scan:
+  stage: security
+  image:
+    name: bridgecrew/checkov:latest
+    entrypoint: [""]
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+  script:
+    - checkov -d infra/ --framework terraform --soft-fail

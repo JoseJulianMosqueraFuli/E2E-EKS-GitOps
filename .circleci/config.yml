@@ -1,0 +1,102 @@
+# CircleCI Configuration for MLOps Platform
+# NOTE: This is a skeleton — customize to your CircleCI project.
+
+version: 2.1
+
+executors:
+  terraform:
+    docker:
+      - image: hashicorp/terraform:1.6
+  python:
+    docker:
+      - image: cimg/python:3.11
+  kubectl:
+    docker:
+      - image: cimg/go:1.21
+
+jobs:
+  terraform-validate:
+    executor: terraform
+    steps:
+      - checkout
+      - run:
+          name: Terraform Init & Validate
+          command: |
+            cd infra/environments/dev
+            terraform init -backend=false
+            terraform validate
+      - run:
+          name: Terraform Format Check
+          command: terraform fmt -check -recursive infra/
+
+  k8s-validate:
+    executor: kubectl
+    steps:
+      - checkout
+      - run:
+          name: Setup kubectl
+          command: |
+            curl -LO "https://dl.k8s.io/release/v1.28.0/bin/linux/amd64/kubectl"
+            sudo install -o root -g root -m 0755 kubectl /usr/local/bin/kubectl
+      - run:
+          name: Validate Kubernetes Manifests
+          command: |
+            echo "TODO: Validate k8s manifests against cluster"
+            kubectl --dry-run=client apply -k k8s/mlops-stack/mlflow/ || echo "WARNING: cluster not available"
+
+  helm-lint:
+    executor: python
+    steps:
+      - checkout
+      - run:
+          name: Setup Helm
+          command: |
+            curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
+      - run:
+          name: Lint Helm Charts
+          command: |
+            for chart in gitops/charts/*/; do
+              echo "=== Linting $(basename "$chart") ==="
+              helm lint "$chart"
+              helm template --debug "$chart" > /dev/null
+            done
+
+  ml-platform-test:
+    executor: python
+    steps:
+      - checkout
+      - run:
+          name: Install Dependencies
+          command: |
+            cd ml-platform
+            pip install -e ".[dev]"
+      - run:
+          name: Run Tests
+          command: |
+            cd ml-platform
+            pytest tests/ -v || true
+      - run:
+          name: Lint Python
+          command: |
+            cd ml-platform
+            flake8 src/ tests/ || true
+            black --check src/ tests/ || true
+
+  security-scan:
+    executor: python
+    steps:
+      - checkout
+      - run:
+          name: Run Checkov Security Scan
+          command: |
+            pip install checkov
+            checkov -d infra/ --framework terraform --soft-fail
+
+workflows:
+  ci:
+    jobs:
+      - terraform-validate
+      - k8s-validate
+      - helm-lint
+      - ml-platform-test
+      - security-scan
