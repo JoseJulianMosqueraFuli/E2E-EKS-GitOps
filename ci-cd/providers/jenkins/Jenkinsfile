@@ -87,7 +87,8 @@ pipeline {
                     steps {
                         sh '''
                             cd ml-platform
-                            python scripts/validate-data.py
+                            echo "TODO: Data validation not yet implemented"
+                            # python scripts/validate-data.py
                         '''
                     }
                 }
@@ -97,8 +98,9 @@ pipeline {
                     }
                     steps {
                         sh '''
-                            kubectl apply -f k8s/ml-pipelines/training-pipeline.yaml
-                            python scripts/monitor-training.py
+                            echo "TODO: Model training pipeline not yet implemented"
+                            # kubectl apply -f k8s/ml-pipelines/training-pipeline.yaml
+                            # python scripts/monitor-training.py
                         '''
                     }
                 }
@@ -115,8 +117,9 @@ pipeline {
             steps {
                 script {
                     sh """
-                        kubectl apply -f k8s/model-serving/${params.ENVIRONMENT}/
-                        python scripts/validate-model-deployment.py --env ${params.ENVIRONMENT}
+                        echo "TODO: Model deployment not yet implemented"
+                        # kubectl apply -f k8s/model-serving/${params.ENVIRONMENT}/
+                        # python scripts/validate-model-deployment.py --env ${params.ENVIRONMENT}
                     """
                 }
             }

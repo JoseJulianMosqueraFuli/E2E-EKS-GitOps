@@ -148,7 +148,7 @@ validate-all: validate-terraform validate-kubernetes validate-python ## Validate
 dev-setup: ## Setup development environment
 	@echo "Setting up development environment..."
 	pip install -e ml-platform/
-	pip install -e ml-platform/[dev]
+	pip install -e "ml-platform/[dev]"
 	pip install pre-commit detect-secrets
 	pre-commit install
 	@if [ ! -f .secrets.baseline ]; then \
