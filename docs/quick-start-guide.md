@@ -6,7 +6,8 @@ Guía rápida para empezar a usar la plataforma MLOps en menos de 10 minutos.
 
 ```bash
 # Herramientas requeridas
-- Python 3.8+
+- Python 3.10+ (3.10 / 3.11 / 3.12)
+- Poetry (instalable con `pip install poetry` o el instalador oficial)
 - Docker
 - kubectl
 - helm
@@ -23,24 +24,21 @@ Guía rápida para empezar a usar la plataforma MLOps en menos de 10 minutos.
 git clone https://github.com/JoseJulianMosqueraFuli/E2E-EKS-GitOps.git
 cd E2E-EKS-GitOps
 
-# Setup del proyecto ML
+# Setup del proyecto ML (Poetry instala todas las dependencias)
 cd ml-platform
-python src/main.py setup --environment dev
-
-# Instalar dependencias
-pip install -r requirements.txt
-pip install -r requirements-dev.txt
+pip install poetry
+poetry install -E dev
 ```
 
 ### 2. Entrenar tu Primer Modelo
 
 ```bash
 # Crear datos de ejemplo
-python src/main.py create-sample data/sample_data.csv \
+poetry run python -m src.cli create-sample data/sample_data.csv \
     --n-samples 1000 --n-features 10 --task-type classification
 
 # Entrenar modelo
-python src/main.py train data/sample_data.csv
+poetry run python -m src.cli train data/sample_data.csv
 
 # ✅ Resultado: Modelo entrenado con MLflow tracking
 ```
@@ -49,14 +47,14 @@ python src/main.py train data/sample_data.csv
 
 ```bash
 # Crear datos para inferencia (sin target)
-python -c "
+poetry run python -c "
 import pandas as pd
 data = pd.read_csv('data/sample_data.csv')
 data.drop('target', axis=1).head(100).to_csv('data/inference_data.csv', index=False)
 "
 
 # Ejecutar inferencia
-python src/main.py inference data/inference_data.csv \
+poetry run python -m src.cli inference data/inference_data.csv \
     --model-path artifacts/model_*.joblib \
     --feature-pipeline-path artifacts/feature_pipeline_*.joblib \
     --output-path predictions.json \
@@ -258,7 +256,7 @@ mlflow:
 
 ```bash
 # Entrenar con configuración personalizada
-python src/main.py train data/my_data.csv \
+poetry run python -m src.cli train data/my_data.csv \
     --config-name my_config \
     --environment prod
 ```
@@ -299,7 +297,7 @@ print('MLflow experiments:', mlflow.list_experiments())
 "
 
 # Verificar datos
-python src/main.py validate data/my_data.csv --create-suite
+poetry run python -m src.cli validate data/my_data.csv --create-suite
 ```
 
 ## 🚀 Próximos Pasos
@@ -308,7 +306,7 @@ python src/main.py validate data/my_data.csv --create-suite
 
 1. ✅ Completar quick start
 2. 📖 Leer [ML Platform Guide](ml-platform-guide.md)
-3. 🧪 Ejecutar tests: `pytest src/tests/ -v`
+3. 🧪 Ejecutar tests: `poetry run pytest tests/ -v`
 4. 🔧 Personalizar configuración
 5. 📊 Explorar MLflow UI
 

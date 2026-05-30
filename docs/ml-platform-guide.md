@@ -33,9 +33,13 @@ ml-platform/src/
 ├── 🛠️ utils/                    # Utilidades
 │   ├── logging_config.py        # Configuración de logs
 │   └── config_manager.py        # Gestión de configuración
-├── 🧪 tests/                    # Tests unitarios
-└── main.py                      # CLI principal
+├── cli.py                       # CLI principal (Click) - entry point `cli:main`
+└── main.py                      # Compatibilidad histórica (delega en cli)
+
+ml-platform/tests/               # Tests unitarios e integración (pytest)
 ```
+
+> El paquete se gestiona con **Poetry** (`pyproject.toml`). El entry point del CLI está en `src/cli.py`: ejecutar como `poetry run python -m src.cli ...` o instalar el script `mlops-train`.
 
 ## 🤖 Modelos Disponibles
 
@@ -383,14 +387,13 @@ export MLOPS_ENV="dev"
 
 ## 🖥️ CLI Commands
 
+> El CLI esta implementado con Click en `src/cli.py`. Todos los comandos se ejecutan con `poetry run python -m src.cli <comando>` (o `mlops-train <comando>` si instalas el script).
+
 ### Setup del Proyecto
 
 ```bash
-# Configurar estructura del proyecto
-python src/main.py setup --environment dev
-
 # Crear datos de ejemplo
-python src/main.py create-sample data/sample.csv \
+poetry run python -m src.cli create-sample data/sample.csv \
     --n-samples 1000 --n-features 10 --task-type classification
 ```
 
@@ -398,10 +401,10 @@ python src/main.py create-sample data/sample.csv \
 
 ```bash
 # Entrenar modelo con configuración por defecto
-python src/main.py train data/training_data.csv
+poetry run python -m src.cli train data/training_data.csv
 
 # Entrenar con configuración específica
-python src/main.py train data/training_data.csv \
+poetry run python -m src.cli train data/training_data.csv \
     --config-name custom_config --environment prod
 ```
 
@@ -409,13 +412,13 @@ python src/main.py train data/training_data.csv \
 
 ```bash
 # Inferencia individual
-python src/main.py inference data/new_data.csv \
+poetry run python -m src.cli inference data/new_data.csv \
     --model-path artifacts/model_12345.joblib \
     --feature-pipeline-path artifacts/feature_pipeline_12345.joblib \
     --output-path predictions.json
 
 # Inferencia por lotes
-python src/main.py inference data/batch_data.csv \
+poetry run python -m src.cli inference data/batch_data.csv \
     --model-uri "models:/fraud_detector/Production" \
     --batch-inference --batch-size 5000 \
     --output-path batch_predictions.csv
@@ -425,11 +428,11 @@ python src/main.py inference data/batch_data.csv \
 
 ```bash
 # Validar datos con suite existente
-python src/main.py validate data/new_data.csv \
+poetry run python -m src.cli validate data/new_data.csv \
     --suite-name production_data_suite
 
 # Crear nueva suite y validar
-python src/main.py validate data/new_data.csv \
+poetry run python -m src.cli validate data/new_data.csv \
     --create-suite --suite-name new_data_suite
 ```
 
@@ -440,14 +443,14 @@ python src/main.py validate data/new_data.csv \
 ```bash
 # Todos los tests
 cd ml-platform
-python -m pytest src/tests/ -v
+poetry run pytest tests/ -v
 
 # Tests específicos
-python -m pytest src/tests/test_models.py -v
-python -m pytest src/tests/test_data.py -v
+poetry run pytest tests/test_models.py -v
+poetry run pytest tests/test_data.py -v
 
 # Tests con coverage
-python -m pytest src/tests/ --cov=src --cov-report=html
+poetry run pytest tests/ --cov=src --cov-report=html
 ```
 
 ### Tests Incluidos
