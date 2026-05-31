@@ -6,25 +6,53 @@ This directory contains Flux-managed infrastructure configurations for the MLOps
 
 ```
 infrastructure/
+├── addons/                      # EKS cluster addons (Helm releases)
+│   ├── aws-load-balancer-controller/  # ALB Ingress controller
+│   ├── cluster-autoscaler/            # Cluster Autoscaler
+│   ├── ebs-csi-driver/               # EBS CSI storage driver
+│   └── kustomization.yaml
 ├── clusters/                    # Environment-specific cluster configurations
 │   ├── dev/
-│   │   ├── flux-system/        # Flux bootstrap configuration
-│   │   ├── infrastructure/     # Infrastructure overlays
-│   │   └── config/             # Cluster-specific config
 │   ├── staging/
 │   └── production/
 ├── controllers/                 # GitOps controller deployments
 │   ├── flux-system/            # Flux v2 controllers
 │   └── argocd/                 # ArgoCD installation
+├── environments/                # Environment-specific Kustomize overlays
+│   ├── dev/
+│   ├── staging/
+│   └── production/
+├── flux-config/                 # Flux Kustomization resources
+│   ├── infrastructure-kustomization.yaml
+│   └── kustomization.yaml
+├── networking/                  # Network configurations
+│   ├── ingress/                # Ingress rules
+│   ├── istio/                  # Istio service mesh
+│   ├── network-policies/       # Network policies
+│   └── kustomization.yaml
+├── security/                    # Security policies and RBAC
+│   ├── irsa/                   # IAM Roles for Service Accounts
+│   ├── pod-security/           # Pod Security Standards
+│   ├── rbac-policies.yaml
+│   └── kustomization.yaml
 ├── sources/                     # Flux source definitions
 │   ├── git-repository.yaml     # Git repository sources
-│   └── helm-repository.yaml    # Helm repository sources
-├── flux-config/                 # Flux Kustomization resources
-│   └── infrastructure-kustomization.yaml
-├── environments/                # Legacy environment configs
-├── base/                        # Shared base configurations
-└── security/                    # Security policies and RBAC
+│   ├── helm-repository.yaml    # Helm repository sources
+│   └── kustomization.yaml
+└── base/                        # Shared base configurations
 ```
+
+## EKS Cluster Addons
+
+Managed via Flux HelmRelease resources in `addons/`:
+
+| Addon                        | Chart Version | Namespace   | Purpose                             |
+| ---------------------------- | ------------- | ----------- | ----------------------------------- |
+| AWS Load Balancer Controller | 1.7.x         | kube-system | Ingress/ALB management              |
+| Cluster Autoscaler           | 9.37.x        | kube-system | Node autoscaling                    |
+| AWS EBS CSI Driver           | 2.28.x        | kube-system | Persistent storage (gp3, encrypted) |
+
+All addons use IRSA (IAM Roles for Service Accounts) for secure AWS API access.
 
 ## Environment Configuration
 
@@ -63,9 +91,10 @@ infrastructure/
 ### Helm Repositories
 
 - `mlops-charts`: Custom MLOps Helm charts
-- `bitnami`: Bitnami charts for dependencies
-- `prometheus-community`: Monitoring stack
-- `grafana`: Grafana dashboards
+- `bitnami`: Bitnami charts for dependencies (PostgreSQL, MinIO)
+- `prometheus-community`: Monitoring stack (Prometheus, AlertManager)
+- `grafana`: Grafana dashboards and Loki
+- `jetstack`: cert-manager (KServe dependency)
 
 ## Bootstrap Process
 

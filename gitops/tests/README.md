@@ -4,8 +4,15 @@ This directory contains property-based tests and unit tests for the GitOps imple
 
 ## Test Structure
 
-- `test_gitops_controller_health.py`: Property-based tests for GitOps controller health (Property 1)
-- Additional test files will be added as implementation progresses
+| Test File                                    | Description                                                       |
+| -------------------------------------------- | ----------------------------------------------------------------- |
+| `test_gitops_controller_health.py`           | Property-based tests for GitOps controller health (Flux + ArgoCD) |
+| `test_gitops_checkpoint.py`                  | Checkpoint validation for GitOps state                            |
+| `test_repository_structure.py`               | Validates repository structure conventions                        |
+| `test_mlflow_argocd_deployment.py`           | MLflow deployment consistency via ArgoCD                          |
+| `test_promotion_pipeline.py`                 | Environment promotion pipeline correctness                        |
+| `test_infrastructure_reconciliation.py`      | Flux infrastructure reconciliation                                |
+| `test_application_deployment_consistency.py` | Cross-environment application consistency                         |
 
 ## Running Tests
 
