@@ -149,13 +149,21 @@ make port-forward-grafana  # http://localhost:3000
 │   │   ├── apps/             # mlflow, kubeflow, kserve, monitoring, gpu-operator
 │   │   ├── environments/     # Overlays por ambiente (dev/staging/production)
 │   │   └── projects/         # Proyectos ArgoCD + ApplicationSet
-│   ├── charts/               # Helm charts (mlflow, kserve, kubeflow-pipelines)
-│   └── infrastructure/       # Configs de infraestructura del cluster
+│   ├── charts/               # Helm charts (mlflow, kserve, kubeflow-pipelines, monitoring-stack)
+│   ├── infrastructure/       # Infraestructura del cluster gestionada por Flux
+│   │   ├── addons/           # Addons EKS (ALB, EBS CSI, Autoscaler)
+│   │   ├── clusters/         # Bootstrap por cluster
+│   │   ├── controllers/      # Controladores Flux + ArgoCD
+│   │   ├── networking/       # Ingress, Istio, Network Policies
+│   │   ├── security/         # RBAC, IRSA, Pod Security
+│   │   └── sources/          # Fuentes Git y Helm
+│   ├── scripts/              # Automatización (install, promote, validate)
+│   └── tests/                # Tests property-based (Hypothesis)
 ├── ml-platform/              # Código ML y pipelines
 │   ├── src/                  # Modelos, procesamiento de datos, CLI
 │   ├── tests/                # Tests unitarios e integración
 │   └── pyproject.toml        # Paquete Python con extras opcionales
-├── ci-cd/                    # Configuraciones CI/CD
+├── ci-cd/                    # Configuraciones CI/CD (Jenkins)
 ├── scripts/                  # Scripts de automatización
 └── docs/                     # Documentación
 ```
