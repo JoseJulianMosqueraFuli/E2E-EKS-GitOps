@@ -13,29 +13,66 @@ Created a complete GitOps repository structure with proper separation of concern
 ```
 gitops/
 ├── infrastructure/          # Flux-managed infrastructure
-│   ├── controllers/        # ArgoCD and Flux controllers
-│   │   ├── argocd/        # ArgoCD installation manifests
-│   │   └── flux-system/   # Flux v2 installation manifests
-│   ├── base/              # Base configurations
-│   ├── environments/      # Environment-specific configs
+│   ├── addons/             # EKS addons (ALB, EBS CSI, Autoscaler)
+│   │   ├── aws-load-balancer-controller/
+│   │   ├── cluster-autoscaler/
+│   │   └── ebs-csi-driver/
+│   ├── clusters/           # Per-cluster bootstrap
 │   │   ├── dev/
 │   │   ├── staging/
 │   │   └── production/
-│   └── security/          # RBAC policies
+│   ├── controllers/        # ArgoCD and Flux controllers
+│   │   ├── argocd/
+│   │   └── flux-system/
+│   ├── environments/       # Environment-specific overlays
+│   │   ├── dev/
+│   │   ├── staging/
+│   │   └── production/
+│   ├── flux-config/        # Flux Kustomization resources
+│   ├── networking/         # Ingress, Istio, Network Policies
+│   │   ├── ingress/
+│   │   ├── istio/
+│   │   └── network-policies/
+│   ├── security/           # RBAC, IRSA, Pod Security
+│   │   ├── irsa/
+│   │   └── pod-security/
+│   ├── sources/            # Git and Helm repository sources
+│   └── base/              # Base configurations
 ├── applications/          # ArgoCD-managed applications
 │   ├── projects/          # ArgoCD project definitions
-│   │   └── mlops-core.yaml
+│   │   ├── mlops-core.yaml
+│   │   ├── mlops-applicationset.yaml
+│   │   └── mlops-helm-repository.yaml
+│   ├── apps/              # Application manifests
+│   │   ├── mlflow/
+│   │   ├── kubeflow/
+│   │   ├── kserve/
+│   │   ├── monitoring/
+│   │   └── gpu-operator/
 │   └── environments/      # Environment overlays
 │       ├── dev/
 │       ├── staging/
 │       └── production/
 ├── charts/               # Helm charts repository
+│   ├── mlflow/
+│   ├── kserve/
+│   ├── kubeflow-pipelines/
+│   └── monitoring-stack/
 ├── scripts/              # Installation and management scripts
-│   └── install-gitops-controllers.sh
+│   ├── install-gitops-controllers.sh
+│   ├── package-helm-charts.sh
+│   ├── promotion/        # promote.py, notifications.py
+│   └── validation/
 └── tests/               # Property-based and unit tests
     ├── test_gitops_controller_health.py
-    ├── requirements.txt
+    ├── test_gitops_checkpoint.py
+    ├── test_repository_structure.py
+    ├── test_mlflow_argocd_deployment.py
+    ├── test_promotion_pipeline.py
+    ├── test_infrastructure_reconciliation.py
+    ├── test_application_deployment_consistency.py
     ├── pyproject.toml (Poetry)
+    ├── pytest.ini
     └── setup_test_env.sh
 ```
 
@@ -217,6 +254,8 @@ Ver [docs/PENDING.md](../docs/PENDING.md) para el estado canonico. Resumen:
 | 2026-05-19 | A/B Testing Framework COMPLETO (WorkflowTemplate con metricas)       |
 | 2026-05-19 | Hardening staging/prod COMPLETO (KMS, ECR IMMUTABLE, egress)         |
 | 2026-05-20 | Pendings sincronizados con docs/PENDING.md como fuente unica         |
+| 2026-05-31 | Documentacion actualizada: diagramas de estructura alineados con     |
+|            | el estado real del repositorio (addons, networking, security, tests) |
 
 ### Notes
 
