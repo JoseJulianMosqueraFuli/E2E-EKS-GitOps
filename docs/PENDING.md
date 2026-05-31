@@ -1,6 +1,6 @@
 # Estado del Proyecto - E2E EKS GitOps
 
-**Ultima actualizacion**: 2026-05-20
+**Ultima actualizacion**: 2026-05-31
 **Regla**: Actualizar este archivo con cada cambio significativo. Poner fecha en cada item marcado.
 
 ---
@@ -18,6 +18,7 @@
 - [x] A/B Testing Framework - WorkflowTemplate con experimentos, metricas estadisticas, auto-promotion `(2026-05-19)` - COMPLETO
 - [x] PyProject.toml packaging - Corregido mlops_platform a cli:main, mypy target 3.10 `(2026-05-19)`
 - [x] Documentacion sincronizada - READMEs, gitops/README, gitops/SETUP, IMPLEMENTATION_STATUS, VALIDATION_REPORT, quick-start y ml-platform guide alineados con el estado real del repo `(2026-05-20)`
+- [x] Documentacion re-sincronizada - Diagramas de estructura actualizados para reflejar addons/, networking/, security/, clusters/, flux-config/, scripts/promotion/, y los 8 archivos de test reales `(2026-05-31)`
 
 ---
 
