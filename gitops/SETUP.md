@@ -103,35 +103,46 @@ kubectl apply -f gitops/applications/projects/
 kubectl apply -k gitops/applications/environments/dev/
 ```
 
-Currently included:
+Currently included applications:
 
-- MLflow (with External Secrets Operator integration)
-- Kubeflow Pipelines
-- KServe
-- Monitoring stack (Prometheus, Grafana, Alertmanager, ArgoCD Notifications)
-- Optional NVIDIA GPU Operator
+- **MLflow** (with External Secrets Operator integration)
+- **Kubeflow Pipelines**
+- **KServe**
+- **Monitoring stack** (Prometheus, Grafana, Alertmanager, ArgoCD Notifications)
+- **NVIDIA GPU Operator** (optional)
+
+Helm charts available in `gitops/charts/`:
+
+- `mlflow/`
+- `kserve/`
+- `kubeflow-pipelines/`
+- `monitoring-stack/`
 
 ## Repository Structure
 
 ```
 gitops/
 ├── infrastructure/          # Flux-managed infrastructure
+│   ├── addons/             # EKS addons (ALB, EBS CSI, Autoscaler)
+│   ├── clusters/           # Per-cluster bootstrap (dev, staging, production)
 │   ├── controllers/        # GitOps controllers
-│   ├── base/              # Base configurations
-│   └── environments/      # Environment-specific configs
-│       ├── dev/
-│       ├── staging/
-│       └── production/
+│   ├── environments/       # Environment-specific overlays
+│   ├── flux-config/        # Flux Kustomization resources
+│   ├── networking/         # Ingress, Istio, Network Policies
+│   ├── security/           # RBAC, IRSA, Pod Security
+│   ├── sources/            # Git and Helm repository sources
+│   └── base/              # Base configurations
 ├── applications/          # ArgoCD-managed applications
-│   ├── projects/          # ArgoCD projects
-│   ├── apps/             # Application definitions
-│   └── environments/     # Environment overlays
-│       ├── dev/
-│       ├── staging/
-│       └── production/
-├── charts/               # Helm charts
-├── scripts/              # Installation scripts
-└── tests/               # Property-based and unit tests
+│   ├── projects/          # ArgoCD projects + ApplicationSet
+│   ├── apps/             # Application definitions (mlflow, kubeflow, kserve, monitoring, gpu-operator)
+│   └── environments/     # Environment overlays (dev, staging, production)
+├── charts/               # Helm charts (mlflow, kserve, kubeflow-pipelines, monitoring-stack)
+├── scripts/              # Installation and management scripts
+│   ├── install-gitops-controllers.sh
+│   ├── package-helm-charts.sh
+│   ├── promotion/        # promote.py, notifications.py
+│   └── validation/
+└── tests/               # Property-based and unit tests (8 test files)
 ```
 
 ## Verification

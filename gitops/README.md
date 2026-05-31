@@ -17,14 +17,20 @@ The GitOps implementation provides:
 ```
 gitops/
 ├── infrastructure/          # Flux-managed infrastructure
+│   ├── addons/             # EKS cluster addons (ALB, EBS CSI, Autoscaler)
+│   ├── clusters/           # Per-cluster bootstrap (dev, staging, production)
 │   ├── controllers/        # GitOps controllers (Flux, ArgoCD)
 │   │   ├── flux-system/   # Flux v2 controllers
 │   │   └── argocd/        # ArgoCD controllers
-│   ├── base/              # Base configurations
-│   └── environments/      # Environment-specific configs
-│       ├── dev/
-│       ├── staging/
-│       └── production/
+│   ├── environments/      # Environment-specific Kustomize overlays
+│   │   ├── dev/
+│   │   ├── staging/
+│   │   └── production/
+│   ├── flux-config/       # Flux Kustomization resources
+│   ├── networking/        # Ingress, Istio, Network Policies
+│   ├── security/          # RBAC, IRSA, Pod Security Standards
+│   ├── sources/           # Git and Helm repository sources
+│   └── base/             # Shared base configurations
 ├── applications/          # ArgoCD-managed applications
 │   ├── projects/          # ArgoCD projects + ApplicationSet
 │   │   ├── mlops-core.yaml
@@ -40,12 +46,21 @@ gitops/
 │       ├── dev/
 │       ├── staging/
 │       └── production/
-├── charts/               # Helm charts for MLOps components
+├── charts/               # Helm charts (mlflow, kserve, kubeflow-pipelines, monitoring-stack)
 ├── scripts/              # Installation and management scripts
-│   └── install-gitops-controllers.sh
-└── tests/               # Property-based and unit tests
+│   ├── install-gitops-controllers.sh
+│   ├── package-helm-charts.sh
+│   ├── promotion/        # Environment promotion (promote.py, notifications.py)
+│   └── validation/       # Validation utilities
+└── tests/               # Property-based and unit tests (8 test files)
     ├── test_gitops_controller_health.py
-    └── requirements.txt
+    ├── test_gitops_checkpoint.py
+    ├── test_repository_structure.py
+    ├── test_mlflow_argocd_deployment.py
+    ├── test_promotion_pipeline.py
+    ├── test_infrastructure_reconciliation.py
+    ├── test_application_deployment_consistency.py
+    └── pyproject.toml (Poetry)
 ```
 
 ## Quick Start
@@ -136,22 +151,22 @@ See [docs/PENDING.md](../docs/PENDING.md) for the authoritative status. Key open
 
 ## Testing
 
-Property-based tests verify GitOps controller health:
+Property-based tests verify GitOps controller health and deployment consistency:
 
 ```bash
 cd tests
 
-# Install dependencies
-pip install -r requirements.txt
+# Install dependencies (Poetry recommended)
+poetry install
 
 # Run all tests
-pytest
+poetry run pytest
 
 # Run only property tests
-pytest -m property
+poetry run pytest -m property
 
 # Run with verbose output
-pytest -v
+poetry run pytest -v
 ```
 
 Tests validate:
@@ -159,6 +174,11 @@ Tests validate:
 - Controller deployments are healthy
 - All required replicas are ready
 - Health status remains stable over time
+- Repository structure follows conventions
+- MLflow ArgoCD deployment consistency
+- Promotion pipeline correctness
+- Infrastructure reconciliation
+- Application deployment consistency across environments
 - Namespaces exist and are properly configured
 
 ## Next Steps
