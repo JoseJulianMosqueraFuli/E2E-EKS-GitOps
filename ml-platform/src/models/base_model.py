@@ -37,16 +37,13 @@ class BaseModel(ABC):
         self.is_trained = False
         self.feature_names = None
         
-        # Validate MLflow tracking URI is configured for remote tracking
-        tracking_uri = mlflow.get_tracking_uri()
-        if tracking_uri == "file:///./mlruns":
-            logger.warning(
-                "MLFLOW_TRACKING_URI is not set. Using local filesystem tracking. "
-                "Set MLFLOW_TRACKING_URI to a remote server (e.g., http://mlflow-server:5000) "
-                "for production use."
-            )
-        
         # Setup MLflow
+        tracking_uri = mlflow.get_tracking_uri()
+        if tracking_uri.startswith("file:") or tracking_uri == "./mlruns":
+            # MLflow 3.x deprecated filestore backend; use SQLite for local dev
+            mlflow.set_tracking_uri("sqlite:///mlflow.db")
+            logger.info("Using SQLite MLflow backend for local development")
+
         mlflow.set_experiment(experiment_name)
         
     @abstractmethod

@@ -47,7 +47,13 @@ class TrainingPipeline:
         mlflow_config = self.config.get('mlflow', {})
         if mlflow_config.get('tracking_uri'):
             mlflow.set_tracking_uri(mlflow_config['tracking_uri'])
-        
+        else:
+            # MLflow 3.x deprecated filestore backend; use SQLite for local dev
+            current_uri = mlflow.get_tracking_uri()
+            if current_uri.startswith("file:") or current_uri == "./mlruns":
+                mlflow.set_tracking_uri("sqlite:///mlflow.db")
+                logger.info("Using SQLite MLflow backend for local development")
+
         self.experiment_name = mlflow_config.get('experiment_name', 'default_experiment')
         mlflow.set_experiment(self.experiment_name)
         

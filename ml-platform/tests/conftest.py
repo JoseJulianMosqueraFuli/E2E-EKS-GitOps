@@ -88,6 +88,6 @@ def cleanup_mlflow():
 def mock_mlflow_tracking_uri(monkeypatch):
     """Set a temporary MLflow tracking URI to avoid polluting the local filesystem."""
     with tempfile.TemporaryDirectory() as tmpdir:
-        uri = f"file://{tmpdir}/mlruns"
+        uri = f"sqlite:///{tmpdir}/mlflow.db"
         monkeypatch.setenv('MLFLOW_TRACKING_URI', uri)
         yield uri
