@@ -4,6 +4,7 @@
 > **Author**: Jose Julian Mosquera  
 > **License**: MIT  
 > **Status**: Active development (Phase 2)
+> **Last updated**: 2026-06-01
 
 ---
 
@@ -243,19 +244,21 @@ E2E-EKS-GitOps/
 
 **Namespaces**:
 
-- `mlflow`: MLflow tracking server + PostgreSQL backend
-- `kubeflow`: Kubeflow Pipelines UI (deployed via Helm chart in `gitops/charts/kubeflow-pipelines/`)
-- `kserve`: KServe inference controller
-- `monitoring`: Prometheus + Grafana + Alertmanager
-- `istio-system`: Istio service mesh
-- `gatekeeper-system`: OPA Gatekeeper
+- `mlflow`: MLflow tracking server + PostgreSQL + MinIO (S3-compatible artifacts)
+- `kubeflow`: Kubeflow Pipelines UI (deployed via manifests in `gitops/applications/apps/kubeflow/`)
+- `kserve`: KServe inference controller (manifests ready in `gitops/applications/apps/kserve/`, deploy via `MLOPS_TOOLS=kserve make mlops-install`)
+- `monitoring`: Prometheus + Grafana + Alertmanager + ArgoCD Notifications
+- `istio-system`: Istio service mesh (mTLS policies in `k8s/security/istio/`)
+- `gatekeeper-system`: OPA Gatekeeper (constraints in `k8s/security/gatekeeper/`)
+- `argocd`: ArgoCD controllers and applications
 
 **Security**:
 
-- Istio strict mTLS between MLOps services
-- Gatekeeper constraints enforcing Pod Security Standards
-- Network Policies limiting inter-namespace traffic
-- External Secrets Operator for AWS Secrets Manager integration
+- Istio strict mTLS policies defined for inter-service communication (pending full enforcement)
+- Gatekeeper constraints enforcing Pod Security Standards (partially implemented)
+- Network Policies limiting inter-namespace traffic (`mlflow/network-policy.yaml`, `kserve/network-policy.yaml`)
+- External Secrets Operator for AWS Secrets Manager integration (deployed with MLflow overlays)
+- IRSA roles for least-privilege pod access to AWS services
 
 **IRSA Roles** (created by `setup-mlops-stack.sh`):
 
@@ -288,19 +291,23 @@ E2E-EKS-GitOps/
 
 ### 4.5 Monitoring & Observability
 
-**Metrics**:
+**Metrics & Alerting**:
 
 - Prometheus scraping cluster and application metrics
-- Grafana dashboards (cost estimation, model performance)
-- ArgoCD Notifications for sync events
+- Grafana dashboards (cost estimation, MLflow, KServe, model metrics, ML monitoring)
+- Alertmanager configured with Slack integration (`gitops/applications/apps/monitoring/base/alertmanager-config.yaml`)
+- PrometheusRule alerts for: MLflow down/high latency, PostgreSQL down/high connections, KServe high error rate, model drift detected
+- ArgoCD Notifications Controller for sync events to Slack (`mlops-deployments`, `mlops-alerts` channels)
+- Cost monitoring dashboard (Grafana-based estimates; real exporter pending — see Pending Items)
 
 **Drift Detection** (`ml-platform/src/monitoring/`):
 
 - `drift_detector.py`: Evidently-based data drift detection
 - `model_monitor.py`: Model performance monitoring
-- `monitoring_service.py`: HTTP service exposing drift reports
+- `monitoring_service.py`: HTTP service exposing drift reports at `/health` and `/drift-report`
 - `metrics_exporter.py`: Prometheus metrics exporter
 - `run_drift_check.py`: Standalone drift check script
+- Kubernetes CronJob for scheduled drift checks (`k8s/mlops-stack/monitoring/drift-cronjob.yaml`)
 - Compares production data against reference dataset
 - Containerized via `Dockerfile.monitoring`
 
@@ -308,7 +315,28 @@ E2E-EKS-GitOps/
 
 - All deployments have Kubernetes readiness/liveness probes
 - Inference pipeline includes health check endpoint
-- Monitoring service has HTTP health endpoint
+- Monitoring service has HTTP health endpoint (`/health`)
+- MLflow PostgreSQL has backup/restore CronJobs (`backup-cronjob.yaml`, `restore` via Makefile target)
+
+### 4.6 A/B Testing Framework
+
+**Argo Workflows Templates** (`k8s/mlops-stack/argo-workflows/`):
+
+- 7-step DAG workflow for A/B model experiments
+- Statistical metrics computation (accuracy, latency, throughput)
+- Auto-promotion logic based on threshold comparison
+- Integration with MLflow for model registry lookups
+- Integration with Evidently for drift validation between variants
+
+**Workflow Steps**:
+
+1. Fetch champion model from MLflow registry
+2. Fetch challenger model from MLflow registry
+3. Run inference on both models with production-like traffic
+4. Collect metrics (latency, error rate, prediction distribution)
+5. Statistical comparison (t-test, KS-test for distributions)
+6. Drift validation against reference dataset
+7. Auto-promote challenger if all thresholds pass; otherwise rollback
 
 ---
 
@@ -362,7 +390,9 @@ make apply ENV=dev
 
 # 3. Install MLOps stack
 make mlops-core        # MLflow + Monitoring
-make mlops-full        # Full stack + Kubeflow + KServe
+make mlops-full        # Full stack (MLflow + Kubeflow + Monitoring)
+# Or select specific tools:
+MLOPS_TOOLS=mlflow,kubeflow,kserve,monitoring make mlops-install
 
 # 4. Access services
 make port-forward-mlflow     # http://localhost:5000
@@ -474,21 +504,41 @@ mlflow:
 
 ### Implemented ✅
 
-- Flux v2 + ArgoCD controllers
-- MLOps applications with multi-environment overlays
-- External Secrets Operator
-- ArgoCD Notifications (Slack)
-- ApplicationSet for auto-generation
-- Promotion pipeline (Python script + GitHub Actions + Jenkins)
-- A/B Testing workflow templates (Argo Workflows)
-- GPU Operator support (optional)
+- **Flux v2 + ArgoCD controllers** (infrastructure + applications separation)
+- **MLOps applications** with multi-environment overlays (dev/staging/production)
+- **External Secrets Operator** integrated with MLflow and monitoring stacks
+- **ArgoCD Notifications** (Slack: `mlops-deployments`, `mlops-alerts` channels)
+- **ApplicationSet** for auto-generating applications across environments
+- **Promotion pipeline** (`promote.py` + GitHub Actions + Jenkins + CircleCI + GitLab)
+- **A/B Testing workflow templates** (7-step Argo Workflows DAG with statistical metrics and auto-promotion)
+- **GPU Operator support** (optional manifests in `gitops/applications/apps/gpu-operator/`)
+- **Model Monitoring with Evidently** (drift detection + model performance + CronJob)
+- **Grafana dashboards** pre-configured (MLflow, KServe, model metrics, cost estimation, ML monitoring)
+- **Alertmanager + PrometheusRule alerts** (MLflow, PostgreSQL, KServe, drift alerts)
+- **CI/CD hardening** for staging/production (KMS retention, ECR immutable tags, node egress restrictions)
+- **Documentación sincronizada** (READMEs, guides, SETUP, IMPLEMENTATION_STATUS aligned with repo state)
+- **Security**: Pre-commit hooks (`detect-secrets`), `.secrets.baseline`, Trivy SARIF scanning
 
 ### Pending ⏳ (from `docs/PENDING.md`)
 
-- Kubecost / OpenCost for real cost monitoring
-- Feature Store with Feast (definitions, server, online/offline backends)
-- ArgoCD Image Updater for automated image bumps
-- End-to-end AWS test (Terraform → EKS → ArgoCD → MLflow → KServe)
+**High Priority:**
+- **End-to-end AWS test** — Full flow: Terraform apply → EKS deploy → ArgoCD sync → MLflow → KServe inference
+
+**Medium Priority:**
+- **Kubecost / OpenCost** — Replace estimated cost dashboard with real exporter
+- **Feature Store with Feast** — Feature definitions, server deployment, Redis/DynamoDB backend
+- **ACM certificate for Ingress** — Real TLS certificate for MLflow/KServe/Grafana
+- **Terraform S3 backend** — Uncomment and configure `backend "s3"` in all environments when AWS account is available
+- **Terratest execution** — Run Go tests in `infra/modules/*/test/`
+
+**Low Priority:**
+- **Model Governance** — Approval workflows (CRDs, OPA/Gatekeeper policies, ArgoCD approval gates)
+- **Multi-cluster deployment** — ArgoCD ApplicationSet with cluster generator
+- **Full mTLS enforcement** — Istio strict mTLS currently defined but pending full rollout
+- **Advanced OPA/Gatekeeper policies** — Partially implemented in `k8s/security/gatekeeper/`
+- **Microsoft Teams notifications** — In addition to Slack
+- **Integration tests for ML Platform** — Expand `ml-platform/tests/` coverage
+- **Troubleshooting documentation** — Based on real deployment experience
 
 ---
 
@@ -504,4 +554,4 @@ mlflow:
 
 ---
 
-_This implementation overview was generated from repository analysis. Last updated: 2026-05-31. For the latest state, always refer to the actual source code and `docs/PENDING.md`._
+_This implementation overview was generated from repository analysis. Last updated: 2026-06-01. For the latest state, always refer to the actual source code and `docs/PENDING.md`._
