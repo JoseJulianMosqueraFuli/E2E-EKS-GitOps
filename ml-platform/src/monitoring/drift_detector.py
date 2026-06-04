@@ -11,20 +11,20 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
 import pandas as pd
-from evidently import ColumnMapping
-from evidently.metric_preset import (
+from evidently.legacy.pipeline.column_mapping import ColumnMapping
+from evidently.legacy.metric_preset import (
     DataDriftPreset,
     DataQualityPreset,
     TargetDriftPreset,
 )
-from evidently.metrics import (
+from evidently.legacy.metrics import (
     ColumnDriftMetric,
     DatasetDriftMetric,
     DatasetMissingValuesMetric,
 )
-from evidently.report import Report
-from evidently.test_preset import DataDriftTestPreset, DataQualityTestPreset
-from evidently.test_suite import TestSuite
+from evidently.legacy.report import Report
+from evidently.legacy.test_preset import DataDriftTestPreset, DataQualityTestPreset
+from evidently.legacy.test_suite import TestSuite
 
 logger = logging.getLogger(__name__)
 
