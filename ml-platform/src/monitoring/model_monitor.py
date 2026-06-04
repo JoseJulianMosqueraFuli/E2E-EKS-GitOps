@@ -11,16 +11,16 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 import pandas as pd
-from evidently import ColumnMapping
-from evidently.metric_preset import (
+from evidently.legacy.pipeline.column_mapping import ColumnMapping
+from evidently.legacy.metric_preset import (
     ClassificationPreset,
     RegressionPreset,
 )
-from evidently.metrics import (
+from evidently.legacy.metrics import (
     ClassificationQualityMetric,
     RegressionQualityMetric,
 )
-from evidently.report import Report
+from evidently.legacy.report import Report
 
 from .drift_detector import DriftDetector
 
