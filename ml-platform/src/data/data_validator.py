@@ -163,9 +163,9 @@ class DataValidator:
 
         success = result.success
         stats = {}
-        for vr in result.run_results:
-            if hasattr(vr, "validation_result") and hasattr(vr.validation_result, "statistics"):
-                stats = vr.validation_result.statistics
+        for vr in result.run_results.values():
+            if hasattr(vr, "statistics"):
+                stats = vr.statistics
                 break
 
         summary = {
