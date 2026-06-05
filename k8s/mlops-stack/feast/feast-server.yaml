@@ -1,0 +1,111 @@
+# Feast Server Deployment
+# Serves online features via gRPC/HTTP. Connects to Redis online store.
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: feast-config
+  namespace: feast
+  labels:
+    app.kubernetes.io/name: feast
+    app.kubernetes.io/component: server
+    app.kubernetes.io/part-of: mlops-platform
+data:
+  feature_store.yaml: |
+    project: mlops_feature_store
+    registry: /data/registry.db
+    provider: local
+    online_store:
+        type: redis
+        connection_string: "redis://feast-redis-master:6379"
+    offline_store:
+        type: file
+    entity_key_serialization_version: 2
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: feast-server
+  namespace: feast
+  labels:
+    app.kubernetes.io/name: feast-server
+    app.kubernetes.io/component: server
+    app.kubernetes.io/part-of: mlops-platform
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: feast-server
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: feast-server
+        app.kubernetes.io/component: server
+        app.kubernetes.io/part-of: mlops-platform
+    spec:
+      containers:
+        - name: feast
+          image: feastdev/feature-server:latest
+          ports:
+            - containerPort: 6566
+              name: grpc
+            - containerPort: 8080
+              name: http
+          env:
+            - name: FEAST_FEATURE_STORE_YAML
+              value: /feast-config/feature_store.yaml
+          resources:
+            requests:
+              memory: "512Mi"
+              cpu: "250m"
+            limits:
+              memory: "1Gi"
+              cpu: "1000m"
+          volumeMounts:
+            - name: feast-config
+              mountPath: /feast-config
+              readOnly: true
+            - name: feast-data
+              mountPath: /data
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8080
+            initialDelaySeconds: 60
+            periodSeconds: 30
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8080
+            initialDelaySeconds: 10
+            periodSeconds: 10
+      volumes:
+        - name: feast-config
+          configMap:
+            name: feast-config
+        - name: feast-data
+          emptyDir: {}
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: feast-server
+  namespace: feast
+  labels:
+    app.kubernetes.io/name: feast-server
+    app.kubernetes.io/component: server
+    app.kubernetes.io/part-of: mlops-platform
+spec:
+  type: ClusterIP
+  ports:
+    - port: 6566
+      targetPort: 6566
+      name: grpc
+    - port: 8080
+      targetPort: 8080
+      name: http
+  selector:
+    app.kubernetes.io/name: feast-server
