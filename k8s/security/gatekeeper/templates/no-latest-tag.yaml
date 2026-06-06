@@ -1,0 +1,49 @@
+# Gatekeeper ConstraintTemplate: K8sBlockLatestTag
+# Prevents using 'latest' or no tag on container images.
+
+apiVersion: templates.gatekeeper.sh/v1
+kind: ConstraintTemplate
+metadata:
+  name: k8sblocklatesttag
+  labels:
+    app.kubernetes.io/name: gatekeeper
+    app.kubernetes.io/component: policy-template
+spec:
+  crd:
+    spec:
+      names:
+        kind: K8sBlockLatestTag
+      validation:
+        openAPIV3Schema:
+          type: object
+          properties:
+            exemptImages:
+              type: array
+              items:
+                type: string
+              default: []
+  targets:
+    - target: admission.k8s.gatekeeper.sh
+      rego: |
+        package k8sblocklatesttag
+
+        violation[{"msg": msg}] {
+          container := input.review.object.spec.template.spec.containers[_]
+          not is_exempt(container.image)
+          image := container.image
+          endswith(image, ":latest")
+          msg := sprintf("Container %s uses 'latest' image tag: %s", [container.name, image])
+        }
+
+        violation[{"msg": msg}] {
+          container := input.review.object.spec.template.spec.containers[_]
+          not is_exempt(container.image)
+          image := container.image
+          not contains(image, ":")
+          msg := sprintf("Container %s image has no tag: %s", [container.name, image])
+        }
+
+        is_exempt(image) {
+          exempt := input.parameters.exemptImages[_]
+          contains(image, exempt)
+        }

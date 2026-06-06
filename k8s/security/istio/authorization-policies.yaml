@@ -1,0 +1,256 @@
+# Istio AuthorizationPolicies
+# Enforce zero-trust access control between MLOps services.
+# These policies define WHO can talk to WHAT within the mesh.
+# Apply AFTER PeerAuthentication and DestinationRules are in place.
+
+# ---
+# DEFAULT DENY ALL: Block all traffic by default in each namespace.
+# Individual allow policies below will permit specific flows.
+
+---
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+  name: default-deny-all-mlflow
+  namespace: mlflow
+  labels:
+    app.kubernetes.io/name: mlflow
+    app.kubernetes.io/component: security
+spec:
+  {}
+
+---
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+  name: default-deny-all-kserve
+  namespace: kserve
+  labels:
+    app.kubernetes.io/name: kserve
+    app.kubernetes.io/component: security
+spec:
+  {}
+
+---
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+  name: default-deny-all-monitoring
+  namespace: monitoring
+  labels:
+    app.kubernetes.io/name: monitoring
+    app.kubernetes.io/component: security
+spec:
+  {}
+
+---
+# ALLOW: Prometheus can scrape metrics from all MLOps namespaces
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+  name: allow-prometheus-scrape
+  namespace: mlflow
+  labels:
+    app.kubernetes.io/name: mlflow
+    app.kubernetes.io/component: security
+spec:
+  action: ALLOW
+  rules:
+    - from:
+        - source:
+            principals:
+              - "cluster.local/ns/monitoring/sa/prometheus"
+      to:
+        - operation:
+            methods:
+              - GET
+            paths:
+              - /metrics
+
+---
+# ALLOW: MLflow tracking server accessible from Kubeflow, KServe, and monitoring
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+  name: allow-mlflow-access
+  namespace: mlflow
+  labels:
+    app.kubernetes.io/name: mlflow
+    app.kubernetes.io/component: security
+spec:
+  action: ALLOW
+  rules:
+    - from:
+        - source:
+            namespaces:
+              - "kubeflow"
+              - "kserve"
+              - "monitoring"
+      to:
+        - operation:
+            methods:
+              - GET
+              - POST
+            ports:
+              - "5000"
+
+---
+# ALLOW: KServe inference endpoints accessible from ingress and monitoring
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+  name: allow-kserve-inference
+  namespace: kserve
+  labels:
+    app.kubernetes.io/name: kserve
+    app.kubernetes.io/component: security
+spec:
+  action: ALLOW
+  rules:
+    - from:
+        - source:
+            namespaces:
+              - "istio-system"
+              - "monitoring"
+      to:
+        - operation:
+            methods:
+              - GET
+              - POST
+            ports:
+              - "8080"
+              - "8081"
+
+---
+# ALLOW: Grafana can query Prometheus and access MLflow/KServe health
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+  name: allow-grafana-query
+  namespace: monitoring
+  labels:
+    app.kubernetes.io/name: monitoring
+    app.kubernetes.io/component: security
+spec:
+  action: ALLOW
+  rules:
+    - from:
+        - source:
+            principals:
+              - "cluster.local/ns/monitoring/sa/grafana"
+      to:
+        - operation:
+            methods:
+              - GET
+            ports:
+              - "9090"
+              - "3000"
+
+---
+# ALLOW: Kubeflow Pipelines UI and orchestrator can access MLflow
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+  name: allow-kubeflow-mlflow
+  namespace: mlflow
+  labels:
+    app.kubernetes.io/name: mlflow
+    app.kubernetes.io/component: security
+spec:
+  action: ALLOW
+  rules:
+    - from:
+        - source:
+            namespaces:
+              - "kubeflow"
+      to:
+        - operation:
+            methods:
+              - GET
+              - POST
+            ports:
+              - "5000"
+
+---
+# ALLOW: Feast server accessible from KServe and training pods
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+  name: allow-feast-access
+  namespace: feast
+  labels:
+    app.kubernetes.io/name: feast
+    app.kubernetes.io/component: security
+spec:
+  action: ALLOW
+  rules:
+    - from:
+        - source:
+            namespaces:
+              - "kserve"
+              - "kubeflow"
+              - "mlflow"
+      to:
+        - operation:
+            methods:
+              - GET
+              - POST
+            ports:
+              - "6566"
+              - "8080"
+
+---
+# ALLOW: ArgoCD can sync applications in all MLOps namespaces
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+  name: allow-argocd-sync
+  namespace: argocd
+  labels:
+    app.kubernetes.io/name: argocd
+    app.kubernetes.io/component: security
+spec:
+  action: ALLOW
+  rules:
+    - from:
+        - source:
+            principals:
+              - "cluster.local/ns/argocd/sa/argocd-application-controller"
+      to:
+        - operation:
+            methods:
+              - GET
+              - POST
+              - PUT
+              - PATCH
+              - DELETE
+            ports:
+              - "8080"
+              - "443"
+
+---
+# ALLOW: Health checks from kubelet / Kubernetes probes
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+  name: allow-health-checks
+  namespace: mlflow
+  labels:
+    app.kubernetes.io/name: mlflow
+    app.kubernetes.io/component: security
+spec:
+  action: ALLOW
+  rules:
+    - from:
+        - source:
+            namespaces:
+              - "kube-system"
+      to:
+        - operation:
+            methods:
+              - GET
+            paths:
+              - /health
+              - /healthz
+              - /ready
+              - /readyz
