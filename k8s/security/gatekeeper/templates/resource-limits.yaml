@@ -1,0 +1,47 @@
+# Gatekeeper ConstraintTemplate: K8sResourceLimits
+# Enforces that containers define CPU/memory requests and limits.
+
+apiVersion: templates.gatekeeper.sh/v1
+kind: ConstraintTemplate
+metadata:
+  name: k8sresourcelimits
+  labels:
+    app.kubernetes.io/name: gatekeeper
+    app.kubernetes.io/component: policy-template
+spec:
+  crd:
+    spec:
+      names:
+        kind: K8sResourceLimits
+      validation:
+        openAPIV3Schema:
+          type: object
+          properties:
+            limits:
+              type: array
+              items:
+                type: string
+              default: ["cpu", "memory"]
+            requests:
+              type: array
+              items:
+                type: string
+              default: ["cpu", "memory"]
+  targets:
+    - target: admission.k8s.gatekeeper.sh
+      rego: |
+        package k8sresourcelimits
+
+        violation[{"msg": msg}] {
+          container := input.review.object.spec.template.spec.containers[_]
+          missing_limits := {limit | limit := input.parameters.limits[_]; not container.resources.limits[limit]}
+          count(missing_limits) > 0
+          msg := sprintf("Container %s is missing resource limits: %v", [container.name, missing_limits])
+        }
+
+        violation[{"msg": msg}] {
+          container := input.review.object.spec.template.spec.containers[_]
+          missing_requests := {req | req := input.parameters.requests[_]; not container.resources.requests[req]}
+          count(missing_requests) > 0
+          msg := sprintf("Container %s is missing resource requests: %v", [container.name, missing_requests])
+        }
