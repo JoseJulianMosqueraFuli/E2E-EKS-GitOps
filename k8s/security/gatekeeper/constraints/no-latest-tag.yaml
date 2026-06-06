@@ -1,0 +1,25 @@
+# Gatekeeper Constraints: Block 'latest' image tags.
+# Prevents mutable image tags that can cause unexpected deployments.
+
+---
+apiVersion: constraints.gatekeeper.sh/v1beta1
+kind: K8sBlockLatestTag
+metadata:
+  name: mlops-no-latest-tag
+  labels:
+    app.kubernetes.io/name: gatekeeper
+    app.kubernetes.io/component: policy
+spec:
+  match:
+    kinds:
+      - apiGroups: ["apps"]
+        kinds: ["Deployment", "StatefulSet", "DaemonSet"]
+    namespaces:
+      - "mlflow"
+      - "kserve"
+      - "monitoring"
+      - "kubeflow"
+      - "feast"
+      - "argocd"
+  parameters:
+    exemptImages: []

@@ -1,0 +1,39 @@
+# Gatekeeper ConstraintTemplate: K8sIngressHosts
+# Restricts Ingress resources to approved host patterns.
+
+apiVersion: templates.gatekeeper.sh/v1
+kind: ConstraintTemplate
+metadata:
+  name: k8singresshosts
+  labels:
+    app.kubernetes.io/name: gatekeeper
+    app.kubernetes.io/component: policy-template
+spec:
+  crd:
+    spec:
+      names:
+        kind: K8sIngressHosts
+      validation:
+        openAPIV3Schema:
+          type: object
+          properties:
+            allowedHosts:
+              type: array
+              items:
+                type: string
+              default: []
+  targets:
+    - target: admission.k8s.gatekeeper.sh
+      rego: |
+        package k8singresshosts
+
+        violation[{"msg": msg}] {
+          host := input.review.object.spec.rules[_].host
+          not allowed_host(host)
+          msg := sprintf("Ingress host %s is not in the allowed list", [host])
+        }
+
+        allowed_host(host) {
+          allowed := input.parameters.allowedHosts[_]
+          host == allowed
+        }

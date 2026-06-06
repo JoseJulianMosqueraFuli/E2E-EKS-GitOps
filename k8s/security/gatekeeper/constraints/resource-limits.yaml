@@ -1,0 +1,52 @@
+# Gatekeeper Constraints: Resource Limits and Requests.
+# Ensures all MLOps workloads specify CPU/memory limits and requests.
+
+---
+apiVersion: constraints.gatekeeper.sh/v1beta1
+kind: K8sResourceLimits
+metadata:
+  name: mlops-resource-limits
+  labels:
+    app.kubernetes.io/name: gatekeeper
+    app.kubernetes.io/component: policy
+spec:
+  match:
+    kinds:
+      - apiGroups: ["apps"]
+        kinds: ["Deployment", "StatefulSet", "DaemonSet"]
+    namespaces:
+      - "mlflow"
+      - "kserve"
+      - "monitoring"
+      - "kubeflow"
+      - "feast"
+  parameters:
+    limits:
+      - cpu
+      - memory
+    requests:
+      - cpu
+      - memory
+
+---
+apiVersion: constraints.gatekeeper.sh/v1beta1
+kind: K8sResourceLimits
+metadata:
+  name: argo-resource-limits
+  labels:
+    app.kubernetes.io/name: gatekeeper
+    app.kubernetes.io/component: policy
+spec:
+  match:
+    kinds:
+      - apiGroups: ["apps"]
+        kinds: ["Deployment", "StatefulSet"]
+    namespaces:
+      - "argocd"
+      - "argo-workflows"
+  parameters:
+    limits:
+      - memory
+    requests:
+      - cpu
+      - memory
