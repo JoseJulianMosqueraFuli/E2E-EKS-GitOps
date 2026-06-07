@@ -1,8 +1,10 @@
 # E2E MLOps Platform on EKS
 
+[![CI Pipeline](https://github.com/JoseJulianMosqueraFuli/E2E-EKS-GitOps/actions/workflows/ci.yml/badge.svg)](https://github.com/JoseJulianMosqueraFuli/E2E-EKS-GitOps/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Terraform](https://img.shields.io/badge/Terraform-%3E%3D1.0-blue)](https://www.terraform.io/)
 [![Kubernetes](https://img.shields.io/badge/Kubernetes-%3E%3D1.25-blue)](https://kubernetes.io/)
+[![ArgoCD](https://img.shields.io/badge/ArgoCD-GitOps-brightgreen)](https://argoproj.github.io/cd/)
 
 English | [Español](README.es.md)
 
@@ -294,3 +296,5 @@ This project is licensed under the MIT License - see [LICENSE](LICENSE) for deta
 ---
 
 Built by [Jose Julian Mosquera](https://github.com/JoseJulianMosqueraFuli)
+
+*Last updated: June 2025*
