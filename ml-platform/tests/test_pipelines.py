@@ -2,7 +2,6 @@
 Tests for the pipeline modules (TrainingPipeline and InferencePipeline).
 """
 
-import os
 import pytest
 import numpy as np
 import pandas as pd

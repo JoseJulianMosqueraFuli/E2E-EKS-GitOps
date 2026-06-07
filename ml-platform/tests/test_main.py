@@ -2,11 +2,10 @@
 Tests for the main.py entry point module.
 """
 
-import sys
 import pytest
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch
 
-from src.main import main, train_model, run_inference, validate_data, create_sample_data, setup_project
+from src.main import main
 
 
 class TestMainFunction:
@@ -26,7 +25,8 @@ class TestMainFunction:
     def test_main_no_args_prints_help(self, capsys):
         """Test that calling with no subcommand prints help (no crash)."""
         with patch('sys.argv', ['main']):
-            # main() with no subcommand calls parser.print_help() and returns None
+            # main() with no subcommand calls print_help()
+            # and returns None
             main()
 
     def test_main_unknown_args_exits(self):
