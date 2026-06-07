@@ -74,13 +74,13 @@ jobs:
           name: Run Tests
           command: |
             cd ml-platform
-            pytest tests/ -v || true
+            pytest tests/ -v
       - run:
           name: Lint Python
           command: |
             cd ml-platform
-            flake8 src/ tests/ || true
-            black --check src/ tests/ || true
+            flake8 src/ tests/
+            black --check src/ tests/
 
   security-scan:
     executor: python

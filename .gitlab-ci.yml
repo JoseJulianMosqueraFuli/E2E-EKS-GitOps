@@ -80,9 +80,9 @@ ml-platform-test:
   script:
     - cd ml-platform
     - pip install -e ".[dev]"
-    - pytest tests/ -v || true
-    - flake8 src/ tests/ || true
-    - black --check src/ tests/ || true
+    - pytest tests/ -v
+    - flake8 src/ tests/
+    - black --check src/ tests/
 
 # --- Security Stage ---
 

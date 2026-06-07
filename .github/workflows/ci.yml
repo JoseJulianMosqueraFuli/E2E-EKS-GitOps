@@ -120,13 +120,13 @@ jobs:
     - name: Run linting
       run: |
         cd ml-platform
-        flake8 src/ tests/ || true
-        black --check src/ tests/ || true
+        flake8 src/ tests/
+        black --check src/ tests/
         
     - name: Run tests
       run: |
         cd ml-platform
-        pytest tests/ -v || true
+        pytest tests/ -v
 
   # Security scanning
   security-scan:

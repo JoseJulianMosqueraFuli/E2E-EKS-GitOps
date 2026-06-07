@@ -6,6 +6,7 @@ inference, and data validation.
 """
 
 import os
+import sys
 import argparse
 import logging
 from typing import Optional
@@ -207,7 +208,7 @@ def setup_project(args):
         config_manager.create_default_configs()
         
         # Create logging configuration
-        from utils.logging_config import create_logging_config_file
+        from src.utils.logging_config import create_logging_config_file
         create_logging_config_file()
         
         # Create sample data
