@@ -71,3 +71,45 @@ metadata:
 spec:
   mtls:
     mode: STRICT
+
+---
+# Gatekeeper namespace: strict mTLS for all workloads
+apiVersion: security.istio.io/v1beta1
+kind: PeerAuthentication
+metadata:
+  name: gatekeeper-strict-mtls
+  namespace: gatekeeper-system
+  labels:
+    app.kubernetes.io/name: gatekeeper
+    app.kubernetes.io/component: security
+spec:
+  mtls:
+    mode: STRICT
+
+---
+# ArgoCD namespace: strict mTLS for all workloads
+apiVersion: security.istio.io/v1beta1
+kind: PeerAuthentication
+metadata:
+  name: argocd-strict-mtls
+  namespace: argocd
+  labels:
+    app.kubernetes.io/name: argocd
+    app.kubernetes.io/component: security
+spec:
+  mtls:
+    mode: STRICT
+
+---
+# Feast namespace: strict mTLS for all workloads
+apiVersion: security.istio.io/v1beta1
+kind: PeerAuthentication
+metadata:
+  name: feast-strict-mtls
+  namespace: feast
+  labels:
+    app.kubernetes.io/name: feast
+    app.kubernetes.io/component: security
+spec:
+  mtls:
+    mode: STRICT
