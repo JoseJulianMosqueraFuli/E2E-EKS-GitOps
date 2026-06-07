@@ -10,25 +10,25 @@ Para items de producto y roadmap, ver: [`docs/PENDING.md`](docs/PENDING.md)
 
 | Area | CRITICAL | HIGH | MEDIUM | LOW | Total |
 |------|----------|------|--------|-----|-------|
-| Seguridad | 4 | 3 | 9 | 2 | 18 |
+| Seguridad | 1 | 3 | 9 | 2 | 15 |
 | Infra (Terraform) | 0 | 4 | 6 | 2 | 12 |
 | GitOps / K8s | 0 | 3 | 8 | 3 | 14 |
 | Plataforma ML (Python) | 0 | 2 | 6 | 2 | 10 |
 | Monitoreo | 0 | 2 | 4 | 2 | 8 |
 | CI/CD | 0 | 1 | 5 | 2 | 8 |
 | Arquitectura / Extras | 0 | 0 | 0 | 7 | 7 |
-| **TOTAL** | **4** | **15** | **38** | **20** | **77** |
+| **TOTAL** | **1** | **15** | **38** | **20** | **74** |
 
 ---
 
 ## CRITICAL (4) — Ver `critical.md`
 
-| ID | Issue | Archivo(s) | Owner |
-|----|-------|------------|-------|
-| CRIT-001 | Argo Workflows sin TLS | `k8s/mlops-stack/argo-workflows/server-deployment.yaml` | Platform |
-| CRIT-002 | Argo Workflows auth basica | `k8s/mlops-stack/argo-workflows/server-deployment.yaml` | Security |
-| CRIT-003 | Docker executor obsoleto + docker.sock | `argo-workflows/configmap.yaml`, `workflow-templates/*` | DevSecOps |
-| CRIT-004 | AppProject ArgoCD permisivo | `gitops/applications/projects/mlops-core.yaml` | GitOps |
+| ID | Issue | Archivo(s) | Owner | Estado |
+|----|-------|------------|-------|--------|
+| CRIT-001 | Argo Workflows sin TLS | `k8s/mlops-stack/argo-workflows/server-deployment.yaml` | Platform | ✅ Corregido 2026-06-07 |
+| CRIT-002 | Argo Workflows auth basica | `k8s/mlops-stack/argo-workflows/server-deployment.yaml` | Security | ✅ Corregido 2026-06-07 |
+| CRIT-003 | Docker executor obsoleto + docker.sock | `argo-workflows/configmap.yaml`, `workflow-templates/*` | DevSecOps | ✅ Corregido 2026-06-07 |
+| CRIT-004 | AppProject ArgoCD permisivo | `gitops/applications/projects/mlops-core.yaml` | GitOps | ⏳ Pendiente |
 
 ---
 

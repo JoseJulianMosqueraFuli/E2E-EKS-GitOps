@@ -30,9 +30,9 @@
 
 Ver **`critical.md`** en la raiz del proyecto para detalles completos con CVSS, fix concreto y owner.
 
-- [ ] **CRIT-001**: Argo Workflows TLS deshabilitado (`--secure=false`)
-- [ ] **CRIT-002**: Argo Workflows auth basica (`--auth-mode=server`)
-- [ ] **CRIT-003**: Argo Workflows executor docker obsoleto + montaje de `docker.sock`
+- [x] **CRIT-001**: Argo Workflows TLS deshabilitado (`--secure=false`) -> corregido a `--secure=true` (`2026-06-07`)
+- [x] **CRIT-002**: Argo Workflows auth basica (`--auth-mode=server`) -> corregido a `--auth-mode=sso` (`2026-06-07`)
+- [x] **CRIT-003**: Argo Workflows executor docker obsoleto + montaje de `docker.sock` -> corregido a `emissary`, eliminado `hostPath` del socket (`2026-06-07`)
 - [ ] **CRIT-004**: ArgoCD AppProject `mlops-core` excesivamente permisivo (`*`, `*`, `*`)
 
 ### Alta prioridad

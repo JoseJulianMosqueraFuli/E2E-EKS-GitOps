@@ -275,6 +275,7 @@ make plan ENV=dev
 - [x] Feature Store con Feast (parcial) - Feature repo local funcional con definiciones y datos parquet. Falta backend productivo.
 - [ ] Kubecost / OpenCost exportador real
 - [ ] Certificado ACM emitido para Ingress reales
+- [x] CRIT-001/002/003: Argo Workflows TLS + SSO + Emissary executor corregidos
 - [ ] Backend S3 de Terraform configurado en los tres ambientes
 
 ---

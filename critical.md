@@ -265,9 +265,9 @@ This document lists all **CRITICAL** and **HIGH** severity findings identified d
 
 Before marking this report as resolved:
 
-- [ ] CRIT-001: Argo Workflows `--secure=true`
-- [ ] CRIT-002: Argo Workflows `--auth-mode=sso`
-- [ ] CRIT-003: No `docker.sock` mounts, executor = `emissary`
+- [x] CRIT-001: Argo Workflows `--secure=true` (corregido 2026-06-07)
+- [x] CRIT-002: Argo Workflows `--auth-mode=sso` (corregido 2026-06-07)
+- [x] CRIT-003: No `docker.sock` mounts, executor = `emissary` (corregido 2026-06-07)
 - [ ] CRIT-004: AppProject restricted to specific repos/namespaces/resources
 - [ ] HIGH-005 to HIGH-007: Zero occurrences of `:latest` in all manifests and templates
 - [ ] HIGH-011: `python -c "import src.main"` succeeds without errors
