@@ -38,7 +38,7 @@ data:
           memory: 512Mi
     
     # Container runtime executor (recommended for security)
-    containerRuntimeExecutor: docker
+    containerRuntimeExecutor: emissary
     
     # Workflow defaults
     workflowDefaults:

@@ -86,8 +86,6 @@ spec:
         value: "{{inputs.parameters.mlflow-tracking-uri}}"
       - name: AWS_DEFAULT_REGION
         value: "us-west-2"
-      - name: DOCKER_HOST
-        value: "tcp://docker-dind:2376"
       resources:
         requests:
           memory: "2Gi"
@@ -96,13 +94,34 @@ spec:
           memory: "4Gi"
           cpu: "2000m"
       volumeMounts:
-      - name: docker-sock
-        mountPath: /var/run/docker.sock
+        - name: docker-sock
+          mountPath: /var/run
+    sidecars:
+      - name: dind
+        image: docker:24-dind
+        env:
+          - name: DOCKER_TLS_CERTDIR
+            value: ""
+        securityContext:
+          privileged: true
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+              - ALL
+        volumeMounts:
+          - name: docker-sock
+            mountPath: /var/run
+        resources:
+          requests:
+            memory: "1Gi"
+            cpu: "500m"
+          limits:
+            memory: "2Gi"
+            cpu: "1000m"
     volumes:
-    - name: docker-sock
-      hostPath:
-        path: /var/run/docker.sock
-  
+      - name: docker-sock
+        emptyDir: {}
+
   - name: create-kserve-deployment-step
     inputs:
       parameters:
