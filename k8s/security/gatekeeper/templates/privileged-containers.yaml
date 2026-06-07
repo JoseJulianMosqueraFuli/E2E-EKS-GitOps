@@ -1,0 +1,29 @@
+# Gatekeeper ConstraintTemplate: K8sBlockPrivileged
+# Blocks containers running in privileged mode.
+
+apiVersion: templates.gatekeeper.sh/v1
+kind: ConstraintTemplate
+metadata:
+  name: k8sblockprivileged
+  labels:
+    app.kubernetes.io/name: gatekeeper
+    app.kubernetes.io/component: policy-template
+spec:
+  crd:
+    spec:
+      names:
+        kind: K8sBlockPrivileged
+  targets:
+    - target: admission.k8s.gatekeeper.sh
+      rego: |
+        package k8sblockprivileged
+
+        violation[{"msg": msg}] {
+          input.review.object.spec.template.spec.containers[_].securityContext.privileged == true
+          msg := "Containers must not run as privileged"
+        }
+
+        violation[{"msg": msg}] {
+          input.review.object.spec.containers[_].securityContext.privileged == true
+          msg := "Containers must not run as privileged"
+        }

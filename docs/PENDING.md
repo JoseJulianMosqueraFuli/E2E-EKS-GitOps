@@ -1,6 +1,6 @@
 # Estado del Proyecto - E2E EKS GitOps
 
-**Ultima actualizacion**: 2026-05-31
+**Ultima actualizacion**: 2026-06-06
 **Regla**: Actualizar este archivo con cada cambio significativo. Poner fecha en cada item marcado.
 
 ---
@@ -14,34 +14,130 @@
 - [x] Cost Monitoring - Dashboard de Grafana con costos estimados `(2026-05-16)` - Parcial: falta exportador real (Kubecost/OpenCost)
 - [x] Auto-retraining Pipeline - Template de 7 pasos con DAG y logica condicional. Reemplazado con carga real de MLflow y Evidently `(2026-05-19)` - COMPLETO
 - [x] CI/CD - GitHub Actions (CI + promotion) + Jenkins pipeline + promotion script con validacion `(2026-05-16)`
-- [x] Hardening de staging/prod - Labels corregidos, KMS 30d/14d, ECR IMMUTPero ABLE en prod, node egress restringido en prod, backend S3 comments corregidos `(2026-05-19)` - COMPLETO
+- [x] Hardening de staging/prod - Labels corregidos, KMS 30d/14d, ECR IMMUTABLE en prod, node egress restringido en prod, backend S3 comments corregidos `(2026-05-19)` - COMPLETO
 - [x] A/B Testing Framework - WorkflowTemplate con experimentos, metricas estadisticas, auto-promotion `(2026-05-19)` - COMPLETO
 - [x] PyProject.toml packaging - Corregido mlops_platform a cli:main, mypy target 3.10 `(2026-05-19)`
 - [x] Documentacion sincronizada - READMEs, gitops/README, gitops/SETUP, IMPLEMENTATION_STATUS, VALIDATION_REPORT, quick-start y ml-platform guide alineados con el estado real del repo `(2026-05-20)`
-- [x] Documentacion re-sincronizada - Diagramas de estructura actualizados para reflejar addons/, networking/, security/, clusters/, flux-config/, scripts/promotion/, y los 8 archivos de test reales `(2026-05-31)`
+- [x] Documentacion re-sincronizada - Diagramas de estructura actualizados `(2026-05-31)`
+- [x] Reporte de auditoria completa - Revison de 120+ archivos, 6000+ lineas, hallazgos mapeados en `critical.md` y `backlog.md` `(2026-06-06)`
 
 ---
 
 ## Pendiente
 
+### Critico (Bloqueantes para produccion)
+
+Ver **`critical.md`** en la raiz del proyecto para detalles completos con CVSS, fix concreto y owner.
+
+- [ ] **CRIT-001**: Argo Workflows TLS deshabilitado (`--secure=false`)
+- [ ] **CRIT-002**: Argo Workflows auth basica (`--auth-mode=server`)
+- [ ] **CRIT-003**: Argo Workflows executor docker obsoleto + montaje de `docker.sock`
+- [ ] **CRIT-004**: ArgoCD AppProject `mlops-core` excesivamente permisivo (`*`, `*`, `*`)
+
 ### Alta prioridad
 
+- [ ] **HIGH-001**: Backend local Terraform (sin S3+DynamoDB) en los 3 ambientes
+- [ ] **HIGH-002**: Kubernetes 1.28 cerca de EOL -> actualizar a 1.30/1.31
+- [ ] **HIGH-003**: Egress de nodos EKS sin restriccion (`0.0.0.0/0`) en dev/staging
+- [ ] **HIGH-004**: CIDR `10.0.0.0/8` hardcodeado en prod para egress de nodos
+- [ ] **HIGH-005 a HIGH-007**: Imagenes con tag `:latest` en Feast, Evidently, y workflow templates de Argo
+- [ ] **HIGH-008**: KServe HTTP sin redireccion automatica a HTTPS
+- [ ] **HIGH-009**: Grafana usa `emptyDir` (perdida de datos al reiniciar)
+- [ ] **HIGH-010**: Prometheus como Deployment en lugar de StatefulSet (perdida de datos)
+- [ ] **HIGH-011**: Errores de importacion en `ml-platform/src/main.py` (`sys.exit` sin import, prefijo `src.` faltante)
+- [ ] **HIGH-012**: `fastapi` y `uvicorn` no declarados en `pyproject.toml`
+- [ ] **HIGH-013**: CI/CD pipelines ocultan fallas con `|| true` (pytest, flake8, black)
 - [ ] **End-to-end test** - Requiere cuenta AWS. Validar todo el flujo: Terraform apply -> EKS deploy -> ArgoCD sync -> MLflow -> KServe inference
 
 ### Media prioridad
 
-- [ ] **Feature Store con Feast** - No existe implementacion. Crear: feature definitions, feature server deployment, Redis/DynamoDB backend, integration con pipelines
-- [ ] **Kubecost/OpenCost** - Reemplazar dashboard de costos estimados con exportador real. Dashboard actual: `k8s/mlops-stack/monitoring/dashboards/cost-monitoring-dashboard.json`
-- [ ] **Certificado ACM para Ingress** - Solicitar y configurar certificado real en AWS para TLS en MLflow/KServe/Grafana
-- [ ] **Backend S3 de Terraform** - Descomentar y configurar `backend "s3"` en los tres ambientes cuando se tenga cuenta AWS
-- [ ] **Terratest** - Ejecutar tests de Go que ya existen en `infra/modules/*/tests/`
+**Seguridad e Istio:**
+- [ ] Istio mTLS incompleto: falta STRICT en `models`, `ml-monitoring`, `external-secrets`, `knative-serving`
+- [ ] Istio AuthorizationPolicies: falta default-deny en `argo-workflows`, `feast`, `kubeflow`, `models`
+- [ ] Istio: falta allow para health checks y Prometheus scrape en todos los namespaces
+- [ ] Istio: falta allow para `argo-workflows` -> MLflow y `kubeflow` -> KServe
+- [ ] Gatekeeper no cubre namespaces: `feast`, `models`, `ml-monitoring`, `external-secrets`, `knative-serving`
+- [ ] Gatekeeper template PodSecurity no verifica initContainers, runAsUser, ni seccompProfile a nivel de pod
+- [ ] Gatekeeper constraint IngressHosts permite `*.example.com` (demasiado permisivo)
+- [ ] NetworkPolicy falta para namespaces: `feast`, `argo-workflows`, `ml-monitoring`
+
+**GitOps y Consistencia:**
+- [ ] Unificar fuente de verdad: `monitoring`, `argo-workflows`, `feast` en `k8s/` deben apuntar a `gitops/applications/apps/`
+- [ ] Crear Applications de ArgoCD para: `feast`, `argo-workflows`, `external-secrets`, `gatekeeper`, `istio`
+- [ ] Desincronizacion de versiones: Prometheus `v2.45.0` vs `v2.48.0`, Grafana `10.0.3` vs `10.2.2`
+- [ ] Duplicacion de alertas Prometheus entre `k8s/` y `gitops/`
+- [ ] ApplicationSet `mlops-applicationset` no genera apps para `argo-workflows`, `feast`, `external-secrets`, etc.
+
+**Helm Charts:**
+- [ ] MLflow chart usa `python:3.11-slim` en vez de imagen oficial MLflow
+- [ ] KServe chart: `urlScheme: "http"` deberia ser `https`
+- [ ] KServe chart deshabilita `NetworkPolicy` y `PDB`
+- [ ] Kubeflow chart usa Argo workflow controller `v3.3.10` (muy antiguo, actualizar)
+
+**Infraestructura:**
+- [ ] KMS en dev sin `enable_key_rotation` (inconsistencia con staging/prod)
+- [ ] EKS addon `vpc_cni` sin IRSA asignado (a diferencia de EBS CSI)
+- [ ] `allowed_principals` vacio por defecto en modulo ECR (policy invalida si no se sobreescribe)
+- [ ] `node_group_desired_size` sin validacion contra min/max
+- [ ] Glue table schema hardcodeado (`feature_1`, `feature_2`, `target`)
+- [ ] Glue crawlers schedule hardcodeado igual en los 3 ambientes
+
+**Plataforma ML:**
+- [ ] `prometheus-client` inconsistente entre `pyproject.toml` (<0.17) y `Dockerfile.monitoring` (0.17.1)
+- [ ] `LabelEncoder` incompatible con `ColumnTransformer` en `feature_engineering.py`
+- [ ] Duplicacion de clase `ModelMonitor` (`src/utils/monitoring.py` vs `src/monitoring/model_monitor.py`)
+- [ ] Transformers custom (`DateTimeFeatureExtractor`, `OutlierClipper`, etc.) definidos pero nunca usados
+- [ ] `dvc`, `awscli`, `kubernetes` declarados en `pyproject.toml` pero sin uso evidente en el codigo
+- [ ] `awscli` como dependencia de libreria (es una CLI, no deberia estar en un paquete Python)
+- [ ] Feast feature repo: faltan archivos parquet fuente (`feature_repo/data/` no existe)
+
+**Monitoreo:**
+- [ ] ConfigMap `evidently-config` referenciado en drift-cronjob no tiene la key `s3_bucket`
+- [ ] Retencion de Prometheus muy corta: `storage.tsdb.retention.time=200h` (~8.3 dias)
+- [ ] Prometheus `web.enable-admin-api` habilitado (potencialmente inseguro)
+- [ ] Evidently image usa `latest` en chart de monitoreo
+
+**CI/CD:**
+- [ ] GitLab CI: `bitnami/kubectl:latest` (pinear version)
+- [ ] CircleCI: `bitnami/kubectl:latest` (pinear version)
+- [ ] GitHub Actions CI: `pytest ... || true`, `flake8 ... || true`, `black ... || true`
+- [ ] GitLab CI: `pytest ... || true`, `flake8 ... || true`, `black ... || true`
+- [ ] CircleCI: `pytest ... || true`, `flake8 ... || true`, `black ... || true`
+- [ ] Falta pipeline automatizada para ejecutar Terratest de Go
 
 ### Baja prioridad
 
-- [ ] **Model Governance** - Approval workflows antes de deploy a produccion. Agregar: CRDs de approval, policies OPA/Gatekeeper, approval gates en ArgoCD
+- [ ] **Feature Store con Feast** - Backend real (Redis/DynamoDB), integracion con pipelines
+- [ ] **Kubecost/OpenCost** - Reemplazar dashboard de costos estimados con exportador real
+- [ ] **Certificado ACM para Ingress** - Solicitar y configurar certificado real en AWS
+- [ ] **Terratest** - Ejecutar tests de Go que ya existen en `infra/modules/*/tests/`
+- [ ] **Model Governance** - Approval workflows antes de deploy a produccion
 - [ ] **Multi-cluster deployment** - ArgoCD ApplicationSet con cluster generator
-- [ ] **mTLS con Istio** - Comunicaciones internas cifradas entre servicios
-- [ ] **OPA/Gatekeeper** - Politicas de admision avanzadas (parcialmente implementadas en `k8s/security/gatekeeper/`)
 - [ ] **Teams Notifications** - Integracion con Microsoft Teams ademas de Slack
-- [ ] **Tests de integracion para ML Platform** - Ampliar coverage de `ml-platform/tests/`
+- [ ] **ArgoCD Image Updater** - Bumps automaticos desde ECR / GHCR
+- [ ] **Tests de integracion para ML Platform** - Ampliar coverage
 - [ ] **Documentar troubleshooting** - Basado en experiencia real de deploy
+- [ ] **VPA** (VerticalPodAutoscaler) para recomendaciones de recursos en MLflow, KServe, etc.
+- [ ] **HPA y PDB** faltantes para Feast server, Argo Workflows server
+- [ ] **ServiceMonitor** faltante para Feast
+- [ ] **Pre-commit hooks**: actualizar versiones antiguas de detect-secrets y otros hooks
+
+---
+
+## Proximos pasos recomendados (cuando se retome el proyecto)
+
+1. **Fase Seguridad**: Resolver CRIT-001 a CRIT-004 (4h de trabajo estimado)
+2. **Fase Correcciones Rapidas**: HIGH-005 a HIGH-013 (imagenes latest, Python fixes, CI fixes) (~6h)
+3. **Fase Infra**: Backend S3, upgrade Kubernetes, egress restringido (~4h)
+4. **Fase GitOps**: Unificar fuentes de verdad, completar Istio/Gatekeeper, crear apps faltantes (~8h)
+5. **Fase Validacion**: e2e test en AWS (~requiere cuenta AWS)
+6. **Fase Extras**: Feast real, Kubecost, ACM, Model Governance, Multi-cluster (~varias semanas)
+
+---
+
+**Score estimado tras cada fase:**
+- Actual (sin fixes): ~85/100
+- Post Fase 1 (Críticos): ~91/100
+- Post Fase 2 (Altos): ~96/100
+- Post Fase 3+4 (Medios + GitOps): ~98/100
+- Post Fase 5+6 (e2e + Extras): ~99/100
