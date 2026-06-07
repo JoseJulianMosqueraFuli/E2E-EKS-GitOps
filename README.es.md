@@ -219,6 +219,32 @@ make port-forward-kubeflow  # Kubeflow en localhost:8080
 | [Seguridad](docs/security-best-practices.md)                          | Guías de seguridad (mTLS, Gatekeeper) |
 | [GPU Operator Setup](gitops/applications/apps/gpu-operator/README.md) | NVIDIA GPU opcional en EKS            |
 
+## Estimados de Tiempo y Costo de Despliegue
+
+Ejecutar el test E2E completo en AWS genera costos reales. Esto es lo que puedes esperar:
+
+### Costos AWS (estimado para una ejecucion E2E)
+
+| Recurso | Costo/Hora |
+|---------|------------|
+| EKS Control Plane | $0.10 |
+| NAT Gateway | $0.045 |
+| EC2 m5.large (x2 nodos) | $0.192 c/u |
+
+**Total para un test E2E de 3 horas: ~$2.50 - $4.00 USD**
+
+> Tip: Siempre ejecuta `make destroy ENV=dev` inmediatamente despues de testear para evitar cargos continuos.
+
+### Estimados de Tiempo
+
+| Fase | Duracion |
+|------|----------|
+| `terraform apply` (infraestructura) | 15-25 min |
+| Deploy stack MLOps (ArgoCD sync) | 10-15 min |
+| Validacion completa y tests | 10-15 min |
+| `terraform destroy` (limpieza) | 10-15 min |
+| **Total end-to-end** | **~1 hora** |
+
 ## Contribuir
 
 Las contribuciones son bienvenidas. Por favor lee las siguientes guías.

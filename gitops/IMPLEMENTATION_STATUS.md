@@ -227,7 +227,7 @@ kubectl port-forward svc/argocd-server -n argocd 8080:443
 Ver [docs/PENDING.md](../docs/PENDING.md) para el estado canonico. Resumen:
 
 - [ ] **End-to-end test on AWS**: Validar Terraform → EKS → ArgoCD → MLflow → KServe
-- [ ] **Feature Store con Feast**: Definitions, server, backend (Redis/DynamoDB)
+- [ ] **Feature Store con Feast**: Backend productivo (Redis/DynamoDB) y server deployment en K8s (feature repo local ya implementado con datos parquet y tests)
 - [ ] **Kubecost / OpenCost**: Reemplazar dashboard de costos estimado
 - [ ] **Certificado ACM para Ingress**: Solicitar y configurar TLS real
 - [ ] **Backend S3 de Terraform**: Descomentar y configurar cuando se tenga cuenta AWS

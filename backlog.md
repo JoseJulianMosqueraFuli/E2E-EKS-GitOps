@@ -123,7 +123,7 @@ Para items de producto y roadmap, ver: [`docs/PENDING.md`](docs/PENDING.md)
 | 31 | Transformers custom definidos pero nunca usados | `ml-platform/src/data/feature_engineering.py` |
 | 32 | `dvc`, `awscli`, `kubernetes` en deps sin uso evidente | `ml-platform/pyproject.toml` |
 | 33 | `awscli` como dependencia de libreria (deberia ser dev/extra) | `ml-platform/pyproject.toml` |
-| 34 | Feast feature repo: faltan archivos parquet fuente | `ml-platform/feature_repo/` |
+| 34 | Feast feature repo: falta backend productivo (Redis/DynamoDB) y deployment server K8s | `ml-platform/feature_repo/`, `k8s/mlops-stack/feast/` |
 
 ### Monitoreo (4)
 

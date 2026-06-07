@@ -20,6 +20,7 @@
 - [x] Documentacion sincronizada - READMEs, gitops/README, gitops/SETUP, IMPLEMENTATION_STATUS, VALIDATION_REPORT, quick-start y ml-platform guide alineados con el estado real del repo `(2026-05-20)`
 - [x] Documentacion re-sincronizada - Diagramas de estructura actualizados `(2026-05-31)`
 - [x] Reporte de auditoria completa - Revison de 120+ archivos, 6000+ lineas, hallazgos mapeados en `critical.md` y `backlog.md` `(2026-06-06)`
+- [x] Feature Store con Feast (parcial) - Feature repo local: definiciones en feature_definitions.py, datos parquet (model_features, transaction_stats, user_profile), online_store.db, registry.db, tests unitarios. Falta: backend productivo (Redis/DynamoDB), server K8s `(2026-06-07)`
 
 ---
 
@@ -89,7 +90,7 @@ Ver **`critical.md`** en la raiz del proyecto para detalles completos con CVSS, 
 - [ ] Transformers custom (`DateTimeFeatureExtractor`, `OutlierClipper`, etc.) definidos pero nunca usados
 - [ ] `dvc`, `awscli`, `kubernetes` declarados en `pyproject.toml` pero sin uso evidente en el codigo
 - [ ] `awscli` como dependencia de libreria (es una CLI, no deberia estar en un paquete Python)
-- [ ] Feast feature repo: faltan archivos parquet fuente (`feature_repo/data/` no existe)
+- [ ] Feast feature repo: falta backend productivo (Redis/DynamoDB) y server deployment en K8s
 
 **Monitoreo:**
 - [ ] ConfigMap `evidently-config` referenciado en drift-cronjob no tiene la key `s3_bucket`
@@ -107,7 +108,7 @@ Ver **`critical.md`** en la raiz del proyecto para detalles completos con CVSS, 
 
 ### Baja prioridad
 
-- [ ] **Feature Store con Feast** - Backend real (Redis/DynamoDB), integracion con pipelines
+- [ ] **Feature Store con Feast** - Backend productivo (Redis/DynamoDB), server deployment en K8s, integracion con pipelines de training
 - [ ] **Kubecost/OpenCost** - Reemplazar dashboard de costos estimados con exportador real
 - [ ] **Certificado ACM para Ingress** - Solicitar y configurar certificado real en AWS
 - [ ] **Terratest** - Ejecutar tests de Go que ya existen en `infra/modules/*/tests/`
