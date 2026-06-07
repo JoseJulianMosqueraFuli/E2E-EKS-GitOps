@@ -27,8 +27,8 @@ spec:
         args:
         - server
         - --configmap=workflow-controller-configmap
-        - --secure=false
-        - --auth-mode=server
+        - --secure=true
+        - --auth-mode=sso
         ports:
         - name: web
           containerPort: 2746
@@ -60,7 +60,7 @@ spec:
           httpGet:
             path: /
             port: 2746
-            scheme: HTTP
+            scheme: HTTPS
           initialDelaySeconds: 10
           periodSeconds: 20
       nodeSelector:
