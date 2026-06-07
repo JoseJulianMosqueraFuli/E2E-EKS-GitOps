@@ -272,7 +272,7 @@ make plan ENV=dev
 - [x] Auto-retraining template: carga real de MLflow + Evidently (sin valores simulados)
 - [x] A/B Testing: WorkflowTemplate con metricas estadisticas y auto-promotion
 - [ ] End-to-end test (requiere AWS)
-- [ ] Feature Store con Feast
+- [x] Feature Store con Feast (parcial) - Feature repo local funcional con definiciones y datos parquet. Falta backend productivo.
 - [ ] Kubecost / OpenCost exportador real
 - [ ] Certificado ACM emitido para Ingress reales
 - [ ] Backend S3 de Terraform configurado en los tres ambientes

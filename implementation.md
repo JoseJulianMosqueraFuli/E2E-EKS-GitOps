@@ -517,6 +517,7 @@ mlflow:
 - **Alertmanager + PrometheusRule alerts** (MLflow, PostgreSQL, KServe, drift alerts)
 - **CI/CD hardening** for staging/production (KMS retention, ECR immutable tags, node egress restrictions)
 - **Documentación sincronizada** (READMEs, guides, SETUP, IMPLEMENTATION_STATUS aligned with repo state)
+- **Feature Store (local)**: Feast feature repo with definitions, Parquet data sources, SQLite online store, and unit tests
 - **Security**: Pre-commit hooks (`detect-secrets`), `.secrets.baseline`, Trivy SARIF scanning
 
 ### Pending ⏳ (from `docs/PENDING.md`)
@@ -526,7 +527,7 @@ mlflow:
 
 **Medium Priority:**
 - **Kubecost / OpenCost** — Replace estimated cost dashboard with real exporter
-- **Feature Store with Feast** — Feature definitions, server deployment, Redis/DynamoDB backend
+- **Feature Store with Feast** — Production backend (Redis/DynamoDB), server deployment on K8s (local feature repo with Parquet data already implemented)
 - **ACM certificate for Ingress** — Real TLS certificate for MLflow/KServe/Grafana
 - **Terraform S3 backend** — Uncomment and configure `backend "s3"` in all environments when AWS account is available
 - **Terratest execution** — Run Go tests in `infra/modules/*/test/`
