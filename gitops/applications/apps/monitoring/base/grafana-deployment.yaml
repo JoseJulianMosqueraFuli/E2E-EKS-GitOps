@@ -67,7 +67,8 @@ spec:
           configMap:
             name: grafana-config
         - name: data
-          emptyDir: {}
+          persistentVolumeClaim:
+            claimName: grafana-data
 ---
 apiVersion: v1
 kind: Service
