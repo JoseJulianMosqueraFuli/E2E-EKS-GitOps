@@ -7767,4 +7767,4 @@ dev = ["black", "flake8", "isort", "mypy", "pytest", "pytest-cov", "pytest-mock"
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.10,<3.13"
-content-hash = "9dce9ae8a374cb7189c6f7872a4b7c1fb9142cf81422f82b8d00ebb8b4691a6a"
+content-hash = "500600ae5ed83e8b463c804ec23c85936ce963d8a114527515f50bfb06ea96db"
