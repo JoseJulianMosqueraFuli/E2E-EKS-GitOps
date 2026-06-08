@@ -3,7 +3,8 @@ kind: Kustomization
 
 resources:
   - namespace.yaml
-  - prometheus-deployment.yaml
+  - prometheus-statefulset.yaml
+  - grafana-pvc.yaml
   - grafana-deployment.yaml
   - configmap.yaml
   - serviceaccount.yaml
