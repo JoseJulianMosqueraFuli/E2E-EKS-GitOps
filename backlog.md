@@ -38,8 +38,8 @@ Para items de producto y roadmap, ver: [`docs/PENDING.md`](docs/PENDING.md)
 
 | ID | Issue | Archivo(s) | Fix |
 |----|-------|------------|-----|
-| HIGH-001 | Backend local Terraform | `infra/environments/*/main.tf` | Descomentar S3+DynamoDB |
-| HIGH-002 | Kubernetes 1.28 near EOL | `infra/modules/eks/variables.tf` | Actualizar a 1.30/1.31 |
+| HIGH-001 | Backend local Terraform | `infra/environments/*/main.tf` | Seguir checklist de activacion en `main.tf` (requiere cuenta AWS) |
+| HIGH-002 | Kubernetes 1.28 near EOL | `infra/modules/eks/variables.tf` | ✅ Actualizado a 1.32 (2026-06-09) |
 | HIGH-003 | Node egress sin restriccion | `infra/modules/vpc/variables.tf` | Restringir `node_egress_cidrs` |
 | HIGH-004 | CIDR hardcoded en prod | `infra/environments/prod/main.tf` | Parametrizar |
 | HIGH-005 | Feast `latest` tag | `k8s/mlops-stack/feast/feast-server.yaml` | Pinear version |
@@ -201,7 +201,7 @@ Para items de producto y roadmap, ver: [`docs/PENDING.md`](docs/PENDING.md)
 ### Wave 2: Robustecimiento (~6h)
 - HIGH-005 a HIGH-013 (imagenes, Python, CI)
 
-### Wave 3: Infraestructura (~4h)
+### Wave 3: Infraestructura (~4h, requiere cuenta AWS)
 - HIGH-001 a HIGH-004, MEDIUM Terraform items
 
 ### Wave 4: GitOps Completo (~8h)

@@ -34,7 +34,7 @@ Train Model → Register in MLflow → Deploy to KServe → Monitor with Evident
 
 | Component    | Technology              | Purpose                     |
 | ------------ | ----------------------- | --------------------------- |
-| Orchestrator | Amazon EKS (>=1.25)     | Kubernetes cluster          |
+| Orchestrator | Amazon EKS (>=1.30)     | Kubernetes cluster          |
 | IaC          | Terraform (>=1.0)       | Infrastructure provisioning |
 | Network      | VPC + NAT Gateway + ALB | Networking & ingress        |
 | Storage      | S3 + EBS CSI            | Data & model artifacts      |

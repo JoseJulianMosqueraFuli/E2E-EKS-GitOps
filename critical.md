@@ -116,17 +116,23 @@ This document lists all **CRITICAL** and **HIGH** severity findings identified d
 - **Files**: `infra/environments/*/main.tf`
 - **Issue**: All three environments use local Terraform backend (S3 backend is commented out).
 - **Impact**: Risk of state file loss, no state locking, no collaboration safety.
-- **Fix**: Uncomment and configure S3 + DynamoDB backend in each environment.
+- **Fix**: Follow the activation checklist in each `main.tf` (requires AWS account):
+  1. Run `aws configure`
+  2. Run `./scripts/bootstrap-terraform-backend.sh <env> us-west-2`
+  3. Uncomment the backend block
+  4. Run `terraform init -migrate-state`
+- **Status**: Procedure documented; pending AWS account setup.
 - **Owner**: Infrastructure Team
 
 ---
 
-### HIGH-002: Kubernetes Version 1.28 (Near End of Support)
+### HIGH-002: Kubernetes Version 1.28 (Near End of Support) — FIXED
 
 - **File**: `infra/modules/eks/variables.tf`
-- **Issue**: Default Kubernetes version is `1.28` (released September 2023, approaching end of standard support).
+- **Issue**: Default Kubernetes version was `1.28` (EOL November 2024).
 - **Impact**: No security patches after EOL, potential compatibility issues with newer addons.
-- **Fix**: Update default to `1.30` or `1.31`.
+- **Fix**: Updated default to `1.32` across all environments and added validation to prevent regressions below 1.30.
+- **Status**: ✅ Fixed 2026-06-09
 - **Owner**: Infrastructure Team
 
 ---
@@ -254,8 +260,8 @@ This document lists all **CRITICAL** and **HIGH** severity findings identified d
 | P1 | HIGH-005 to HIGH-007: Pin all `latest` tags | 3h | ML Platform |
 | P1 | HIGH-011 & HIGH-012: Python fixes | 1h | ML Platform |
 | P1 | HIGH-013: Remove `\|\| true` from CI | 1h | DevOps |
-| P2 | HIGH-001: Terraform S3 backend | 2h | Infrastructure |
-| P2 | HIGH-002: Upgrade Kubernetes | 4h | Infrastructure |
+| P2 | HIGH-001: Terraform S3 backend (requires AWS account) | 2h | Infrastructure |
+| P2 | HIGH-002: Upgrade Kubernetes (requires AWS account + EKS testing) | 4h | Infrastructure |
 | P2 | HIGH-009 & HIGH-010: Grafana/Prometheus persistence | 3h | Platform |
 | P2 | HIGH-008: KServe HTTPS redirect | 2h | Platform |
 
