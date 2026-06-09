@@ -37,8 +37,8 @@ Ver **`critical.md`** en la raiz del proyecto para detalles completos con CVSS, 
 
 ### Alta prioridad
 
-- [ ] **HIGH-001**: Backend local Terraform (sin S3+DynamoDB) en los 3 ambientes
-- [ ] **HIGH-002**: Kubernetes 1.28 cerca de EOL -> actualizar a 1.30/1.31
+- [ ] **HIGH-001**: Backend local Terraform (sin S3+DynamoDB) en los 3 ambientes — **Procedimiento documentado en cada `main.tf`, requiere cuenta AWS para activar**
+- [x] **HIGH-002**: Kubernetes 1.28 cerca de EOL -> actualizado a 1.32 (2026-06-09)
 - [ ] **HIGH-003**: Egress de nodos EKS sin restriccion (`0.0.0.0/0`) en dev/staging
 - [ ] **HIGH-004**: CIDR `10.0.0.0/8` hardcodeado en prod para egress de nodos
 - [ ] **HIGH-005 a HIGH-007**: Imagenes con tag `:latest` en Feast, Evidently, y workflow templates de Argo
@@ -129,7 +129,7 @@ Ver **`critical.md`** en la raiz del proyecto para detalles completos con CVSS, 
 
 1. **Fase Seguridad**: Resolver CRIT-001 a CRIT-004 (4h de trabajo estimado)
 2. **Fase Correcciones Rapidas**: HIGH-005 a HIGH-013 (imagenes latest, Python fixes, CI fixes) (~6h)
-3. **Fase Infra**: Backend S3, upgrade Kubernetes, egress restringido (~4h)
+3. **Fase Infra**: Backend S3, upgrade Kubernetes, egress restringido (~4h, requiere cuenta AWS)
 4. **Fase GitOps**: Unificar fuentes de verdad, completar Istio/Gatekeeper, crear apps faltantes (~8h)
 5. **Fase Validacion**: e2e test en AWS (~requiere cuenta AWS)
 6. **Fase Extras**: Feast real, Kubecost, ACM, Model Governance, Multi-cluster (~varias semanas)
