@@ -269,9 +269,11 @@ Before marking this report as resolved:
 - [x] CRIT-002: Argo Workflows `--auth-mode=sso` (corregido 2026-06-07)
 - [x] CRIT-003: No `docker.sock` mounts, executor = `emissary` (corregido 2026-06-07)
 - [ ] CRIT-004: AppProject restricted to specific repos/namespaces/resources
+- [x] HIGH-009: Grafana `emptyDir` replaced with PVC (corregido 2026-06-08)
+- [x] HIGH-010: Prometheus converted to StatefulSet with PVC (corregido 2026-06-08)
 - [ ] HIGH-005 to HIGH-007: Zero occurrences of `:latest` in all manifests and templates
-- [ ] HIGH-011: `python -c "import src.main"` succeeds without errors
-- [ ] HIGH-012: `poetry install` succeeds and `src.monitoring.monitoring_service` imports correctly
+- [x] HIGH-011: `python -c "import src.main"` succeeds without errors (corregido 2026-06-08)
+- [x] HIGH-012: `poetry install` succeeds and `src.monitoring.monitoring_service` imports correctly (corregido 2026-06-08)
 - [ ] HIGH-013: CI pipeline fails when tests fail (intentionally inject a failing test to verify)
 
 ---

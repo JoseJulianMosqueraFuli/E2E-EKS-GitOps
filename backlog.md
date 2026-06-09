@@ -51,10 +51,10 @@ Para items de producto y roadmap, ver: [`docs/PENDING.md`](docs/PENDING.md)
 
 | ID | Issue | Archivo(s) | Fix |
 |----|-------|------------|-----|
-| HIGH-009 | Grafana `emptyDir` | `gitops/applications/apps/monitoring/base/grafana-deployment.yaml` | Cambiar a PVC |
-| HIGH-010 | Prometheus Deployment | `gitops/applications/apps/monitoring/base/prometheus-deployment.yaml` | Cambiar a StatefulSet |
-| HIGH-011 | Errores de import Python | `ml-platform/src/main.py` | Corregir imports |
-| HIGH-012 | `fastapi`/`uvicorn` faltantes | `ml-platform/pyproject.toml` | Agregar deps |
+| HIGH-009 | Grafana `emptyDir` | `gitops/applications/apps/monitoring/base/grafana-deployment.yaml` | ✅ Corregido 2026-06-08 |
+| HIGH-010 | Prometheus Deployment | `gitops/applications/apps/monitoring/base/prometheus-deployment.yaml` | ✅ Corregido 2026-06-08 |
+| HIGH-011 | Errores de import Python | `ml-platform/src/main.py` | ✅ Corregido 2026-06-08 |
+| HIGH-012 | `fastapi`/`uvicorn` faltantes | `ml-platform/pyproject.toml` | ✅ Corregido 2026-06-08 |
 | HIGH-013 | CI oculta fallas | `.github/workflows/ci.yml`, `.gitlab-ci.yml`, `.circleci/config.yml` | Eliminar `|| true` |
 
 ---
