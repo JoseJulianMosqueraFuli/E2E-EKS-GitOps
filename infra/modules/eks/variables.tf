@@ -6,9 +6,14 @@ variable "cluster_name" {
 }
 
 variable "kubernetes_version" {
-  description = "Kubernetes version"
+  description = "Kubernetes version. Must be a supported EKS version."
   type        = string
-  default     = "1.28"
+  default     = "1.32"
+
+  validation {
+    condition     = can(regex("^(1\\.(3[0-2]|[2-9][0-9]))$", var.kubernetes_version))
+    error_message = "Kubernetes version must be 1.30 or higher. EKS no longer supports versions below 1.30."
+  }
 }
 
 variable "public_subnet_ids" {

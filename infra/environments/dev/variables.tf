@@ -33,7 +33,7 @@ variable "enable_nat_gateway" {
 variable "kubernetes_version" {
   description = "Kubernetes version"
   type        = string
-  default     = "1.28"
+  default     = "1.32"
 }
 
 variable "node_group_instance_types" {
