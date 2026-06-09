@@ -3,7 +3,7 @@
 [![CI Pipeline](https://github.com/JoseJulianMosqueraFuli/E2E-EKS-GitOps/actions/workflows/ci.yml/badge.svg)](https://github.com/JoseJulianMosqueraFuli/E2E-EKS-GitOps/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Terraform](https://img.shields.io/badge/Terraform-%3E%3D1.0-blue)](https://www.terraform.io/)
-[![Kubernetes](https://img.shields.io/badge/Kubernetes-%3E%3D1.25-blue)](https://kubernetes.io/)
+[![Kubernetes](https://img.shields.io/badge/Kubernetes-%3E%3D1.30-blue)](https://kubernetes.io/)
 [![ArgoCD](https://img.shields.io/badge/ArgoCD-GitOps-brightgreen)](https://argoproj.github.io/cd/)
 
 English | [Español](README.es.md)
