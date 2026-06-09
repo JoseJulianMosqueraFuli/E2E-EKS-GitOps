@@ -10,14 +10,21 @@ terraform {
   }
 
   backend "s3" {
-    # WARNING: Using local backend means Terraform state is stored locally.
-    # This prevents team collaboration and risks state loss.
+    # --------------------------------------------------------------------------
+    # HIGH-001: Remote backend is DISABLED until AWS account is configured.
+    # This is intentional for local development, but MUST be activated before
+    # any shared or production deployment.
     #
-    # To migrate to remote state:
-    #   1. Run: ./scripts/bootstrap-terraform-backend.sh staging us-west-2
-    #   2. Uncomment the configuration below
-    #   3. Run: cd infra/environments/staging && terraform init -migrate-state
+    # Why this matters: Local state = no locking, no collaboration, risk of
+    # state loss if the machine is lost.
     #
+    # Activation checklist (requires AWS account):
+    #   1. aws configure  (set credentials)
+    #   2. ./scripts/bootstrap-terraform-backend.sh staging us-west-2
+    #   3. Uncomment the block below
+    #   4. cd infra/environments/staging && terraform init -migrate-state
+    #   5. terraform plan  (verify state migrated correctly)
+    # --------------------------------------------------------------------------
     # bucket         = "mlops-terraform-state-staging"
     # key            = "staging/terraform.tfstate"
     # region         = "us-west-2"
