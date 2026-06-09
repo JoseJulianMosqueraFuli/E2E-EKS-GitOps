@@ -18,7 +18,7 @@ func TestEKSModule(t *testing.T) {
 		// Variables to pass to our Terraform code using -var options
 		Vars: map[string]interface{}{
 			"cluster_name":              "test-eks-cluster",
-			"kubernetes_version":        "1.28",
+			"kubernetes_version":        "1.32",
 			"public_subnet_ids":         []string{"subnet-12345", "subnet-67890"},
 			"private_subnet_ids":        []string{"subnet-abcde", "subnet-fghij"},
 			"kms_key_arn":              "arn:aws:kms:us-west-2:123456789012:key/12345678-1234-1234-1234-123456789012",
