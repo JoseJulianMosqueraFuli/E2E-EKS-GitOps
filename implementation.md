@@ -4,7 +4,7 @@
 > **Author**: Jose Julian Mosquera  
 > **License**: MIT  
 > **Status**: Active development (Phase 2)
-> **Last updated**: 2026-06-01
+> **Last updated**: 2026-06-25
 
 ---
 
@@ -482,6 +482,32 @@ mlflow:
 | Code security         | Pre-commit hooks, detect-secrets, Trivy scans   |
 | Access control        | ArgoCD projects with RBAC                       |
 
+### 9.1 Security Review (2026-06-25)
+
+A focused security audit was performed across Terraform, Kubernetes manifests, GitOps configs, and CI/CD pipelines. Summary below.
+
+**Strengths confirmed:**
+
+- **No hardcoded secrets**: All credentials flow through External Secrets Operator / `existingSecret` references / empty defaults. PostgreSQL, MinIO, Grafana, and Slack tokens are never committed in plaintext.
+- **S3 hardening**: Every bucket enforces a public-access block, KMS (`aws:kms`) encryption with bucket keys, versioning, plus a default bucket policy that denies non-TLS connections (`aws:SecureTransport=false`) and unencrypted uploads.
+- **EKS hardening**: Private endpoint by default in dev/staging/prod (`endpoint_public_access = false`), KMS envelope encryption for `secrets`, control-plane audit logging, and IRSA roles scoped per service account (least privilege).
+- **ECR**: KMS encryption, scan-on-push, enhanced registry scanning, and `IMMUTABLE` tags in production.
+- **Service accounts**: `automountServiceAccountToken: false` by default; only opted in where IRSA requires it (MLflow).
+- **Workload hardening**: Gatekeeper constraints enforce `runAsNonRoot`, read-only root FS, no privilege escalation, seccomp, and drop-all capabilities. Istio `PeerAuthentication` is `STRICT` mTLS across all MLOps namespaces.
+- **Supply chain / code**: `detect-secrets` pre-commit hook + `.secrets.baseline`, `detect-private-key`, large-file blocker, and Trivy filesystem scanning with SARIF upload to GitHub code scanning.
+
+**Findings and remediation:**
+
+| ID     | Severity | Finding                                                                                                                         | Status                                                                                                                                    |
+| ------ | -------- | ------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| SEC-01 | Medium   | Dev KMS key was missing `enable_key_rotation` (staging/prod already had it). Inconsistent encryption posture.                   | ✅ Fixed — rotation enabled in `infra/environments/dev/main.tf`                                                                           |
+| SEC-02 | Low      | Trivy scan had no severity scoping, surfacing noise and unfixable CVEs.                                                         | ✅ Improved — scoped to `CRITICAL,HIGH` with `ignore-unfixed: true` in `ci.yml`                                                           |
+| SEC-03 | Low      | CI steps use `\|\| true` extensively, so lint/test/validation failures never block merges (intentional for a no-AWS portfolio). | ⏳ Documented — recommend removing `\|\| true` on lint/test and gating Trivy with `exit-code: 1` once a real account/runtime is available |
+| SEC-04 | Low      | GitHub Actions are pinned to tags (e.g. `@v4`) rather than commit SHAs.                                                         | ⏳ Documented — pin to immutable SHAs for stronger supply-chain guarantees                                                                |
+| SEC-05 | Info     | `.terraform.lock.hcl` is git-ignored; Terraform recommends committing it for reproducible provider versions.                    | ⏳ Documented — consider committing lock files per environment/module                                                                     |
+
+**Net result**: No exploitable secrets or public exposure paths found. The two concrete code gaps (SEC-01, SEC-02) were remediated; the remaining items are hardening recommendations tied to the eventual AWS rollout.
+
 ---
 
 ## 10. Documentation Index
@@ -523,9 +549,11 @@ mlflow:
 ### Pending ⏳ (from `docs/PENDING.md`)
 
 **High Priority:**
+
 - **End-to-end AWS test** — Full flow: Terraform apply → EKS deploy → ArgoCD sync → MLflow → KServe inference
 
 **Medium Priority:**
+
 - **Kubecost / OpenCost** — Replace estimated cost dashboard with real exporter
 - **Feature Store with Feast** — Production backend (Redis/DynamoDB), server deployment on K8s (local feature repo with Parquet data already implemented)
 - **ACM certificate for Ingress** — Real TLS certificate for MLflow/KServe/Grafana
@@ -533,6 +561,7 @@ mlflow:
 - **Terratest execution** — Run Go tests in `infra/modules/*/test/`
 
 **Low Priority:**
+
 - **Model Governance** — Approval workflows (CRDs, OPA/Gatekeeper policies, ArgoCD approval gates)
 - **Multi-cluster deployment** — ArgoCD ApplicationSet with cluster generator
 - **Full mTLS enforcement** — Istio strict mTLS currently defined but pending full rollout
@@ -555,4 +584,4 @@ mlflow:
 
 ---
 
-_This implementation overview was generated from repository analysis. Last updated: 2026-06-01. For the latest state, always refer to the actual source code and `docs/PENDING.md`._
+_This implementation overview was generated from repository analysis. Last updated: 2026-06-25. For the latest state, always refer to the actual source code and `docs/PENDING.md`._
