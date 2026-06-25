@@ -61,6 +61,7 @@ locals {
 resource "aws_kms_key" "main" {
   description             = "KMS key for MLOps platform encryption"
   deletion_window_in_days = 7
+  enable_key_rotation     = true
 
   tags = local.common_tags
 }
