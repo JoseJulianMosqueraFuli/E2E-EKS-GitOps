@@ -504,7 +504,6 @@ A focused security audit was performed across Terraform, Kubernetes manifests, G
 | SEC-02 | Low      | Trivy scan had no severity scoping, surfacing noise and unfixable CVEs.                                                         | ✅ Improved — scoped to `CRITICAL,HIGH` with `ignore-unfixed: true` in `ci.yml`                                                           |
 | SEC-03 | Low      | CI steps use `\|\| true` extensively, so lint/test/validation failures never block merges (intentional for a no-AWS portfolio). | ⏳ Documented — recommend removing `\|\| true` on lint/test and gating Trivy with `exit-code: 1` once a real account/runtime is available |
 | SEC-04 | Low      | GitHub Actions are pinned to tags (e.g. `@v4`) rather than commit SHAs.                                                         | ⏳ Documented — pin to immutable SHAs for stronger supply-chain guarantees                                                                |
-| SEC-05 | Info     | `.terraform.lock.hcl` is git-ignored; Terraform recommends committing it for reproducible provider versions.                    | ⏳ Documented — consider committing lock files per environment/module                                                                     |
 
 **Net result**: No exploitable secrets or public exposure paths found. The two concrete code gaps (SEC-01, SEC-02) were remediated; the remaining items are hardening recommendations tied to the eventual AWS rollout.
 
