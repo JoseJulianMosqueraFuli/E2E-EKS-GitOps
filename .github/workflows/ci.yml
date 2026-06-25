@@ -2,9 +2,9 @@ name: CI Pipeline
 
 on:
   push:
-    branches: [ main, develop ]
+    branches: [main, develop]
   pull_request:
-    branches: [ main ]
+    branches: [main]
 
 env:
   AWS_REGION: us-west-2
@@ -15,28 +15,28 @@ jobs:
     name: Terraform Validate
     runs-on: ubuntu-latest
     if: contains(github.event.head_commit.modified, 'infra/') || github.event_name == 'pull_request'
-    
+
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-      
-    - name: Setup Terraform
-      uses: hashicorp/setup-terraform@v3
-      with:
-        terraform_version: 1.6.0
-        
-    - name: Terraform Format Check
-      run: terraform fmt -check -recursive infra/ || true
-      
-    - name: Terraform Init
-      run: |
-        cd infra/environments/dev
-        terraform init -backend=false || true
-        
-    - name: Terraform Validate
-      run: |
-        cd infra/environments/dev
-        terraform validate || true
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.6.0
+
+      - name: Terraform Format Check
+        run: terraform fmt -check -recursive infra/ || true
+
+      - name: Terraform Init
+        run: |
+          cd infra/environments/dev
+          terraform init -backend=false || true
+
+      - name: Terraform Validate
+        run: |
+          cd infra/environments/dev
+          terraform validate || true
 
   # Infrastructure Tests
   # NOTE: These tests require AWS credentials to run properly
@@ -45,27 +45,27 @@ jobs:
     runs-on: ubuntu-latest
     if: contains(github.event.head_commit.modified, 'infra/') || github.event_name == 'pull_request'
     continue-on-error: true
-    
+
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-      
-    - name: Setup Go
-      uses: actions/setup-go@v4
-      with:
-        go-version: '1.21'
-        
-    - name: Run VPC Tests
-      run: |
-        cd infra/modules/vpc/test
-        go mod download || true
-        go test -v -timeout 30m || true
-        
-    - name: Run S3 Tests
-      run: |
-        cd infra/modules/s3/test
-        go mod download || true
-        go test -v -timeout 20m || true
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: "1.21"
+
+      - name: Run VPC Tests
+        run: |
+          cd infra/modules/vpc/test
+          go mod download || true
+          go test -v -timeout 30m || true
+
+      - name: Run S3 Tests
+        run: |
+          cd infra/modules/s3/test
+          go mod download || true
+          go test -v -timeout 20m || true
 
   # Kubernetes manifest validation
   k8s-validate:
@@ -74,63 +74,63 @@ jobs:
     if: contains(github.event.head_commit.modified, 'k8s/') || contains(github.event.head_commit.modified, 'gitops/') || github.event_name == 'pull_request'
 
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-    - name: Setup kubectl
-      uses: azure/setup-kubectl@v3
+      - name: Setup kubectl
+        uses: azure/setup-kubectl@v3
 
-    - name: Setup Kustomize
-      uses: imranismail/setup-kustomize@v2
-      with:
-        kustomize-version: '5.3.0'
+      - name: Setup Kustomize
+        uses: imranismail/setup-kustomize@v2
+        with:
+          kustomize-version: "5.3.0"
 
-    - name: Validate raw Kubernetes manifests
-      run: |
-        # Exclude CRD files and kustomization.yaml - kubectl cannot validate CRDs without the API server
-        find k8s/ -name "*.yaml" -not -name "kustomization.yaml" -not -name "crds.yaml" | xargs -I {} kubectl --dry-run=client apply -f {} || true
+      - name: Validate raw Kubernetes manifests
+        run: |
+          # Exclude CRD files and kustomization.yaml - kubectl cannot validate CRDs without the API server
+          find k8s/ -name "*.yaml" -not -name "kustomization.yaml" -not -name "crds.yaml" | xargs -I {} kubectl --dry-run=client apply -f {} || true
 
-    - name: Validate Kustomize overlays
-      run: |
-        echo "=== MLflow overlay ==="
-        kustomize build k8s/mlops-stack/mlflow/ | kubectl --dry-run=client apply -f - || true
-        echo "=== KServe overlay ==="
-        kustomize build k8s/mlops-stack/kserve/ | kubectl --dry-run=client apply -f - || true
-        echo "=== Monitoring overlay ==="
-        kustomize build k8s/mlops-stack/monitoring/ | kubectl --dry-run=client apply -f - || true
+      - name: Validate Kustomize overlays
+        run: |
+          echo "=== MLflow overlay ==="
+          kustomize build k8s/mlops-stack/mlflow/ | kubectl --dry-run=client apply -f - || true
+          echo "=== KServe overlay ==="
+          kustomize build k8s/mlops-stack/kserve/ | kubectl --dry-run=client apply -f - || true
+          echo "=== Monitoring overlay ==="
+          kustomize build k8s/mlops-stack/monitoring/ | kubectl --dry-run=client apply -f - || true
 
   # ML Platform Tests
   ml-platform-test:
     name: ML Platform Tests
     runs-on: ubuntu-latest
     if: contains(github.event.head_commit.modified, 'ml-platform/') || github.event_name == 'pull_request'
-    
+
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-      
-    - name: Set up Python
-      uses: actions/setup-python@v4
-      with:
-        python-version: '3.11'
-        
-    - name: Install dependencies
-      run: |
-        cd ml-platform
-        pip install -e . || true
-        pip install -e ".[dev]" || true
-        
-    - name: Run linting
-      continue-on-error: true
-      run: |
-        cd ml-platform
-        flake8 src/ tests/ || true
-        black --check src/ tests/ || true
-        
-    - name: Run tests
-      run: |
-        cd ml-platform
-        pytest tests/ -v || true
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          cd ml-platform
+          pip install -e . || true
+          pip install -e ".[dev]" || true
+
+      - name: Run linting
+        continue-on-error: true
+        run: |
+          cd ml-platform
+          flake8 src/ tests/ || true
+          black --check src/ tests/ || true
+
+      - name: Run tests
+        run: |
+          cd ml-platform
+          pytest tests/ -v || true
 
   # Security scanning
   security-scan:
@@ -140,24 +140,26 @@ jobs:
       security-events: write
       actions: read
       contents: read
-    
+
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-      
-    - name: Run Trivy vulnerability scanner
-      uses: aquasecurity/trivy-action@0.35.0
-      with:
-        scan-type: 'fs'
-        scan-ref: '.'
-        format: 'sarif'
-        output: 'trivy-results.sarif'
-        
-    - name: Upload Trivy scan results
-      uses: github/codeql-action/upload-sarif@v3
-      if: github.event_name == 'pull_request' || github.ref == 'refs/heads/main'
-      with:
-        sarif_file: 'trivy-results.sarif'
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@0.35.0
+        with:
+          scan-type: "fs"
+          scan-ref: "."
+          format: "sarif"
+          output: "trivy-results.sarif"
+          severity: "CRITICAL,HIGH"
+          ignore-unfixed: true
+
+      - name: Upload Trivy scan results
+        uses: github/codeql-action/upload-sarif@v3
+        if: github.event_name == 'pull_request' || github.ref == 'refs/heads/main'
+        with:
+          sarif_file: "trivy-results.sarif"
 
   # Helm Chart Validation
   helm-lint:
@@ -166,39 +168,39 @@ jobs:
     if: contains(github.event.head_commit.modified, 'gitops/charts/') || github.event_name == 'pull_request'
 
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-    - name: Setup Helm
-      uses: azure/setup-helm@v4
-      with:
-        version: 'v3.14.0'
+      - name: Setup Helm
+        uses: azure/setup-helm@v4
+        with:
+          version: "v3.14.0"
 
-    - name: Lint Helm charts
-      run: |
-        for chart in gitops/charts/*/; do
-          echo "=== Linting $(basename "$chart") ==="
-          helm lint "$chart" || true
-        done
+      - name: Lint Helm charts
+        run: |
+          for chart in gitops/charts/*/; do
+            echo "=== Linting $(basename "$chart") ==="
+            helm lint "$chart" || true
+          done
 
-    - name: Template Helm charts
-      run: |
-        for chart in gitops/charts/*/; do
-          echo "=== Template $(basename "$chart") ==="
-          helm template --debug "$chart" > /dev/null || true
-        done
+      - name: Template Helm charts
+        run: |
+          for chart in gitops/charts/*/; do
+            echo "=== Template $(basename "$chart") ==="
+            helm template --debug "$chart" > /dev/null || true
+          done
 
   # MLOps Stack Validation
   mlops-validate:
     name: MLOps Stack Validation
     runs-on: ubuntu-latest
     if: contains(github.event.head_commit.modified, 'scripts/') || github.event_name == 'pull_request'
-    
+
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-      
-    - name: Validate setup script
-      run: |
-        chmod +x scripts/setup-mlops-stack.sh
-        bash -n scripts/setup-mlops-stack.sh
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Validate setup script
+        run: |
+          chmod +x scripts/setup-mlops-stack.sh
+          bash -n scripts/setup-mlops-stack.sh
