@@ -1,6 +1,7 @@
 # Argo Workflows for MLOps Pipeline
 
-This directory contains Kubernetes manifests for deploying Argo Workflows as the workflow orchestration engine for the MLOps platform.
+This directory is a legacy entrypoint that points to the GitOps source of truth in `gitops/applications/apps/argo-workflows/base/`.
+The workflow orchestration engine manifests are maintained there.
 
 ## Overview
 
@@ -51,8 +52,8 @@ Argo Workflows provides:
 ### 1. Deploy Argo Workflows
 
 ```bash
-# Apply all manifests using kustomize
-kubectl apply -k k8s/mlops-stack/argo-workflows/
+# Apply all manifests using kustomize (GitOps source of truth)
+kubectl apply -k gitops/applications/apps/argo-workflows/overlays/dev/
 
 # Verify deployment
 kubectl get pods -n argo-workflows
@@ -449,9 +450,9 @@ argo logs WORKFLOW_NAME -n argo-workflows --step STEP_NAME
 
 ### Adding New Workflow Templates
 
-1. Create new template in `workflow-templates/` directory
-2. Update `kustomization.yaml` to include new template
-3. Apply changes: `kubectl apply -k k8s/mlops-stack/argo-workflows/`
+1. Create new template in `gitops/applications/apps/argo-workflows/base/workflow-templates/` directory
+2. Update `gitops/applications/apps/argo-workflows/base/kustomization.yaml` to include new template
+3. Apply changes: `kubectl apply -k gitops/applications/apps/argo-workflows/overlays/dev/`
 
 ### Environment-Specific Configuration
 

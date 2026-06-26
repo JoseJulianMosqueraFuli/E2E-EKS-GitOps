@@ -1,0 +1,23 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - templates/ingress-hosts.yaml
+  - templates/no-latest-tag.yaml
+  - templates/pod-security.yaml
+  - templates/privileged-containers.yaml
+  - templates/required-labels.yaml
+  - templates/resource-limits.yaml
+  - constraints/ingress-hosts.yaml
+  - constraints/no-latest-tag.yaml
+  - constraints/pod-security.yaml
+  - constraints/privileged-containers.yaml
+  - constraints/required-labels.yaml
+  - constraints/resource-limits.yaml
+
+labels:
+  - pairs:
+      app.kubernetes.io/name: gatekeeper
+      app.kubernetes.io/component: policy-enforcement
+      app.kubernetes.io/part-of: mlops-platform
+    includeSelectors: false

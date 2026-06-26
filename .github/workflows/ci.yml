@@ -91,14 +91,24 @@ jobs:
           # Exclude CRD files and kustomization.yaml - kubectl cannot validate CRDs without the API server
           find k8s/ -name "*.yaml" -not -name "kustomization.yaml" -not -name "crds.yaml" | xargs -I {} kubectl --dry-run=client apply -f {} || true
 
-      - name: Validate Kustomize overlays
+      - name: Validate Kustomize overlays (GitOps source of truth)
         run: |
           echo "=== MLflow overlay ==="
-          kustomize build k8s/mlops-stack/mlflow/ | kubectl --dry-run=client apply -f - || true
+          kustomize build gitops/applications/apps/mlflow/overlays/dev/ | kubectl --dry-run=client apply -f - || true
           echo "=== KServe overlay ==="
-          kustomize build k8s/mlops-stack/kserve/ | kubectl --dry-run=client apply -f - || true
+          kustomize build gitops/applications/apps/kserve/overlays/dev/ | kubectl --dry-run=client apply -f - || true
           echo "=== Monitoring overlay ==="
-          kustomize build k8s/mlops-stack/monitoring/ | kubectl --dry-run=client apply -f - || true
+          kustomize build gitops/applications/apps/monitoring/overlays/dev/ | kubectl --dry-run=client apply -f - || true
+          echo "=== Argo Workflows overlay ==="
+          kustomize build gitops/applications/apps/argo-workflows/overlays/dev/ | kubectl --dry-run=client apply -f - || true
+          echo "=== Feast overlay ==="
+          kustomize build gitops/applications/apps/feast/overlays/dev/ | kubectl --dry-run=client apply -f - || true
+          echo "=== External Secrets overlay ==="
+          kustomize build gitops/applications/apps/external-secrets/overlays/dev/ | kubectl --dry-run=client apply -f - || true
+          echo "=== Gatekeeper overlay ==="
+          kustomize build gitops/applications/apps/gatekeeper/overlays/dev/ | kubectl --dry-run=client apply -f - || true
+          echo "=== Istio overlay ==="
+          kustomize build gitops/applications/apps/istio/overlays/dev/ | kubectl --dry-run=client apply -f - || true
 
   # ML Platform Tests
   ml-platform-test:

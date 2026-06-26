@@ -144,18 +144,18 @@ deploy_seldon() {
 deploy_monitoring() {
     log_info "Deploying Monitoring Stack (Prometheus + Grafana)..."
     
-    # Deploy monitoring stack
-    kubectl apply -f k8s/mlops-stack/monitoring/prometheus-stack.yaml
-    
-    # Wait for deployments
-    kubectl wait --for=condition=available --timeout=300s deployment/prometheus -n monitoring
+    # Deploy monitoring stack from GitOps source of truth
+    kubectl apply -k k8s/mlops-stack/monitoring/
+
+    # Wait for workloads
+    kubectl rollout status statefulset/prometheus -n monitoring --timeout=300s
     kubectl wait --for=condition=available --timeout=300s deployment/grafana -n monitoring
     
     log_success "Monitoring stack deployed successfully"
     
     # Get Grafana URL
     log_info "Grafana password managed by External Secrets Operator"
-    log_info "See k8s/mlops-stack/secrets/ for configuration"
+    log_info "See gitops/applications/apps/external-secrets/base/ for configuration"
     log_info "Access Grafana via port-forward: kubectl port-forward svc/grafana 3000:3000 -n monitoring"
 }
 

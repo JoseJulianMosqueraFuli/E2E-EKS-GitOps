@@ -21,6 +21,21 @@ spec:
                 - app: monitoring
                   namespace: monitoring
                   component: observability
+                - app: argo-workflows
+                  namespace: argo-workflows
+                  component: workflow-engine
+                - app: feast
+                  namespace: feast
+                  component: feature-store
+                - app: external-secrets
+                  namespace: external-secrets
+                  component: secret-management
+                - app: gatekeeper
+                  namespace: gatekeeper-system
+                  component: policy-enforcement
+                - app: istio
+                  namespace: istio-system
+                  component: service-mesh
           - list:
               elements:
                 - environment: dev
@@ -52,9 +67,9 @@ spec:
     spec:
       project: mlops-core
       source:
-        repoURL: https://github.com/org/gitops-applications
+        repoURL: https://github.com/JoseJulianMosqueraFuli/E2E-EKS-GitOps.git
         targetRevision: "{{branch}}"
-        path: "apps/{{app}}/overlays/{{environment}}"
+        path: "gitops/applications/apps/{{app}}/overlays/{{environment}}"
       destination:
         server: https://kubernetes.default.svc
         namespace: "{{namespace}}"

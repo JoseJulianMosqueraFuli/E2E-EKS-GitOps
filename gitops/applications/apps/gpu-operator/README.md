@@ -104,4 +104,4 @@ Use **Spot instances** (`gpu_node_group_capacity_type = "SPOT"`) for non-critica
 
 ## Monitoring
 
-GPU metrics are exposed by DCGM exporter at `:9400/metrics`. The Prometheus scrape config and Grafana dashboard are in `k8s/mlops-stack/monitoring/dashboards/gpu-dashboard.json`.
+GPU metrics are exposed by DCGM exporter at `:9400/metrics`. Add the Prometheus scrape config and Grafana dashboard to `gitops/applications/apps/monitoring/base/dashboards/` when deploying GPU nodes.

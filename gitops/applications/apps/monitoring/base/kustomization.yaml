@@ -11,6 +11,24 @@ resources:
   - alertmanager-config.yaml
   - argocd-notifications.yaml
   - mlops-alerts.yaml
+  - prometheus-alerts.yaml
+  - evidently-monitoring.yaml
+  - drift-cronjob.yaml
+
+configMapGenerator:
+  - name: grafana-dashboards-config
+    files:
+      - dashboards/provider.yaml
+  - name: grafana-dashboards
+    files:
+      - dashboards/ml-monitoring-dashboard.json
+      - dashboards/mlflow-dashboard.json
+      - dashboards/kserve-dashboard.json
+      - dashboards/model-metrics-dashboard.json
+      - dashboards/cost-monitoring-dashboard.json
+
+generatorOptions:
+  disableNameSuffixHash: true
 
 labels:
   - pairs:

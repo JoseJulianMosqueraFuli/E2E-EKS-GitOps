@@ -8,21 +8,21 @@ on:
   workflow_dispatch:
     inputs:
       source_env:
-        description: 'Source environment'
+        description: "Source environment"
         required: true
         type: choice
         options:
           - dev
           - staging
       target_env:
-        description: 'Target environment'
+        description: "Target environment"
         required: true
         type: choice
         options:
           - staging
           - production
       approve:
-        description: 'Approve production promotion'
+        description: "Approve production promotion"
         required: false
         type: boolean
         default: false
@@ -55,7 +55,9 @@ jobs:
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.11'
+          python-version: "3.11"
+          cache: "pip"
+          cache-dependency-path: gitops/tests/requirements.txt
 
       - name: Install dependencies
         run: |
@@ -101,7 +103,7 @@ jobs:
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.11'
+          python-version: "3.11"
 
       - name: Run promotion
         run: |
@@ -112,8 +114,8 @@ jobs:
         uses: peter-evans/create-pull-request@v5
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          commit-message: 'chore: promote dev to staging'
-          title: 'Promote: dev → staging'
+          commit-message: "chore: promote dev to staging"
+          title: "Promote: dev → staging"
           body: |
             # Environment Promotion: dev → staging
 
@@ -149,7 +151,7 @@ jobs:
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.11'
+          python-version: "3.11"
 
       - name: Run promotion (dry run)
         run: |
@@ -160,8 +162,8 @@ jobs:
         uses: peter-evans/create-pull-request@v5
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          commit-message: 'chore: promote staging to production'
-          title: 'Promote: staging → production'
+          commit-message: "chore: promote staging to production"
+          title: "Promote: staging → production"
           body: |
             # ⚠️ Environment Promotion: staging → production
 

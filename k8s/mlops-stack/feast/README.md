@@ -1,31 +1,25 @@
 # Feast Feature Store - Kubernetes Deployment
 
-This directory contains Kubernetes manifests for deploying Feast 
-with Redis as the online store backend.
+This directory is a legacy entrypoint that points to the GitOps source of truth in `gitops/applications/apps/feast/base/`.
+The Feast + Redis manifests are maintained there.
 
 For local development, the SQLite/Parquet backend in `feature_repo/feature_store.yaml`
 is sufficient. These manifests are for staging/production on EKS.
 
 ## Components
 
-- `feast-server.yaml` - Feast server Deployment + Service
-- `redis.yaml` - Redis StatefulSet for online store
-- `kustomization.yaml` - Kustomize overlay
+- `kustomization.yaml` - Legacy entrypoint pointing to `gitops/applications/apps/feast/base/`
 
 ## Usage
 
 ```bash
-# Deploy to the feast namespace
-kubectl apply -k k8s/mlops-stack/feast/
-
-# Or apply individual manifests
-kubectl apply -f k8s/mlops-stack/feast/redis.yaml
-kubectl apply -f k8s/mlops-stack/feast/feast-server.yaml
+# Deploy to the feast namespace from GitOps source of truth
+kubectl apply -k gitops/applications/apps/feast/overlays/dev/
 ```
 
 ## Configuration
 
-Update the `feature_store.yaml` ConfigMap in `feast-server.yaml` to point
+Update the `feature_store.yaml` ConfigMap in `gitops/applications/apps/feast/base/feast-server.yaml` to point
 at the Redis service instead of SQLite for production:
 
 ```yaml

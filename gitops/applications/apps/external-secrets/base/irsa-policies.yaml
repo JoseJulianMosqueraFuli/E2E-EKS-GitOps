@@ -1,0 +1,138 @@
+# IAM Policies for IRSA (IAM Roles for Service Accounts)
+# These are Terraform-compatible policy documents for reference
+---
+# Policy: External Secrets Operator - Read secrets from AWS Secrets Manager
+# IAM Role: external-secrets-operator-role
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: irsa-policy-external-secrets
+  namespace: external-secrets
+  labels:
+    app.kubernetes.io/name: irsa-policies
+data:
+  policy.json: |
+    {
+      "Version": "2012-10-17",
+      "Statement": [
+        {
+          "Sid": "SecretsManagerRead",
+          "Effect": "Allow",
+          "Action": [
+            "secretsmanager:GetSecretValue",
+            "secretsmanager:DescribeSecret",
+            "secretsmanager:ListSecrets"
+          ],
+          "Resource": [
+            "arn:aws:secretsmanager:*:*:secret:mlops/*"
+          ]
+        },
+        {
+          "Sid": "KMSDecrypt",
+          "Effect": "Allow",
+          "Action": [
+            "kms:Decrypt",
+            "kms:DescribeKey"
+          ],
+          "Resource": [
+            "arn:aws:kms:*:*:key/*"
+          ],
+          "Condition": {
+            "StringEquals": {
+              "kms:ViaService": "secretsmanager.*.amazonaws.com"
+            }
+          }
+        }
+      ]
+    }
+---
+# Policy: Argo Workflows - S3 artifact storage
+# IAM Role: argo-workflows-s3-role
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: irsa-policy-argo-workflows
+  namespace: argo-workflows
+  labels:
+    app.kubernetes.io/name: irsa-policies
+data:
+  policy.json: |
+    {
+      "Version": "2012-10-17",
+      "Statement": [
+        {
+          "Sid": "S3ArtifactAccess",
+          "Effect": "Allow",
+          "Action": [
+            "s3:GetObject",
+            "s3:PutObject",
+            "s3:DeleteObject",
+            "s3:ListBucket"
+          ],
+          "Resource": [
+            "arn:aws:s3:::mlops-artifacts-*",
+            "arn:aws:s3:::mlops-artifacts-*/*"
+          ]
+        }
+      ]
+    }
+---
+# Policy: KServe Models - S3 model artifacts
+# IAM Role: kserve-models-s3-role
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: irsa-policy-kserve
+  namespace: kserve-system
+  labels:
+    app.kubernetes.io/name: irsa-policies
+data:
+  policy.json: |
+    {
+      "Version": "2012-10-17",
+      "Statement": [
+        {
+          "Sid": "S3ModelAccess",
+          "Effect": "Allow",
+          "Action": [
+            "s3:GetObject",
+            "s3:ListBucket"
+          ],
+          "Resource": [
+            "arn:aws:s3:::mlops-model-artifacts",
+            "arn:aws:s3:::mlops-model-artifacts/*"
+          ]
+        }
+      ]
+    }
+---
+# Policy: MLflow - S3 artifacts and Secrets Manager
+# IAM Role: mlflow-s3-role
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: irsa-policy-mlflow
+  namespace: mlflow
+  labels:
+    app.kubernetes.io/name: irsa-policies
+data:
+  policy.json: |
+    {
+      "Version": "2012-10-17",
+      "Statement": [
+        {
+          "Sid": "S3ArtifactAccess",
+          "Effect": "Allow",
+          "Action": [
+            "s3:GetObject",
+            "s3:PutObject",
+            "s3:DeleteObject",
+            "s3:ListBucket"
+          ],
+          "Resource": [
+            "arn:aws:s3:::mlops-mlflow-artifacts",
+            "arn:aws:s3:::mlops-mlflow-artifacts/*"
+          ]
+        }
+      ]
+    }

@@ -1,14 +1,6 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 
-namespace: feast
-
+# Single source of truth is in gitops/applications/apps/feast/base/
 resources:
-  - redis.yaml
-  - feast-server.yaml
-
-labels:
-  - pairs:
-      app.kubernetes.io/managed-by: kustomize
-      app.kubernetes.io/part-of: mlops-platform
-    includeSelectors: true
+  - ../../../gitops/applications/apps/feast/base

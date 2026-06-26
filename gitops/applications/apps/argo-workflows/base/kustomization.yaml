@@ -1,0 +1,32 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: argo-workflows
+
+resources:
+  - namespace.yaml
+  - crds.yaml
+  - rbac.yaml
+  - configmap.yaml
+  - controller-deployment.yaml
+  - server-deployment.yaml
+  - service.yaml
+  - artifact-repository-secret.yaml
+  - workflow-templates/data-validation-template.yaml
+  - workflow-templates/model-training-template.yaml
+  - workflow-templates/model-deployment-template.yaml
+  - workflow-templates/model-retraining-template.yaml
+  - workflow-templates/ml-pipeline-template.yaml
+
+labels:
+  - pairs:
+      app.kubernetes.io/name: argo-workflows
+      app.kubernetes.io/component: workflow-engine
+      app.kubernetes.io/part-of: mlops-platform
+    includeSelectors: false
+
+images:
+  - name: quay.io/argoproj/workflow-controller
+    newTag: v3.5.2
+  - name: quay.io/argoproj/argocli
+    newTag: v3.5.2
