@@ -511,6 +511,8 @@ A focused security audit was performed across Terraform, Kubernetes manifests, G
 
 ## 10. Documentation Index
 
+> **📚 Central hub**: [`docs/README.md`](docs/README.md) is the single entry point for all documentation. The table below is a quick reference; the hub has the full, categorized index and names the canonical source per topic.
+
 | Document        | Location                                   | Description                 |
 | --------------- | ------------------------------------------ | --------------------------- |
 | Quick Start     | `docs/quick-start-guide.md`                | 5-minute setup guide        |
