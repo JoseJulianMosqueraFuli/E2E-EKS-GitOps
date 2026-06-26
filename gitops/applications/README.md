@@ -1,6 +1,9 @@
 # ArgoCD Applications
 
-This directory contains ArgoCD application definitions for the MLOps platform.
+This directory contains the ArgoCD application definitions for the MLOps platform.
+
+The single source of truth for Kubernetes manifests is `gitops/applications/apps/<app>/base/`.
+The legacy entrypoints under `k8s/mlops-stack/` and `k8s/security/` still exist as thin `kustomization.yaml` pointers to these bases for backwards compatibility, but new work should happen here.
 
 ## Structure
 
@@ -9,51 +12,52 @@ applications/
 ├── projects/                    # ArgoCD project definitions
 │   ├── mlops-core.yaml         # Core MLOps project with RBAC
 │   └── mlops-applicationset.yaml # ApplicationSet for automated app generation
-├── apps/                        # Application manifests (Kustomize)
-│   ├── mlflow/
-│   │   ├── base/               # Base manifests
-│   │   └── overlays/           # Environment-specific overlays
-│   │       ├── dev/
-│   │       ├── staging/
-│   │       └── production/
-│   ├── kubeflow/
-│   │   ├── base/
-│   │   └── overlays/
-│   ├── kserve/
-│   │   ├── base/
-│   │   └── overlays/
-│   └── monitoring/
-│       ├── base/
-│       └── overlays/
-└── environments/                # Environment-specific ArgoCD Applications
-    ├── dev/
-    │   ├── kustomization.yaml
-    │   ├── mlflow-application.yaml
-    │   ├── kubeflow-application.yaml
-    │   ├── kserve-application.yaml
-    │   └── monitoring-application.yaml
-    ├── staging/
-    │   ├── kustomization.yaml
-    │   ├── mlflow-application.yaml
-    │   ├── kubeflow-application.yaml
-    │   ├── kserve-application.yaml
-    │   └── monitoring-application.yaml
-    └── production/
-        ├── kustomization.yaml
-        ├── mlflow-application.yaml
-        ├── kubeflow-application.yaml
-        ├── kserve-application.yaml
-        └── monitoring-application.yaml
+└── apps/                        # Application manifests (Kustomize)
+    ├── mlflow/
+    │   ├── base/               # Base manifests
+    │   └── overlays/           # Environment-specific overlays
+    │       ├── dev/
+    │       ├── staging/
+    │       └── production/
+    ├── kubeflow/
+    │   ├── base/
+    │   └── overlays/
+    ├── kserve/
+    │   ├── base/
+    │   └── overlays/
+    ├── monitoring/
+    │   ├── base/
+    │   └── overlays/
+    ├── argo-workflows/
+    │   ├── base/
+    │   └── overlays/
+    ├── feast/
+    │   ├── base/
+    │   └── overlays/
+    ├── external-secrets/
+    │   ├── base/
+    │   └── overlays/
+    ├── gatekeeper/
+    │   ├── base/
+    │   └── overlays/
+    └── istio/
+        ├── base/
+        └── overlays/
 ```
 
 ## MLOps Applications
 
-| Application | Description                               | Namespace  |
-| ----------- | ----------------------------------------- | ---------- |
-| MLflow      | ML experiment tracking and model registry | mlflow     |
-| Kubeflow    | ML pipeline orchestration                 | kubeflow   |
-| KServe      | Model serving and inference               | kserve     |
-| Monitoring  | Prometheus, Grafana observability stack   | monitoring |
+| Application      | Description                               | Namespace          |
+| ---------------- | ----------------------------------------- | ------------------ |
+| MLflow           | ML experiment tracking and model registry | mlflow             |
+| Kubeflow         | ML pipeline orchestration                 | kubeflow           |
+| KServe           | Model serving and inference               | kserve             |
+| Monitoring       | Prometheus, Grafana observability stack   | monitoring         |
+| Argo Workflows   | ML workflow engine and A/B testing        | argo-workflows     |
+| Feast            | Feature store (local Redis backend)       | feast              |
+| External Secrets | AWS Secrets Manager integration           | external-secrets   |
+| Gatekeeper       | OPA/Gatekeeper policy enforcement         | gatekeeper-system  |
+| Istio            | Service mesh mTLS and authorization       | istio-system       |
 
 ## Environment Configuration
 
@@ -81,25 +85,26 @@ applications/
 
 ## Usage
 
-### Deploy to a Specific Environment
+### Deploy with ApplicationSet (Recommended)
 
-```bash
-# Apply dev environment applications
-kubectl apply -k environments/dev/
-
-# Apply staging environment applications
-kubectl apply -k environments/staging/
-
-# Apply production environment applications
-kubectl apply -k environments/production/
-```
-
-### Using ApplicationSet (Recommended)
-
-The ApplicationSet automatically generates applications for all environments:
+The `mlops-applicationset.yaml` automatically generates all applications for every environment:
 
 ```bash
 kubectl apply -f projects/mlops-applicationset.yaml
+```
+
+After applying, ArgoCD creates one `Application` per app/environment combination:
+
+```bash
+kubectl get applications -n argocd
+```
+
+### Deploy a single overlay manually
+
+If you need to apply one app/environment overlay directly (for testing or debugging):
+
+```bash
+kubectl apply -k apps/mlflow/overlays/dev/
 ```
 
 ### Creating a New Application
@@ -107,8 +112,7 @@ kubectl apply -f projects/mlops-applicationset.yaml
 1. Create application directory in `apps/<app-name>/`
 2. Add base manifests in `apps/<app-name>/base/`
 3. Create environment overlays in `apps/<app-name>/overlays/<env>/`
-4. Add ArgoCD Application in `environments/<env>/<app-name>-application.yaml`
-5. Update the environment's `kustomization.yaml` to include the new application
+4. Add the app to `projects/mlops-applicationset.yaml`
 
 ### Sync Policies
 

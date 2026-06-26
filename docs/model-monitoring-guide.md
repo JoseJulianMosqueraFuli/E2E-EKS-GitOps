@@ -78,7 +78,7 @@ exporter.push_metrics("http://prometheus-pushgateway:9091")
 ### 1. Aplicar manifiestos
 
 ```bash
-kubectl apply -k k8s/mlops-stack/monitoring/
+kubectl apply -k gitops/applications/apps/monitoring/overlays/dev/
 ```
 
 ### 2. Registrar un modelo

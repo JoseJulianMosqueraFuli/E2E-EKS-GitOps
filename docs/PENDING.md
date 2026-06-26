@@ -41,7 +41,8 @@ Ver **`critical.md`** en la raiz del proyecto para detalles completos con CVSS, 
 - [x] **HIGH-002**: Kubernetes 1.28 cerca de EOL -> actualizado a 1.32 (2026-06-09)
 - [ ] **HIGH-003**: Egress de nodos EKS sin restriccion (`0.0.0.0/0`) en dev/staging
 - [ ] **HIGH-004**: CIDR `10.0.0.0/8` hardcodeado en prod para egress de nodos
-- [ ] **HIGH-005 a HIGH-007**: Imagenes con tag `:latest` en Feast, Evidently, y workflow templates de Argo
+- [x] **HIGH-005**: Feast `latest` pineado a `0.40.1` (`2026-06-26`)
+- [ ] **HIGH-006 a HIGH-007**: Imagenes con tag `:latest` en Evidently y workflow templates de Argo
 - [ ] **HIGH-008**: KServe HTTP sin redireccion automatica a HTTPS
 - [ ] **HIGH-009**: Grafana usa `emptyDir` (perdida de datos al reiniciar)
 - [ ] **HIGH-010**: Prometheus como Deployment en lugar de StatefulSet (perdida de datos)
@@ -63,11 +64,13 @@ Ver **`critical.md`** en la raiz del proyecto para detalles completos con CVSS, 
 - [ ] NetworkPolicy falta para namespaces: `feast`, `argo-workflows`, `ml-monitoring`
 
 **GitOps y Consistencia:**
-- [ ] Unificar fuente de verdad: `monitoring`, `argo-workflows`, `feast` en `k8s/` deben apuntar a `gitops/applications/apps/`
-- [ ] Crear Applications de ArgoCD para: `feast`, `argo-workflows`, `external-secrets`, `gatekeeper`, `istio`
-- [ ] Desincronizacion de versiones: Prometheus `v2.45.0` vs `v2.48.0`, Grafana `10.0.3` vs `10.2.2`
-- [ ] Duplicacion de alertas Prometheus entre `k8s/` y `gitops/`
-- [ ] ApplicationSet `mlops-applicationset` no genera apps para `argo-workflows`, `feast`, `external-secrets`, etc.
+- [x] Unificar fuente de verdad: `monitoring`, `argo-workflows`, `feast`, `secrets`, `gatekeeper`, `istio` en `k8s/` ahora apuntan a `gitops/applications/apps/` (`2026-06-26`)
+- [x] Crear Applications de ArgoCD para: `feast`, `argo-workflows`, `external-secrets`, `gatekeeper`, `istio` (`2026-06-26`)
+- [x] Desincronizacion de versiones: Prometheus `v2.45.0` vs `v2.48.0`, Grafana `10.0.3` vs `10.2.2` alineadas a `v2.48.0` y `10.2.2` (`2026-06-26`)
+- [x] Duplicacion de alertas Prometheus entre `k8s/` y `gitops/`: consolidado en `gitops/applications/apps/monitoring/base/` (`2026-06-26`)
+- [x] ApplicationSet `mlops-applicationset` ahora genera apps para `argo-workflows`, `feast`, `external-secrets`, `gatekeeper`, `istio` (`2026-06-26`)
+- [x] Applications individuales por ambiente eliminadas; el ApplicationSet es el mecanismo canonical (`2026-06-26`)
+- [x] Manifiestos duplicados en `k8s/` eliminados; `gitops/applications/apps/<app>/base/` es la única fuente de verdad (`2026-06-26`)
 
 **Helm Charts:**
 - [ ] MLflow chart usa `python:3.11-slim` en vez de imagen oficial MLflow

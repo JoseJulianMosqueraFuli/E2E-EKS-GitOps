@@ -132,8 +132,13 @@ validate-terraform: ## Validate Terraform configuration
 
 validate-kubernetes: ## Validate Kubernetes manifests
 	@echo "Validating Kubernetes manifests..."
-	kubectl apply --dry-run=client -k k8s/mlops-stack/mlflow/
-	kubectl apply --dry-run=client -f k8s/mlops-stack/monitoring/prometheus-stack.yaml
+	kustomize build gitops/applications/apps/mlflow/overlays/dev
+	kustomize build gitops/applications/apps/monitoring/overlays/dev
+	kustomize build gitops/applications/apps/argo-workflows/overlays/dev
+	kustomize build gitops/applications/apps/feast/overlays/dev
+	kustomize build gitops/applications/apps/external-secrets/overlays/dev
+	kustomize build gitops/applications/apps/gatekeeper/overlays/dev
+	kustomize build gitops/applications/apps/istio/overlays/dev
 	@echo "Helm charts validated during CI via 'helm lint' and 'helm template --debug'."
 
 validate-python: ## Validate Python code

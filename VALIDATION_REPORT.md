@@ -193,7 +193,7 @@ El proyecto ha sido **auditoría y corregido** en todas las áreas críticas y d
 6. **Feature Store con Feast**: Definitions, server, backend (Redis o DynamoDB).
 7. **ArgoCD Image Updater**: Bumps automaticos desde ECR / GHCR.
 8. **Model Governance**: Approval workflows con OPA / Gatekeeper.
-9. **mTLS con Istio**: Comunicaciones internas cifradas (manifiestos base ya presentes en `k8s/security/istio/`).
+9. **mTLS con Istio**: Comunicaciones internas cifradas (manifiestos base ya presentes en `gitops/applications/apps/istio/base/`).
 10. **Multi-cluster con ApplicationSet**: Cluster generator para fan-out.
 11. **Teams Notifications**: Integracion con Microsoft Teams ademas de Slack.
 12. **Documentar troubleshooting**: Basado en experiencia real de deploy.
@@ -221,7 +221,7 @@ Este es un proyecto MLOps **profesional, seguro y bien estructurado**. Todas las
 cd infra/environments/dev && terraform init -backend=false && terraform validate
 
 # 2. Validar K8s manifests
-kubectl apply --dry-run=client -k k8s/mlops-stack/mlflow/
+kustomize build gitops/applications/apps/mlflow/overlays/dev
 
 # 3. Validar Python
 cd ml-platform && pip install -r requirements.txt --dry-run

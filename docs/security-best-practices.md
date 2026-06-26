@@ -15,7 +15,7 @@ aws secretsmanager create-secret \
   --secret-string '{"admin-password":"YOUR_SECURE_PASSWORD"}'
 
 # Aplicar External Secrets
-kubectl apply -k k8s/mlops-stack/secrets/
+kubectl apply -k gitops/applications/apps/external-secrets/base/
 ```
 
 **Nunca hardcodear credenciales** en archivos YAML o código fuente.
@@ -197,10 +197,8 @@ Todas las comunicaciones entre servicios MLOps están protegidas con **mutual TL
 
 ```bash
 # PeerAuthentication enforce STRICT mTLS en cada namespace
-kubectl apply -f k8s/security/istio/peer-authentications.yaml
-
 # DestinationRules aseguran ISTIO_MUTUAL para tráfico interno
-kubectl apply -f k8s/security/istio/destination-rules.yaml
+kubectl apply -k gitops/applications/apps/istio/base/
 ```
 
 | Namespace       | Estado mTLS |
@@ -219,8 +217,7 @@ Gatekeeper valida que todos los pods cumplan con **Pod Security Standards restri
 
 ```bash
 # Aplicar templates y constraints
-kubectl apply -f k8s/security/gatekeeper/templates/
-kubectl apply -f k8s/security/gatekeeper/constraints/
+kubectl apply -k gitops/applications/apps/gatekeeper/base/
 ```
 
 Políticas validadas antes de admitir un pod:
