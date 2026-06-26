@@ -213,6 +213,8 @@ make port-forward-kubeflow  # Kubeflow at localhost:8080
 
 ## Documentation
 
+> **📚 Full index: [Documentation Hub](docs/README.md)** — the single entry point that catalogs every document and names the canonical source per topic. Quick links below.
+
 | Document                                                              | Description                            |
 | --------------------------------------------------------------------- | -------------------------------------- |
 | [Quick Start Guide](docs/quick-start-guide.md)                        | Step-by-step setup                     |
@@ -227,10 +229,10 @@ Running the full E2E test on AWS incurs real costs. Here is what to expect:
 
 ### AWS Costs (estimated for a single E2E run)
 
-| Resource | Cost/Hour |
-|----------|-----------|
-| EKS Control Plane | $0.10 |
-| NAT Gateway | $0.045 |
+| Resource                | Cost/Hour   |
+| ----------------------- | ----------- |
+| EKS Control Plane       | $0.10       |
+| NAT Gateway             | $0.045      |
 | EC2 m5.large (x2 nodes) | $0.192 each |
 
 **Total for a 3-hour E2E test: ~$2.50 - $4.00 USD**
@@ -239,13 +241,13 @@ Running the full E2E test on AWS incurs real costs. Here is what to expect:
 
 ### Time Estimates
 
-| Phase | Duration |
-|-------|----------|
-| `terraform apply` (infrastructure) | 15-25 min |
-| MLOps stack deployment (ArgoCD sync) | 10-15 min |
-| Full validation & tests | 10-15 min |
-| `terraform destroy` (cleanup) | 10-15 min |
-| **Total end-to-end** | **~1 hour** |
+| Phase                                | Duration    |
+| ------------------------------------ | ----------- |
+| `terraform apply` (infrastructure)   | 15-25 min   |
+| MLOps stack deployment (ArgoCD sync) | 10-15 min   |
+| Full validation & tests              | 10-15 min   |
+| `terraform destroy` (cleanup)        | 10-15 min   |
+| **Total end-to-end**                 | **~1 hour** |
 
 ## Contributing
 
@@ -297,4 +299,4 @@ This project is licensed under the MIT License - see [LICENSE](LICENSE) for deta
 
 Built by [Jose Julian Mosquera](https://github.com/JoseJulianMosqueraFuli)
 
-*Last updated: June 2025*
+_Last updated: June 2025_
