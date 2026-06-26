@@ -277,7 +277,8 @@ Before marking this report as resolved:
 - [ ] CRIT-004: AppProject restricted to specific repos/namespaces/resources
 - [x] HIGH-009: Grafana `emptyDir` replaced with PVC (corregido 2026-06-08)
 - [x] HIGH-010: Prometheus converted to StatefulSet with PVC (corregido 2026-06-08)
-- [ ] HIGH-005 to HIGH-007: Zero occurrences of `:latest` in all manifests and templates
+- [x] HIGH-005: Feast `latest` tag pinned to `0.40.1` (corregido 2026-06-26)
+- [ ] HIGH-006 to HIGH-007: Zero occurrences of `:latest` in Evidently and Argo workflow templates
 - [x] HIGH-011: `python -c "import src.main"` succeeds without errors (corregido 2026-06-08)
 - [x] HIGH-012: `poetry install` succeeds and `src.monitoring.monitoring_service` imports correctly (corregido 2026-06-08)
 - [ ] HIGH-013: CI pipeline fails when tests fail (intentionally inject a failing test to verify)

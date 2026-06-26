@@ -4,7 +4,7 @@
 > **Author**: Jose Julian Mosquera  
 > **License**: MIT  
 > **Status**: Active development (Phase 2)
-> **Last updated**: 2026-06-25
+> **Last updated**: 2026-06-26
 
 ---
 
@@ -247,17 +247,20 @@ E2E-EKS-GitOps/
 - `mlflow`: MLflow tracking server + PostgreSQL + MinIO (S3-compatible artifacts)
 - `kubeflow`: Kubeflow Pipelines UI (deployed via manifests in `gitops/applications/apps/kubeflow/`)
 - `kserve`: KServe inference controller (manifests ready in `gitops/applications/apps/kserve/`, deploy via `MLOPS_TOOLS=kserve make mlops-install`)
-- `monitoring`: Prometheus + Grafana + Alertmanager + ArgoCD Notifications
-- `istio-system`: Istio service mesh (mTLS policies in `k8s/security/istio/`)
-- `gatekeeper-system`: OPA Gatekeeper (constraints in `k8s/security/gatekeeper/`)
+- `monitoring`: Prometheus + Grafana + Alertmanager + ArgoCD Notifications + Evidently drift detection
+- `argo-workflows`: ML workflow engine and A/B testing framework
+- `feast`: Feature store server with Redis online store
+- `external-secrets`: External Secrets Operator for AWS Secrets Manager
+- `istio-system`: Istio service mesh (mTLS policies in `gitops/applications/apps/istio/`)
+- `gatekeeper-system`: OPA Gatekeeper (constraints in `gitops/applications/apps/gatekeeper/`)
 - `argocd`: ArgoCD controllers and applications
 
 **Security**:
 
-- Istio strict mTLS policies defined for inter-service communication (pending full enforcement)
-- Gatekeeper constraints enforcing Pod Security Standards (partially implemented)
+- Istio strict mTLS policies defined for inter-service communication and managed via ArgoCD (`gitops/applications/apps/istio/`)
+- Gatekeeper constraints enforcing Pod Security Standards, managed via ArgoCD (`gitops/applications/apps/gatekeeper/`)
 - Network Policies limiting inter-namespace traffic (`mlflow/network-policy.yaml`, `kserve/network-policy.yaml`)
-- External Secrets Operator for AWS Secrets Manager integration (deployed with MLflow overlays)
+- External Secrets Operator for AWS Secrets Manager integration (deployed via `gitops/applications/apps/external-secrets/`)
 - IRSA roles for least-privilege pod access to AWS services
 
 **IRSA Roles** (created by `setup-mlops-stack.sh`):
@@ -276,10 +279,13 @@ E2E-EKS-GitOps/
 
 **ArgoCD** manages:
 
-- MLOps applications (MLflow, Kubeflow, KServe, Monitoring)
-- ApplicationSet for multi-environment deployments
+- MLOps applications (MLflow, Kubeflow, KServe, Monitoring, Argo Workflows, Feast)
+- Security and platform applications (External Secrets, Gatekeeper, Istio)
+- ApplicationSet for multi-environment deployments (single source of application generation)
 - Projects with RBAC
 - Notifications to Slack (`mlops-deployments`, `mlops-alerts` channels)
+
+The legacy per-environment Application YAMLs were removed; the ApplicationSet is the canonical way to generate applications.
 
 **Environment Promotion**:
 
@@ -307,7 +313,7 @@ E2E-EKS-GitOps/
 - `monitoring_service.py`: HTTP service exposing drift reports at `/health` and `/drift-report`
 - `metrics_exporter.py`: Prometheus metrics exporter
 - `run_drift_check.py`: Standalone drift check script
-- Kubernetes CronJob for scheduled drift checks (`k8s/mlops-stack/monitoring/drift-cronjob.yaml`)
+- Kubernetes CronJob for scheduled drift checks (`gitops/applications/apps/monitoring/base/drift-cronjob.yaml`)
 - Compares production data against reference dataset
 - Containerized via `Dockerfile.monitoring`
 
@@ -320,7 +326,7 @@ E2E-EKS-GitOps/
 
 ### 4.6 A/B Testing Framework
 
-**Argo Workflows Templates** (`k8s/mlops-stack/argo-workflows/`):
+**Argo Workflows Templates** (`gitops/applications/apps/argo-workflows/base/workflow-templates/`)
 
 - 7-step DAG workflow for A/B model experiments
 - Statistical metrics computation (accuracy, latency, throughput)
@@ -532,10 +538,11 @@ A focused security audit was performed across Terraform, Kubernetes manifests, G
 ### Implemented ✅
 
 - **Flux v2 + ArgoCD controllers** (infrastructure + applications separation)
-- **MLOps applications** with multi-environment overlays (dev/staging/production)
+- **MLOps applications** with multi-environment overlays (dev/staging/production): MLflow, Kubeflow, KServe, Monitoring, Argo Workflows, Feast
+- **Security / platform applications** managed by ArgoCD: External Secrets, Gatekeeper, Istio
 - **External Secrets Operator** integrated with MLflow and monitoring stacks
 - **ArgoCD Notifications** (Slack: `mlops-deployments`, `mlops-alerts` channels)
-- **ApplicationSet** for auto-generating applications across environments
+- **ApplicationSet** for auto-generating all applications across environments
 - **Promotion pipeline** (`promote.py` + GitHub Actions + Jenkins + CircleCI + GitLab)
 - **A/B Testing workflow templates** (7-step Argo Workflows DAG with statistical metrics and auto-promotion)
 - **GPU Operator support** (optional manifests in `gitops/applications/apps/gpu-operator/`)
@@ -556,7 +563,7 @@ A focused security audit was performed across Terraform, Kubernetes manifests, G
 **Medium Priority:**
 
 - **Kubecost / OpenCost** — Replace estimated cost dashboard with real exporter
-- **Feature Store with Feast** — Production backend (Redis/DynamoDB), server deployment on K8s (local feature repo with Parquet data already implemented)
+- **Feature Store with Feast** — Production backend hardening (ElastiCache/DynamoDB), full server deployment on K8s (local feature repo + Redis server deployment implemented)
 - **ACM certificate for Ingress** — Real TLS certificate for MLflow/KServe/Grafana
 - **Terraform S3 backend** — Uncomment and configure `backend "s3"` in all environments when AWS account is available
 - **Terratest execution** — Run Go tests in `infra/modules/*/test/`
@@ -565,8 +572,8 @@ A focused security audit was performed across Terraform, Kubernetes manifests, G
 
 - **Model Governance** — Approval workflows (CRDs, OPA/Gatekeeper policies, ArgoCD approval gates)
 - **Multi-cluster deployment** — ArgoCD ApplicationSet with cluster generator
-- **Full mTLS enforcement** — Istio strict mTLS currently defined but pending full rollout
-- **Advanced OPA/Gatekeeper policies** — Partially implemented in `k8s/security/gatekeeper/`
+- **Full mTLS enforcement** — Istio strict mTLS policies managed by ArgoCD; sidecar injection and default-deny rollout pending
+- **Advanced OPA/Gatekeeper policies** — Managed by ArgoCD; pod security templates and namespace coverage pending hardening
 - **Microsoft Teams notifications** — In addition to Slack
 - **Integration tests for ML Platform** — Expand `ml-platform/tests/` coverage
 - **Troubleshooting documentation** — Based on real deployment experience
