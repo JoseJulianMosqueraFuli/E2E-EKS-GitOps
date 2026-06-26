@@ -93,14 +93,17 @@ argocd repo add https://github.com/org/my-app-repo
 
 ### Step 4: Deploy MLOps Applications
 
-MLOps application manifests live in `gitops/applications/apps/` with environment overlays in `gitops/applications/environments/{dev,staging,production}/`. Apply the desired environment:
+MLOps application manifests live in `gitops/applications/apps/` with environment overlays in `gitops/applications/apps/<app>/overlays/{dev,staging,production}/`. Deploy everything at once with the ApplicationSet:
 
 ```bash
 # Apply ArgoCD project + ApplicationSet
 kubectl apply -f gitops/applications/projects/
+```
 
-# Apply environment overlays (Kustomize)
-kubectl apply -k gitops/applications/environments/dev/
+The ApplicationSet automatically generates one ArgoCD `Application` per app/environment. To apply a single overlay manually (for debugging):
+
+```bash
+kubectl apply -k gitops/applications/apps/mlflow/overlays/dev/
 ```
 
 Currently included applications:
@@ -108,7 +111,12 @@ Currently included applications:
 - **MLflow** (with External Secrets Operator integration)
 - **Kubeflow Pipelines**
 - **KServe**
-- **Monitoring stack** (Prometheus, Grafana, Alertmanager, ArgoCD Notifications)
+- **Monitoring stack** (Prometheus, Grafana, Alertmanager, ArgoCD Notifications, Evidently drift detection)
+- **Argo Workflows** (ML pipeline engine + A/B testing templates)
+- **Feast** (feature store with Redis online store)
+- **External Secrets Operator** (AWS Secrets Manager integration)
+- **Gatekeeper** (OPA policy enforcement)
+- **Istio** (service mesh mTLS and authorization)
 - **NVIDIA GPU Operator** (optional)
 
 Helm charts available in `gitops/charts/`:
@@ -134,8 +142,7 @@ gitops/
 │   └── base/              # Base configurations
 ├── applications/          # ArgoCD-managed applications
 │   ├── projects/          # ArgoCD projects + ApplicationSet
-│   ├── apps/             # Application definitions (mlflow, kubeflow, kserve, monitoring, gpu-operator)
-│   └── environments/     # Environment overlays (dev, staging, production)
+│   └── apps/             # Application definitions with base/ + overlays/ (mlflow, kubeflow, kserve, monitoring, argo-workflows, feast, external-secrets, gatekeeper, istio, gpu-operator)
 ├── charts/               # Helm charts (mlflow, kserve, kubeflow-pipelines, monitoring-stack)
 ├── scripts/              # Installation and management scripts
 │   ├── install-gitops-controllers.sh

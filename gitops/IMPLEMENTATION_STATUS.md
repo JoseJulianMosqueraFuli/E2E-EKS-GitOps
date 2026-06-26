@@ -49,10 +49,17 @@ gitops/
 │   │   ├── kserve/
 │   │   ├── monitoring/
 │   │   └── gpu-operator/
-│   └── environments/      # Environment overlays
-│       ├── dev/
-│       ├── staging/
-│       └── production/
+│   └── apps/              # Application manifests with base/ + overlays/dev|staging|production/
+│       ├── mlflow/
+│       ├── kubeflow/
+│       ├── kserve/
+│       ├── monitoring/
+│       ├── argo-workflows/
+│       ├── feast/
+│       ├── external-secrets/
+│       ├── gatekeeper/
+│       ├── istio/
+│       └── gpu-operator/
 ├── charts/               # Helm charts repository
 │   ├── mlflow/
 │   ├── kserve/
@@ -136,9 +143,9 @@ Created comprehensive property-based tests for GitOps controller health:
 
 - `applications/README.md`
 - `applications/projects/mlops-core.yaml`
-- `applications/environments/dev/kustomization.yaml`
-- `applications/environments/staging/kustomization.yaml`
-- `applications/environments/production/kustomization.yaml`
+- `applications/projects/mlops-applicationset.yaml`
+- `applications/projects/mlops-helm-repository.yaml`
+- `applications/apps/<app>/base/kustomization.yaml` and overlays for all MLOps and platform applications
 
 **Charts**:
 
@@ -216,7 +223,7 @@ kubectl port-forward svc/argocd-server -n argocd 8080:443
 
 - [x] **Task 1**: Setup GitOps Infrastructure Foundation - Controller, RBAC, namespaces
 - [x] **Task 2**: Create repository structure and organization - ArgoCD ApplicationSet, overlays
-- [x] **Task 3**: Implement MLOps application management with ArgoCD - 4 apps (mlflow, kserve, kubeflow, monitoring) x 3 envs
+- [x] **Task 3**: Implement MLOps application management with ArgoCD - 9 apps (mlflow, kserve, kubeflow, monitoring, argo-workflows, feast, external-secrets, gatekeeper, istio) x 3 envs via ApplicationSet
 - [x] **Task 4**: Implement infrastructure management with Flux - Flux controllers + Kustomize overlays
 - [x] **Task 5**: Helm charts for all applications - mlflow, kserve, kubeflow-pipelines, monitoring-stack
 - [x] **Task 6**: Property-based tests - Hypothesis, 100+ iterations
@@ -227,14 +234,14 @@ kubectl port-forward svc/argocd-server -n argocd 8080:443
 Ver [docs/PENDING.md](../docs/PENDING.md) para el estado canonico. Resumen:
 
 - [ ] **End-to-end test on AWS**: Validar Terraform → EKS → ArgoCD → MLflow → KServe
-- [ ] **Feature Store con Feast**: Backend productivo (Redis/DynamoDB) y server deployment en K8s (feature repo local ya implementado con datos parquet y tests)
+- [x] **Feature Store con Feast**: Server deployment local con Redis en K8s implementado; backend productivo (ElastiCache/DynamoDB) pendiente
 - [ ] **Kubecost / OpenCost**: Reemplazar dashboard de costos estimado
 - [ ] **Certificado ACM para Ingress**: Solicitar y configurar TLS real
 - [ ] **Backend S3 de Terraform**: Descomentar y configurar cuando se tenga cuenta AWS
 - [ ] **Terratest**: Ejecutar suite Go en `infra/modules/*/tests/`
 - [ ] **Model Governance**: Approval workflows y OPA policies
 - [ ] **Multi-cluster deployment**: ApplicationSet con cluster generator
-- [ ] **mTLS con Istio**: Comunicaciones internas cifradas
+- [x] **mTLS con Istio**: Manifiestos gestionados por ArgoCD; falta sidecar injection y default-deny rollout
 - [ ] **Teams Notifications**: Integracion con Microsoft Teams
 - [ ] **Tests de integracion ML Platform**: Ampliar coverage
 
@@ -256,6 +263,10 @@ Ver [docs/PENDING.md](../docs/PENDING.md) para el estado canonico. Resumen:
 | 2026-05-20 | Pendings sincronizados con docs/PENDING.md como fuente unica         |
 | 2026-05-31 | Documentacion actualizada: diagramas de estructura alineados con     |
 |            | el estado real del repositorio (addons, networking, security, tests) |
+| 2026-06-26 | Reestructuracion GitOps: fuente de verdad unificada en               |
+|            | `gitops/applications/apps/`, ApplicationSet canonical, apps de       |
+|            | plataforma (argo-workflows, feast, external-secrets, gatekeeper,     |
+|            | istio) integradas y applications individuales eliminadas             |
 
 ### Notes
 
