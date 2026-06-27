@@ -14,6 +14,11 @@ resources:
   - minio-service.yaml
   - deployment.yaml
   - service.yaml
+  - monitoring.yaml
+  - network-policy.yaml
+  - pod-disruption-budget.yaml
+  - hpa.yaml
+  - backup-cronjob.yaml
 
 labels:
   - pairs:

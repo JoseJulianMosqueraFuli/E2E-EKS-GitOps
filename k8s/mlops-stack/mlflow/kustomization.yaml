@@ -1,20 +1,9 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 
-# ------------------------------------------------------------------------------
-# SOURCE OF TRUTH
-# The base MLflow manifests (server, database, minio, external-secrets, etc.)
-# live in gitops/applications/apps/mlflow/base/ and are maintained there.
-# This overlay adds operational resources (HPA, PDB, network-policy, etc.)
-# ------------------------------------------------------------------------------
-
+# Single source of truth is in gitops/applications/apps/mlflow/base/
 resources:
   - ../../../gitops/applications/apps/mlflow/base
-  - network-policy.yaml
-  - hpa.yaml
-  - pod-disruption-budget.yaml
-  - monitoring.yaml
-  - backup-cronjob.yaml
 
 labels:
   - pairs:
@@ -25,7 +14,6 @@ labels:
       app.kubernetes.io/part-of: mlops-platform
     includeSelectors: true
 
-# Pin the MLflow image to the version matching requirements.txt
 images:
   - name: ghcr.io/mlflow/mlflow
     newTag: "v2.14.3"

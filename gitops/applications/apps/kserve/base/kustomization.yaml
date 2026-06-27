@@ -16,6 +16,9 @@ resources:
   - serving-runtimes/sklearn-runtime.yaml
   - serving-runtimes/pytorch-runtime.yaml
   - serving-runtimes/tensorflow-runtime.yaml
+  - monitoring.yaml
+  - network-policy.yaml
+  - istio-config.yaml
 
 labels:
   - pairs:
