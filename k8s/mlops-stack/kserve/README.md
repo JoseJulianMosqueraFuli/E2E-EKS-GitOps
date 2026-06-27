@@ -1,6 +1,16 @@
-# KServe Model Serving Platform
+# KServe Model Serving Platform (Legacy Entrypoint)
 
-This directory contains Kubernetes manifests for deploying KServe, a cloud-native model serving platform that provides serverless inference, canary deployments, and multi-framework support for the MLOps platform.
+> **IMPORTANT**: The canonical source of truth for KServe manifests has
+> moved to `gitops/applications/apps/kserve/base/`.
+>
+> This directory is a **legacy Kustomize entrypoint** that points to the
+> GitOps source of truth. All operational resources (Istio config, NetworkPolicy,
+> Monitoring) are now managed there.
+>
+> Do **not** edit base manifests here — edit them in the `gitops/` path.
+>
+> KServe is a cloud-native model serving platform that provides serverless inference,
+> canary deployments, and multi-framework support for the MLOps platform.
 
 ## Overview
 

@@ -1,13 +1,13 @@
-# MLflow Server Deployment (Operational Overlay)
+# MLflow Server Deployment (Legacy Entrypoint)
 
-> **IMPORTANT**: The canonical source of truth for MLflow base manifests has
+> **IMPORTANT**: The canonical source of truth for MLflow manifests has
 > moved to `gitops/applications/apps/mlflow/base/`.
 >
-> This directory is now a **Kustomize overlay** that adds operational resources
-> (HPA, NetworkPolicy, PodDisruptionBudget, Monitoring, Backup CronJob) on top
-> of the base manifests managed by ArgoCD/Flux.
+> This directory is a **legacy Kustomize entrypoint** that points to the
+> GitOps source of truth. All operational resources (HPA, NetworkPolicy,
+> PodDisruptionBudget, Monitoring, Backup CronJob) are now managed there.
 >
-> Do **not** edit base manifests here — edit them in the `gitops/` path.
+> Do **not** edit manifests here — edit them in the `gitops/` path.
 
 ## Overview
 
