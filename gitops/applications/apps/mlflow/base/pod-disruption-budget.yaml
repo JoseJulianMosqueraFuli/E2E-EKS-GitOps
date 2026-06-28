@@ -1,0 +1,27 @@
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: mlflow-server-pdb
+  namespace: mlflow
+  labels:
+    app.kubernetes.io/name: mlflow
+    app.kubernetes.io/component: availability
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: mlflow-server
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: postgres-pdb
+  namespace: mlflow
+  labels:
+    app.kubernetes.io/name: mlflow
+    app.kubernetes.io/component: database-availability
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: postgres

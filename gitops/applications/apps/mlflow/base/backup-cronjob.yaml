@@ -1,0 +1,116 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: postgres-backup
+  namespace: mlflow
+  labels:
+    app.kubernetes.io/name: mlflow
+    app.kubernetes.io/component: backup
+spec:
+  schedule: "0 2 * * *"  # Daily at 2 AM UTC
+  timeZone: "UTC"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 1
+  jobTemplate:
+    spec:
+      template:
+        metadata:
+          labels:
+            app.kubernetes.io/name: mlflow
+            app.kubernetes.io/component: backup-job
+        spec:
+          serviceAccountName: mlflow-backup-sa
+          restartPolicy: OnFailure
+          containers:
+          - name: postgres-backup
+            image: postgres:15-alpine
+            command:
+            - /bin/sh
+            - -c
+            - |
+              set -e
+              BACKUP_FILE="mlflow-backup-$(date +%Y%m%d-%H%M%S).sql"
+              echo "Creating backup: $BACKUP_FILE"
+              
+              # Create database backup
+              pg_dump -h postgres -U $POSTGRES_USER -d $POSTGRES_DB > /tmp/$BACKUP_FILE
+              
+              # Upload to S3
+              aws s3 cp /tmp/$BACKUP_FILE s3://$S3_BACKUP_BUCKET/mlflow-backups/$BACKUP_FILE
+              
+              # Cleanup old backups (keep last 30 days)
+              aws s3 ls s3://$S3_BACKUP_BUCKET/mlflow-backups/ | \
+                awk '{print $4}' | \
+                head -n -30 | \
+                xargs -I {} aws s3 rm s3://$S3_BACKUP_BUCKET/mlflow-backups/{}
+              
+              echo "Backup completed successfully"
+            env:
+            - name: POSTGRES_USER
+              valueFrom:
+                secretKeyRef:
+                  name: mlflow-secrets
+                  key: postgres-user
+            - name: POSTGRES_DB
+              valueFrom:
+                secretKeyRef:
+                  name: mlflow-secrets
+                  key: postgres-db
+            - name: PGPASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: mlflow-secrets
+                  key: postgres-password
+            - name: S3_BACKUP_BUCKET
+              value: "mlops-backups"
+            - name: AWS_DEFAULT_REGION
+              value: "us-west-2"
+            resources:
+              requests:
+                memory: "256Mi"
+                cpu: "100m"
+              limits:
+                memory: "512Mi"
+                cpu: "250m"
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: mlflow-backup-sa
+  namespace: mlflow
+  labels:
+    app.kubernetes.io/name: mlflow
+    app.kubernetes.io/component: backup-service-account
+  annotations:
+    eks.amazonaws.com/role-arn: arn:aws:iam::ACCOUNT_ID:role/mlops-backup-role
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  namespace: mlflow
+  name: mlflow-backup-role
+  labels:
+    app.kubernetes.io/name: mlflow
+    app.kubernetes.io/component: backup-rbac
+rules:
+- apiGroups: [""]
+  resources: ["secrets"]
+  verbs: ["get"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: mlflow-backup-rolebinding
+  namespace: mlflow
+  labels:
+    app.kubernetes.io/name: mlflow
+    app.kubernetes.io/component: backup-rbac
+subjects:
+- kind: ServiceAccount
+  name: mlflow-backup-sa
+  namespace: mlflow
+roleRef:
+  kind: Role
+  name: mlflow-backup-role
+  apiGroup: rbac.authorization.k8s.io

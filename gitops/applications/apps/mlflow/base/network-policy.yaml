@@ -1,0 +1,88 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: mlflow-network-policy
+  namespace: mlflow
+  labels:
+    app.kubernetes.io/name: mlflow
+    app.kubernetes.io/component: network-policy
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: mlflow
+  policyTypes:
+  - Ingress
+  - Egress
+  ingress:
+  # Allow ingress from Argo Workflows namespace
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          name: argo-workflows
+    ports:
+    - protocol: TCP
+      port: 5000
+  # Allow ingress from monitoring namespace for metrics scraping
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          name: monitoring
+    ports:
+    - protocol: TCP
+      port: 5000
+  # Allow ingress from models namespace for model serving
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          name: models
+    ports:
+    - protocol: TCP
+      port: 5000
+  # Allow internal communication within mlflow namespace
+  - from:
+    - podSelector: {}
+    ports:
+    - protocol: TCP
+      port: 5000
+    - protocol: TCP
+      port: 5432
+  egress:
+  # Allow egress to PostgreSQL within the same namespace
+  - to:
+    - podSelector:
+        matchLabels:
+          app: postgres
+    ports:
+    - protocol: TCP
+      port: 5432
+  # Allow egress to MinIO (S3-compatible) within the same namespace
+  - to:
+    - podSelector:
+        matchLabels:
+          app: minio
+    ports:
+    - protocol: TCP
+      port: 9000
+  # Allow DNS resolution (CoreDNS in kube-system)
+  - to:
+    - namespaceSelector:
+        matchLabels:
+          kubernetes.io/metadata.name: kube-system
+      podSelector:
+        matchLabels:
+          k8s-app: kube-dns
+    ports:
+    - protocol: UDP
+      port: 53
+    - protocol: TCP
+      port: 53
+  # Allow egress to VPC CIDR for AWS VPC endpoints (S3, ECR, Secrets Manager, etc.)
+  # Restrict this to your actual VPC CIDR in production, e.g. 10.0.0.0/16
+  - to:
+    - ipBlock:
+        cidr: 10.0.0.0/8
+    ports:
+    - protocol: TCP
+      port: 443
+    - protocol: TCP
+      port: 80

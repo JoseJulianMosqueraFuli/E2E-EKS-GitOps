@@ -1,0 +1,116 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: kserve-system-network-policy
+  namespace: kserve-system
+  labels:
+    app.kubernetes.io/name: kserve
+    app.kubernetes.io/component: network-policy
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: kserve
+  policyTypes:
+  - Ingress
+  - Egress
+  ingress:
+  # Allow ingress from Kubernetes API server for webhooks
+  - from: []
+    ports:
+    - protocol: TCP
+      port: 9443
+  # Allow ingress from monitoring namespace for metrics scraping
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          name: monitoring
+    ports:
+    - protocol: TCP
+      port: 8080
+  # Allow ingress from Argo Workflows for deployment automation
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          name: argo-workflows
+    ports:
+    - protocol: TCP
+      port: 8080
+  egress:
+  # Allow egress to Kubernetes API server
+  - to: []
+    ports:
+    - protocol: TCP
+      port: 443
+    - protocol: TCP
+      port: 6443
+  # Allow egress to models namespace
+  - to:
+    - namespaceSelector:
+        matchLabels:
+          name: models
+  # Allow DNS resolution
+  - to: []
+    ports:
+    - protocol: UDP
+      port: 53
+    - protocol: TCP
+      port: 53
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: models-network-policy
+  namespace: models
+  labels:
+    app.kubernetes.io/name: kserve
+    app.kubernetes.io/component: network-policy
+spec:
+  podSelector:
+    matchLabels:
+      serving.kserve.io/inferenceservice: "true"
+  policyTypes:
+  - Ingress
+  - Egress
+  ingress:
+  # Allow ingress from istio-system for traffic routing
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          name: istio-system
+  # Allow ingress from knative-serving for serverless routing
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          name: knative-serving
+  # Allow ingress from monitoring namespace for metrics scraping
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          name: monitoring
+    ports:
+    - protocol: TCP
+      port: 8080
+  # Allow internal communication within models namespace
+  - from:
+    - podSelector: {}
+  egress:
+  # Allow egress to S3 for model artifacts
+  - to: []
+    ports:
+    - protocol: TCP
+      port: 443  # HTTPS
+  # Allow egress to MLflow for model metadata
+  - to:
+    - namespaceSelector:
+        matchLabels:
+          name: mlflow
+    ports:
+    - protocol: TCP
+      port: 5000
+  # Allow DNS resolution
+  - to: []
+    ports:
+    - protocol: UDP
+      port: 53
+    - protocol: TCP
+      port: 53

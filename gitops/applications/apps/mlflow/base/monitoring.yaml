@@ -1,0 +1,92 @@
+apiVersion: v1
+kind: ServiceMonitor
+metadata:
+  name: mlflow-server-metrics
+  namespace: mlflow
+  labels:
+    app.kubernetes.io/name: mlflow
+    app.kubernetes.io/component: monitoring
+spec:
+  selector:
+    matchLabels:
+      app: mlflow-server
+  endpoints:
+  - port: http
+    path: /metrics
+    interval: 30s
+    scrapeTimeout: 10s
+---
+apiVersion: v1
+kind: ServiceMonitor
+metadata:
+  name: postgres-metrics
+  namespace: mlflow
+  labels:
+    app.kubernetes.io/name: mlflow
+    app.kubernetes.io/component: database-monitoring
+spec:
+  selector:
+    matchLabels:
+      app: postgres
+  endpoints:
+  - port: postgres
+    interval: 30s
+    scrapeTimeout: 10s
+---
+# PrometheusRule for MLflow alerts
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: mlflow-alerts
+  namespace: mlflow
+  labels:
+    app.kubernetes.io/name: mlflow
+    app.kubernetes.io/component: alerting
+spec:
+  groups:
+  - name: mlflow.rules
+    rules:
+    - alert: MLflowServerDown
+      expr: up{job="mlflow-server-metrics"} == 0
+      for: 5m
+      labels:
+        severity: critical
+      annotations:
+        summary: "MLflow server is down"
+        description: "MLflow server has been down for more than 5 minutes"
+    
+    - alert: MLflowHighLatency
+      expr: histogram_quantile(0.95, rate(http_request_duration_seconds_bucket{job="mlflow-server-metrics"}[5m])) > 2
+      for: 10m
+      labels:
+        severity: warning
+      annotations:
+        summary: "MLflow server high latency"
+        description: "MLflow server 95th percentile latency is above 2 seconds"
+    
+    - alert: MLflowHighErrorRate
+      expr: rate(http_requests_total{job="mlflow-server-metrics",status=~"5.."}[5m]) / rate(http_requests_total{job="mlflow-server-metrics"}[5m]) > 0.1
+      for: 5m
+      labels:
+        severity: warning
+      annotations:
+        summary: "MLflow server high error rate"
+        description: "MLflow server error rate is above 10%"
+    
+    - alert: PostgreSQLDown
+      expr: up{job="postgres-metrics"} == 0
+      for: 2m
+      labels:
+        severity: critical
+      annotations:
+        summary: "PostgreSQL database is down"
+        description: "PostgreSQL database for MLflow has been down for more than 2 minutes"
+    
+    - alert: PostgreSQLHighConnections
+      expr: pg_stat_database_numbackends / pg_settings_max_connections > 0.8
+      for: 5m
+      labels:
+        severity: warning
+      annotations:
+        summary: "PostgreSQL high connection usage"
+        description: "PostgreSQL connection usage is above 80%"
