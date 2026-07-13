@@ -167,7 +167,7 @@ E2E-EKS-GitOps/
 │   ├── security-best-practices.md
 │   ├── mlops-enterprise-recommendations.md
 │   ├── PHASE2_IMPLEMENTATION_GUIDE.md
-│   └── PENDING.md                  # Backlog & pending items
+│   └── (PENDING.md removed — consolidated into backlog.md)
 │
 ├── .github/workflows/             # GitHub Actions
 │   ├── ci.yml                      # CI pipeline (Terraform, K8s, Python, Helm, Security)
@@ -527,7 +527,7 @@ A focused security audit was performed across Terraform, Kubernetes manifests, G
 | Security        | `docs/security-best-practices.md`          | mTLS, Gatekeeper guidelines |
 | Enterprise Recs | `docs/mlops-enterprise-recommendations.md` | Production recommendations  |
 | Phase 2 Guide   | `docs/PHASE2_IMPLEMENTATION_GUIDE.md`      | Implementation roadmap      |
-| Pending Items   | `docs/PENDING.md`                          | Backlog & open items        |
+| Backlog         | `backlog.md`                               | Canonical backlog & status  |
 | GitOps Setup    | `gitops/SETUP.md`                          | GitOps installation         |
 | GitOps README   | `gitops/README.md`                         | GitOps architecture         |
 
@@ -554,7 +554,7 @@ A focused security audit was performed across Terraform, Kubernetes manifests, G
 - **Feature Store (local)**: Feast feature repo with definitions, Parquet data sources, SQLite online store, and unit tests
 - **Security**: Pre-commit hooks (`detect-secrets`), `.secrets.baseline`, Trivy SARIF scanning
 
-### Pending ⏳ (from `docs/PENDING.md`)
+### Pending ⏳ (from `backlog.md`)
 
 **High Priority:**
 
@@ -592,4 +592,4 @@ A focused security audit was performed across Terraform, Kubernetes manifests, G
 
 ---
 
-_This implementation overview was generated from repository analysis. Last updated: 2026-06-25. For the latest state, always refer to the actual source code and `docs/PENDING.md`._
+_This implementation overview was generated from repository analysis. Last updated: 2026-07-13. For the latest state, always refer to the actual source code and `backlog.md`._

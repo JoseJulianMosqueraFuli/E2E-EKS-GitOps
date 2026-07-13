@@ -61,7 +61,6 @@ _Last updated: 2026-06-25_
 | -------------------------------------------------------------------------- | -------------------------------------------------------------------------------- |
 | [`../backlog.md`](../backlog.md)                                           | **Canonical backlog** — the full map of pending work (CRITICAL → LOW + roadmap). |
 | [`../critical.md`](../critical.md)                                         | Detailed CRITICAL/HIGH findings (CVSS, fix, owner). Sub-view of the backlog.     |
-| [`PENDING.md`](PENDING.md)                                                 | Product/roadmap-oriented status checklist. Sub-view of the backlog.              |
 | [`../VALIDATION_REPORT.md`](../VALIDATION_REPORT.md)                       | Point-in-time validation report (snapshot, not continuously updated).            |
 | [`../gitops/IMPLEMENTATION_STATUS.md`](../gitops/IMPLEMENTATION_STATUS.md) | GitOps-specific implementation status.                                           |
 | [`../gitops/TASK_1_SUMMARY.md`](../gitops/TASK_1_SUMMARY.md)               | GitOps Task 1 completion summary (historical record).                            |

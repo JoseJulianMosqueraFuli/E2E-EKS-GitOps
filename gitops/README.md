@@ -136,7 +136,7 @@ kubectl port-forward svc/argocd-server -n argocd 8080:443
 
 ### Pending
 
-See [docs/PENDING.md](../docs/PENDING.md) for the authoritative status. Key open items:
+See [backlog.md](../backlog.md) for the authoritative status. Key open items:
 
 - ⏳ **Kubecost / OpenCost**: Replace estimated cost dashboard with a real exporter
 - ⏳ **Feature Store with Feast**: Feature definitions, server, and online/offline backends
@@ -185,7 +185,7 @@ Tests validate:
 
 After completing this foundation:
 
-1. Review [docs/PENDING.md](../docs/PENDING.md) for the current backlog
+1. Review [backlog.md](../backlog.md) for the current backlog
 2. Run an end-to-end test on a real EKS cluster (Terraform → ArgoCD → MLflow → KServe)
 3. Wire ArgoCD Image Updater for automated image bumps
 4. Replace the estimated cost dashboard with Kubecost / OpenCost

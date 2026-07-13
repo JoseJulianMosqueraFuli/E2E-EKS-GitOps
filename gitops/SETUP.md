@@ -233,7 +233,7 @@ After completing this setup:
 4. **Add Feature Store (Feast)**: Definitions, server, and online/offline backends
 5. **Multi-cluster deployment**: ArgoCD ApplicationSet with cluster generator
 
-See [docs/PENDING.md](../docs/PENDING.md) for the prioritized backlog.
+See [backlog.md](../backlog.md) for the prioritized backlog.
 
 ## Security Considerations
 

@@ -1,8 +1,27 @@
 # Backlog Completo - E2E-EKS-GitOps
 
-**Mapa canónico de TODO el trabajo pendiente.**  
-Para detalles técnicos de issues CRÍTICOS y ALTOS, ver: [`critical.md`](critical.md)  
-Para items de producto y roadmap, ver: [`docs/PENDING.md`](docs/PENDING.md)
+**Mapa canónico de TODO el trabajo pendiente y completado.**  
+Para detalles técnicos de issues CRÍTICOS y ALTOS (CVSS, fix concreto), ver: [`critical.md`](critical.md)
+
+---
+
+## Completado (historial)
+
+- [x] Model Monitoring con Evidently - Detectar data drift y model drift automaticamente `(2026-05-16)`
+- [x] Dashboards de Grafana pre-configurados - Para MLflow, KServe, y metricas de modelos `(2026-05-16)`
+- [x] ArgoCD - GitOps real para deployment continuo `(2026-05-16)`
+- [x] Slack Notifications - Hook en ArgoCD annotations + Python notifier + Jenkins slackSend + Alertmanager config + ArgoCD Notifications Controller desplegado `(2026-05-19)` - COMPLETO
+- [x] Cost Monitoring - Dashboard de Grafana con costos estimados `(2026-05-16)` - Parcial: falta exportador real (Kubecost/OpenCost)
+- [x] Auto-retraining Pipeline - Template de 7 pasos con DAG y logica condicional. Reemplazado con carga real de MLflow y Evidently `(2026-05-19)` - COMPLETO
+- [x] CI/CD - GitHub Actions (CI + promotion) + Jenkins pipeline + promotion script con validacion `(2026-05-16)`
+- [x] Hardening de staging/prod - Labels corregidos, KMS 30d/14d, ECR IMMUTABLE en prod, node egress restringido en prod, backend S3 comments corregidos `(2026-05-19)` - COMPLETO
+- [x] A/B Testing Framework - WorkflowTemplate con experimentos, metricas estadisticas, auto-promotion `(2026-05-19)` - COMPLETO
+- [x] PyProject.toml packaging - Corregido mlops_platform a cli:main, mypy target 3.10 `(2026-05-19)`
+- [x] Documentacion sincronizada - READMEs, gitops/README, gitops/SETUP, IMPLEMENTATION_STATUS, VALIDATION_REPORT, quick-start y ml-platform guide alineados con el estado real del repo `(2026-05-20)`
+- [x] Documentacion re-sincronizada - Diagramas de estructura actualizados `(2026-05-31)`
+- [x] Reporte de auditoria completa - Revison de 120+ archivos, 6000+ lineas, hallazgos mapeados en `critical.md` y `backlog.md` `(2026-06-06)`
+- [x] Feature Store con Feast (parcial) - Feature repo local: definiciones en feature_definitions.py, datos parquet (model_features, transaction_stats, user_profile), online_store.db, registry.db, tests unitarios. Falta: backend productivo (Redis/DynamoDB), server K8s `(2026-06-07)`
+- [x] Codigo muerto eliminado - `ModelMonitor` duplicado, `CustomTransformers` sin uso, deps infladas (`dvc`, `awscli`, `kubernetes`) removidas `(2026-07-13)`
 
 ---
 
@@ -13,11 +32,21 @@ Para items de producto y roadmap, ver: [`docs/PENDING.md`](docs/PENDING.md)
 | Seguridad | 1 | 3 | 9 | 2 | 15 |
 | Infra (Terraform) | 0 | 4 | 6 | 2 | 12 |
 | GitOps / K8s | 0 | 3 | 8 | 3 | 14 |
-| Plataforma ML (Python) | 0 | 2 | 6 | 2 | 10 |
+| Plataforma ML (Python) | 0 | 2 | 2 | 2 | 6 |
 | Monitoreo | 0 | 2 | 4 | 2 | 8 |
 | CI/CD | 0 | 1 | 5 | 2 | 8 |
 | Arquitectura / Extras | 0 | 0 | 0 | 7 | 7 |
-| **TOTAL** | **1** | **15** | **38** | **20** | **74** |
+| **TOTAL** | **1** | **15** | **34** | **20** | **70** |
+
+> **4 MEDIUM items resueltos el 2026-07-13** (ModelMonitor duplicado, CustomTransformers, deps sin uso). Total anterior: 74 items.
+
+### Score estimado tras cada fase
+
+- Actual: ~85/100
+- Post Fase 1 (Criticos): ~91/100
+- Post Fase 2 (Altos): ~96/100
+- Post Fase 3+4 (Medios + GitOps): ~98/100
+- Post Fase 5+6 (e2e + Extras): ~99/100
 
 ---
 
@@ -59,7 +88,7 @@ Para items de producto y roadmap, ver: [`docs/PENDING.md`](docs/PENDING.md)
 
 ---
 
-## MEDIUM (38)
+## MEDIUM (34 pendientes, 4 resueltos)
 
 ### Istio / Service Mesh (5)
 
@@ -119,10 +148,10 @@ Para items de producto y roadmap, ver: [`docs/PENDING.md`](docs/PENDING.md)
 |---|-------|------------|
 | 28 | `prometheus-client` inconsistente: pyproject <0.17 vs Dockerfile 0.17.1 | `ml-platform/pyproject.toml`, `Dockerfile.monitoring` |
 | 29 | `LabelEncoder` incompatible con `ColumnTransformer` | `ml-platform/src/data/feature_engineering.py` |
-| 30 | Duplicacion de clase `ModelMonitor` | `src/utils/monitoring.py`, `src/monitoring/model_monitor.py` |
-| 31 | Transformers custom definidos pero nunca usados | `ml-platform/src/data/feature_engineering.py` |
-| 32 | `dvc`, `awscli`, `kubernetes` en deps sin uso evidente | `ml-platform/pyproject.toml` |
-| 33 | `awscli` como dependencia de libreria (deberia ser dev/extra) | `ml-platform/pyproject.toml` |
+| 30 | Duplicacion de clase `ModelMonitor` | `src/utils/monitoring.py`, `src/monitoring/model_monitor.py` | ✅ Corregido 2026-07-13 |
+| 31 | Transformers custom definidos pero nunca usados | `ml-platform/src/data/feature_engineering.py` | ✅ Corregido 2026-07-13 |
+| 32 | `dvc`, `awscli`, `kubernetes` en deps sin uso evidente | `ml-platform/pyproject.toml` | ✅ Corregido 2026-07-13 |
+| 33 | `awscli` como dependencia de libreria (deberia ser dev/extra) | `ml-platform/pyproject.toml` | ✅ Corregido 2026-07-13 |
 | 34 | Feast feature repo: falta backend productivo (Redis/DynamoDB) y deployment server K8s | `ml-platform/feature_repo/`, `k8s/mlops-stack/feast/` |
 
 ### Monitoreo (4)
@@ -215,5 +244,5 @@ Para items de producto y roadmap, ver: [`docs/PENDING.md`](docs/PENDING.md)
 
 ---
 
-*Ultima actualizacion: 2026-06-06*  
-*Fuentes: `critical.md`, `docs/PENDING.md`, revision manual de 120+ archivos*
+*Ultima actualizacion: 2026-07-13*  
+*Fuentes: `critical.md`, revision manual de 120+ archivos*

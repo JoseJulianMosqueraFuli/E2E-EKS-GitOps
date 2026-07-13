@@ -178,7 +178,7 @@ El proyecto ha sido **auditoría y corregido** en todas las áreas críticas y d
 
 ## 🚀 Próximos Pasos Recomendados
 
-> Ver [docs/PENDING.md](docs/PENDING.md) como fuente canonica del backlog.
+> Ver [backlog.md](backlog.md) como fuente canonica del backlog.
 
 ### 🟡 Prioridad MEDIA (cuando tengas cuenta AWS)
 
