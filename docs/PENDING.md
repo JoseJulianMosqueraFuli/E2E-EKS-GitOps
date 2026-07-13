@@ -88,11 +88,11 @@ Ver **`critical.md`** en la raiz del proyecto para detalles completos con CVSS, 
 
 **Plataforma ML:**
 - [ ] `prometheus-client` inconsistente entre `pyproject.toml` (<0.17) y `Dockerfile.monitoring` (0.17.1)
-- [ ] `LabelEncoder` incompatible con `ColumnTransformer` en `feature_engineering.py`
-- [ ] Duplicacion de clase `ModelMonitor` (`src/utils/monitoring.py` vs `src/monitoring/model_monitor.py`)
-- [ ] Transformers custom (`DateTimeFeatureExtractor`, `OutlierClipper`, etc.) definidos pero nunca usados
-- [ ] `dvc`, `awscli`, `kubernetes` declarados en `pyproject.toml` pero sin uso evidente en el codigo
-- [ ] `awscli` como dependencia de libreria (es una CLI, no deberia estar en un paquete Python)
+- [x] `LabelEncoder` incompatible con `ColumnTransformer` en `feature_engineering.py`
+- [x] Duplicacion de clase `ModelMonitor` (`src/utils/monitoring.py` vs `src/monitoring/model_monitor.py`) - eliminado `src/utils/monitoring.py` (`2026-07-13`)
+- [x] Transformers custom (`DateTimeFeatureExtractor`, `OutlierClipper`, etc.) definidos pero nunca usados - eliminada clase `CustomTransformers` de `feature_engineering.py` (`2026-07-13`)
+- [x] `dvc`, `awscli`, `kubernetes` declarados en `pyproject.toml` pero sin uso evidente en el codigo - removidos (`2026-07-13`)
+- [x] `awscli` como dependencia de libreria (es una CLI, no deberia estar en un paquete Python) - removido (`2026-07-13`)
 - [ ] Feast feature repo: falta backend productivo (Redis/DynamoDB) y server deployment en K8s
 
 **Monitoreo:**
