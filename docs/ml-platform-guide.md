@@ -322,21 +322,6 @@ X_selected = fe.select_features(
 selected_names = fe.get_selected_feature_names()
 ```
 
-### Transformadores Personalizados
-
-```python
-from ml_platform.src.data.feature_engineering import CustomTransformers
-
-# Extractor de features de fecha
-date_extractor = CustomTransformers.DateTimeFeatureExtractor(['created_at'])
-
-# Clipper de outliers
-outlier_clipper = CustomTransformers.OutlierClipper(['price', 'quantity'])
-
-# Features polinomiales
-poly_features = CustomTransformers.PolynomialFeatures(['feature_1'], degree=2)
-```
-
 ## ⚙️ Configuración
 
 ### ConfigManager

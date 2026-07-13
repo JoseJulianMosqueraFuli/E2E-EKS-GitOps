@@ -19,7 +19,6 @@ from sklearn.feature_selection import (
 )
 from sklearn.compose import ColumnTransformer
 from sklearn.pipeline import Pipeline
-from sklearn.base import BaseEstimator, TransformerMixin
 import joblib
 
 logger = logging.getLogger(__name__)
@@ -249,90 +248,6 @@ class FeatureEngineer:
         self.feature_names_out_ = pipeline_data['feature_names_out_']
         
         logger.info(f"Pipeline loaded from {filepath}")
-
-
-class CustomTransformers:
-    """Collection of custom transformers for specific use cases."""
-    
-    class DateTimeFeatureExtractor(BaseEstimator, TransformerMixin):
-        """Extract features from datetime columns."""
-        
-        def __init__(self, datetime_columns: List[str]):
-            self.datetime_columns = datetime_columns
-            
-        def fit(self, X, y=None):
-            return self
-            
-        def transform(self, X):
-            X_copy = X.copy()
-            
-            for col in self.datetime_columns:
-                if col in X_copy.columns:
-                    dt_col = pd.to_datetime(X_copy[col])
-                    
-                    # Extract features
-                    X_copy[f'{col}_year'] = dt_col.dt.year
-                    X_copy[f'{col}_month'] = dt_col.dt.month
-                    X_copy[f'{col}_day'] = dt_col.dt.day
-                    X_copy[f'{col}_dayofweek'] = dt_col.dt.dayofweek
-                    X_copy[f'{col}_hour'] = dt_col.dt.hour
-                    X_copy[f'{col}_is_weekend'] = dt_col.dt.dayofweek.isin([5, 6]).astype(int)
-                    
-                    # Drop original column
-                    X_copy = X_copy.drop(columns=[col])
-                    
-            return X_copy
-    
-    class OutlierClipper(BaseEstimator, TransformerMixin):
-        """Clip outliers using IQR method."""
-        
-        def __init__(self, columns: List[str], factor: float = 1.5):
-            self.columns = columns
-            self.factor = factor
-            self.bounds_ = {}
-            
-        def fit(self, X, y=None):
-            for col in self.columns:
-                if col in X.columns:
-                    Q1 = X[col].quantile(0.25)
-                    Q3 = X[col].quantile(0.75)
-                    IQR = Q3 - Q1
-                    
-                    lower_bound = Q1 - self.factor * IQR
-                    upper_bound = Q3 + self.factor * IQR
-                    
-                    self.bounds_[col] = (lower_bound, upper_bound)
-                    
-            return self
-            
-        def transform(self, X):
-            X_copy = X.copy()
-            
-            for col, (lower, upper) in self.bounds_.items():
-                if col in X_copy.columns:
-                    X_copy[col] = X_copy[col].clip(lower, upper)
-                    
-            return X_copy
-    
-    class PolynomialFeatures(BaseEstimator, TransformerMixin):
-        """Create polynomial features for specified columns."""
-        
-        def __init__(self, columns: List[str], degree: int = 2):
-            self.columns = columns
-            self.degree = degree
-            
-        def fit(self, X, y=None):
-            return self
-            
-        def transform(self, X):
-            X_copy = X.copy()
-            
-            for col in self.columns:
-                if col in X_copy.columns:
-                    for d in range(2, self.degree + 1):
-                        X_copy[f'{col}_poly_{d}'] = X_copy[col] ** d
-                        
-            return X_copy
 
 
 # Example usage
