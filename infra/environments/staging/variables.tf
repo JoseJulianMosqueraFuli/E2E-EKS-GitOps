@@ -30,6 +30,12 @@ variable "enable_nat_gateway" {
   default     = true
 }
 
+variable "node_egress_cidrs" {
+  description = "Extra CIDR blocks allowed in EKS node egress (corporate ranges, VPC peering, etc.). VPC CIDR is always included."
+  type        = list(string)
+  default     = []
+}
+
 variable "kubernetes_version" {
   description = "Kubernetes version"
   type        = string

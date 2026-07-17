@@ -49,7 +49,7 @@ provider "aws" {
 # Local variables
 locals {
   name_prefix = "mlops-staging"
-  
+
   common_tags = {
     Environment = "staging"
     Project     = "mlops-platform"
@@ -75,11 +75,14 @@ resource "aws_kms_alias" "main" {
 module "vpc" {
   source = "../../modules/vpc"
 
-  name_prefix           = local.name_prefix
-  vpc_cidr              = var.vpc_cidr
-  public_subnet_count   = var.public_subnet_count
-  private_subnet_count  = var.private_subnet_count
-  enable_nat_gateway    = var.enable_nat_gateway
+  name_prefix          = local.name_prefix
+  vpc_cidr             = var.vpc_cidr
+  public_subnet_count  = var.public_subnet_count
+  private_subnet_count = var.private_subnet_count
+  enable_nat_gateway   = var.enable_nat_gateway
+
+  # HIGH-003: Restrict node egress to VPC only, plus any extra CIDRs.
+  node_egress_cidrs = concat([var.vpc_cidr], var.node_egress_cidrs)
 
   tags = local.common_tags
 }
@@ -90,7 +93,7 @@ module "eks" {
 
   cluster_name       = "${local.name_prefix}-cluster"
   kubernetes_version = var.kubernetes_version
-  
+
   public_subnet_ids  = module.vpc.public_subnet_ids
   private_subnet_ids = module.vpc.private_subnet_ids
 
@@ -119,7 +122,7 @@ module "s3" {
   source = "../../modules/s3"
 
   kms_key_arn = aws_kms_key.main.arn
-  
+
   buckets = {
     raw_data = {
       name               = "${local.name_prefix}-raw-data"
@@ -179,7 +182,7 @@ module "ecr" {
   source = "../../modules/ecr"
 
   kms_key_arn = aws_kms_key.main.arn
-  
+
   repositories = {
     trainer = {
       name                 = "${local.name_prefix}-trainer"
@@ -270,7 +273,7 @@ module "glue" {
       name          = "${local.name_prefix}-raw-data-crawler"
       database_name = "${local.name_prefix}-raw-data"
       description   = "Crawler for raw ML data"
-      schedule      = "cron(0 2 * * ? *)"  # Daily at 2 AM
+      schedule      = "cron(0 2 * * ? *)" # Daily at 2 AM
       s3_targets = [
         {
           path = "s3://${module.s3.bucket_ids["raw_data"]}/"
@@ -286,7 +289,7 @@ module "glue" {
       name          = "${local.name_prefix}-curated-data-crawler"
       database_name = "${local.name_prefix}-curated-data"
       description   = "Crawler for curated ML data"
-      schedule      = "cron(0 3 * * ? *)"  # Daily at 3 AM
+      schedule      = "cron(0 3 * * ? *)" # Daily at 3 AM
       s3_targets = [
         {
           path = "s3://${module.s3.bucket_ids["curated_data"]}/"
@@ -304,7 +307,7 @@ module "glue" {
     training_data_quality = {
       name        = "${local.name_prefix}-training-data-quality"
       description = "Data quality rules for training data"
-      ruleset = <<-EOT
+      ruleset     = <<-EOT
         Rules = [
           ColumnCount > 0,
           IsComplete "feature_1",
