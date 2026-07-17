@@ -22,6 +22,9 @@ Para detalles técnicos de issues CRÍTICOS y ALTOS (CVSS, fix concreto), ver: [
 - [x] Reporte de auditoria completa - Revison de 120+ archivos, 6000+ lineas, hallazgos mapeados en `critical.md` y `backlog.md` `(2026-06-06)`
 - [x] Feature Store con Feast (parcial) - Feature repo local: definiciones en feature_definitions.py, datos parquet (model_features, transaction_stats, user_profile), online_store.db, registry.db, tests unitarios. Falta: backend productivo (Redis/DynamoDB), server K8s `(2026-06-07)`
 - [x] Codigo muerto eliminado - `ModelMonitor` duplicado, `CustomTransformers` sin uso, deps infladas (`dvc`, `awscli`, `kubernetes`) removidas `(2026-07-13)`
+- [x] Egress de nodos restringido a VPC en dev/staging y parametrizado en prod `(2026-07-13)`
+- [x] KServe Gateway con HTTPS redirect automatico `(2026-07-13)`
+- [x] `LabelEncoder` incompatible reemplazado por `OrdinalEncoder` en `categorical_strategy='label'` `(2026-07-13)`
 
 ---
 
@@ -30,15 +33,15 @@ Para detalles técnicos de issues CRÍTICOS y ALTOS (CVSS, fix concreto), ver: [
 | Area | CRITICAL | HIGH | MEDIUM | LOW | Total |
 |------|----------|------|--------|-----|-------|
 | Seguridad | 1 | 3 | 9 | 2 | 15 |
-| Infra (Terraform) | 0 | 4 | 6 | 2 | 12 |
-| GitOps / K8s | 0 | 3 | 8 | 3 | 14 |
-| Plataforma ML (Python) | 0 | 2 | 2 | 2 | 6 |
+| Infra (Terraform) | 0 | 2 | 6 | 2 | 10 |
+| GitOps / K8s | 0 | 2 | 8 | 3 | 13 |
+| Plataforma ML (Python) | 0 | 0 | 2 | 2 | 4 |
 | Monitoreo | 0 | 2 | 4 | 2 | 8 |
 | CI/CD | 0 | 1 | 5 | 2 | 8 |
 | Arquitectura / Extras | 0 | 0 | 0 | 7 | 7 |
-| **TOTAL** | **1** | **15** | **34** | **20** | **70** |
+| **TOTAL** | **1** | **10** | **34** | **20** | **65** |
 
-> **4 MEDIUM items resueltos el 2026-07-13** (ModelMonitor duplicado, CustomTransformers, deps sin uso). Total anterior: 74 items.
+> **4 HIGH + 1 MEDIUM resueltos el 2026-07-13**: HIGH-003 (egress), HIGH-004 (CIDR prod), HIGH-008 (KServe redirect), MEDIUM #29 (LabelEncoder), MEDIUM #30-33 (dead code/dependencies). Total anterior: 74 items.
 
 ### Score estimado tras cada fase
 
@@ -69,12 +72,12 @@ Para detalles técnicos de issues CRÍTICOS y ALTOS (CVSS, fix concreto), ver: [
 |----|-------|------------|-----|
 | HIGH-001 | Backend local Terraform | `infra/environments/*/main.tf` | Seguir checklist de activacion en `main.tf` (requiere cuenta AWS) |
 | HIGH-002 | Kubernetes 1.28 near EOL | `infra/modules/eks/variables.tf` | ✅ Actualizado a 1.32 (2026-06-09) |
-| HIGH-003 | Node egress sin restriccion | `infra/modules/vpc/variables.tf` | Restringir `node_egress_cidrs` |
-| HIGH-004 | CIDR hardcoded en prod | `infra/environments/prod/main.tf` | Parametrizar |
+| HIGH-003 | Node egress sin restriccion | `infra/environments/dev/main.tf`, `infra/environments/staging/main.tf` | ✅ Restringido a `var.vpc_cidr` (2026-07-13) |
+| HIGH-004 | CIDR hardcoded en prod | `infra/environments/prod/main.tf` | ✅ Parametrizado con `var.vpc_cidr` + `var.node_egress_cidrs` (2026-07-13) |
 | HIGH-005 | Feast `latest` tag | `k8s/mlops-stack/feast/feast-server.yaml` | ✅ Pineado a `0.40.1` en `gitops/applications/apps/feast/base/kustomization.yaml` (2026-06-26) |
 | HIGH-006 | Evidently `latest` tag | `gitops/charts/monitoring-stack/values.yaml` | Pinear version |
 | HIGH-007 | Workflow templates `latest` tags | `argo-workflows/workflow-templates/*.yaml` | Pinear version |
-| HIGH-008 | KServe HTTP sin HTTPS redirect | `k8s/mlops-stack/kserve/istio-config.yaml` | Forzar HTTPS |
+| HIGH-008 | KServe HTTP sin HTTPS redirect | `gitops/applications/apps/kserve/base/istio-config.yaml` | ✅ Agregado `tls.httpsRedirect: true` (2026-07-13) |
 
 ### Plataforma / Monitoreo (5)
 
@@ -147,7 +150,7 @@ Para detalles técnicos de issues CRÍTICOS y ALTOS (CVSS, fix concreto), ver: [
 | # | Issue | Archivo(s) |
 |---|-------|------------|
 | 28 | `prometheus-client` inconsistente: pyproject <0.17 vs Dockerfile 0.17.1 | `ml-platform/pyproject.toml`, `Dockerfile.monitoring` |
-| 29 | `LabelEncoder` incompatible con `ColumnTransformer` | `ml-platform/src/data/feature_engineering.py` |
+| 29 | `LabelEncoder` incompatible con `ColumnTransformer` | `ml-platform/src/data/feature_engineering.py` | ✅ Corregido 2026-07-13 |
 | 30 | Duplicacion de clase `ModelMonitor` | `src/utils/monitoring.py`, `src/monitoring/model_monitor.py` | ✅ Corregido 2026-07-13 |
 | 31 | Transformers custom definidos pero nunca usados | `ml-platform/src/data/feature_engineering.py` | ✅ Corregido 2026-07-13 |
 | 32 | `dvc`, `awscli`, `kubernetes` en deps sin uso evidente | `ml-platform/pyproject.toml` | ✅ Corregido 2026-07-13 |

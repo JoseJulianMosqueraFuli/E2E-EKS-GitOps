@@ -17,6 +17,8 @@ spec:
       protocol: HTTP
     hosts:
     - "*.models.example.com"
+    tls:
+      httpsRedirect: true
   - port:
       number: 443
       name: https

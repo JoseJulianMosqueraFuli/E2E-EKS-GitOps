@@ -14,7 +14,7 @@ This document lists all **CRITICAL** and **HIGH** severity findings identified d
 | Severity | Count | Status |
 |----------|-------|--------|
 | CRITICAL | 4 | 3 Fixed, 1 Open (CRIT-004) |
-| HIGH | 13 | 6 Fixed (HIGH-002, 005, 009, 010, 011, 012), 7 Open |
+| HIGH | 13 | 9 Fixed (HIGH-002, 003, 004, 005, 008, 009, 010, 011, 012), 4 Open |
 
 ---
 
@@ -137,22 +137,24 @@ This document lists all **CRITICAL** and **HIGH** severity findings identified d
 
 ---
 
-### HIGH-003: Unrestricted Node Egress in Dev/Staging
+### HIGH-003: Unrestricted Node Egress in Dev/Staging — FIXED
 
-- **File**: `infra/modules/vpc/variables.tf`
-- **Issue**: `node_egress_cidrs` defaults to `["0.0.0.0/0"]`.
-- **Impact**: EKS nodes can initiate outbound connections to any IP on the internet.
-- **Fix**: Restrict to VPC CIDR and required corporate ranges.
+- **File**: `infra/environments/dev/main.tf`, `infra/environments/staging/main.tf`, `infra/modules/vpc/variables.tf`
+- **Issue**: `node_egress_cidrs` defaulted to `["0.0.0.0/0"]` in dev/staging.
+- **Impact**: EKS nodes could initiate outbound connections to any IP on the internet.
+- **Fix**: Override `node_egress_cidrs` to `[var.vpc_cidr]` plus optional extra CIDRs via `var.node_egress_cidrs`.
+- **Status**: ✅ Fixed 2026-07-13
 - **Owner**: Network / Infrastructure Team
 
 ---
 
-### HIGH-004: Hardcoded CIDR in Production Egress
+### HIGH-004: Hardcoded CIDR in Production Egress — FIXED
 
 - **File**: `infra/environments/prod/main.tf`
-- **Issue**: `node_egress_cidrs` hardcodes `"10.0.0.0/8"`.
+- **Issue**: `node_egress_cidrs` hardcoded `"10.0.0.0/8"`.
 - **Impact**: If VPC CIDR doesn't belong to `10.0.0.0/8`, the rule is inconsistent.
-- **Fix**: Derive from a variable or `var.vpc_cidr`.
+- **Fix**: Derive egress from `var.vpc_cidr` plus optional extra CIDRs from `var.node_egress_cidrs`.
+- **Status**: ✅ Fixed 2026-07-13
 - **Owner**: Infrastructure Team
 
 ---
@@ -187,12 +189,13 @@ This document lists all **CRITICAL** and **HIGH** severity findings identified d
 
 ---
 
-### HIGH-008: KServe HTTP Without HTTPS Redirect
+### HIGH-008: KServe HTTP Without HTTPS Redirect — FIXED
 
-- **File**: `k8s/mlops-stack/kserve/istio-config.yaml`
+- **File**: `gitops/applications/apps/kserve/base/istio-config.yaml`
 - **Issue**: Gateway exposes port 80 HTTP without automatic redirect to HTTPS.
 - **Impact**: Users may accidentally use unencrypted channels.
-- **Fix**: Add HTTPS redirect in Istio Gateway configuration.
+- **Fix**: Add `tls.httpsRedirect: true` to the HTTP server in the Istio Gateway.
+- **Status**: ✅ Fixed 2026-07-13
 - **Owner**: Platform Team
 
 ---
@@ -266,8 +269,10 @@ This document lists all **CRITICAL** and **HIGH** severity findings identified d
 | P1 | HIGH-013: Remove `\|\| true` from CI | 1h | DevOps | Open |
 | P2 | HIGH-001: Terraform S3 backend (requires AWS account) | 2h | Infrastructure | Open (needs AWS) |
 | P2 | HIGH-002: Upgrade Kubernetes | 4h | Infrastructure | ✅ Fixed 2026-06-09 |
+| P2 | HIGH-003: Node egress restricted to VPC | 30min | Infrastructure | ✅ Fixed 2026-07-13 |
+| P2 | HIGH-004: Production egress no longer hardcoded | 30min | Infrastructure | ✅ Fixed 2026-07-13 |
+| P2 | HIGH-008: KServe HTTPS redirect | 2h | Platform | ✅ Fixed 2026-07-13 |
 | P2 | HIGH-009 & HIGH-010: Grafana/Prometheus persistence | 3h | Platform | ✅ Fixed 2026-06-08 |
-| P2 | HIGH-008: KServe HTTPS redirect | 2h | Platform | Open |
 
 ---
 
