@@ -77,6 +77,7 @@ _Last updated: 2026-06-25_
 | Critical & high issues     | [`critical.md`](../critical.md)                                                  |
 | Local ML usage             | [`ml-platform-guide.md`](ml-platform-guide.md)                                   |
 | GitOps install             | [`../gitops/SETUP.md`](../gitops/SETUP.md)                                       |
+| Chaos engineering proposal | [`chaos-engineering-proposal.md`](chaos-engineering-proposal.md)                 |
 
 ---
 
