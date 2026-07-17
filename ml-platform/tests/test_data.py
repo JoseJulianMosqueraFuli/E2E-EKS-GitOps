@@ -218,6 +218,30 @@ class TestFeatureEngineer:
         X_transformed_test = fe.transform(X_test)
         
         assert X_transformed_train.shape[1] == X_transformed_test.shape[1]
+
+    def test_label_strategy_with_multiple_categorical_columns(self, sample_data):
+        """Regression test: categorical_strategy='label' must work with multiple columns.
+
+        Previously used LabelEncoder which is 1D-only and crashes inside ColumnTransformer.
+        Now it should map to OrdinalEncoder and produce one column per categorical feature.
+        """
+        fe = FeatureEngineer()
+        numeric_features = ['numeric_1', 'numeric_2', 'numeric_3']
+        categorical_features = ['categorical_1', 'categorical_2']
+
+        fe.create_preprocessor(
+            numeric_features=numeric_features,
+            categorical_features=categorical_features,
+            categorical_strategy='label'
+        )
+
+        X = sample_data.drop('target', axis=1)
+        X_transformed = fe.fit_transform(X)
+
+        assert fe.is_fitted
+        assert X_transformed.shape[0] == X.shape[0]
+        # 3 numeric + 2 categorical = 5 output columns
+        assert X_transformed.shape[1] == len(numeric_features) + len(categorical_features)
     
     def test_feature_selection(self, sample_data):
         """Test feature selection."""

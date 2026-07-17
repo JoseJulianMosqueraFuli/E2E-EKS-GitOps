@@ -11,7 +11,7 @@ import numpy as np
 from typing import List, Dict, Optional, Union, Tuple, Any
 from sklearn.preprocessing import (
     StandardScaler, MinMaxScaler, RobustScaler,
-    LabelEncoder, OneHotEncoder, OrdinalEncoder
+    OneHotEncoder, OrdinalEncoder
 )
 from sklearn.feature_selection import (
     SelectKBest, SelectPercentile, RFE, RFECV,
@@ -60,10 +60,12 @@ class FeatureEngineer:
         }
         
         # Categorical transformers
+        # Note: 'label' uses OrdinalEncoder because LabelEncoder is 1D-only and
+        # incompatible with ColumnTransformer (it expects one column per transformer).
         categorical_transformers = {
             'onehot': OneHotEncoder(drop='first', sparse_output=False, handle_unknown='ignore'),
             'ordinal': OrdinalEncoder(handle_unknown='use_encoded_value', unknown_value=-1),
-            'label': LabelEncoder()
+            'label': OrdinalEncoder(handle_unknown='use_encoded_value', unknown_value=-1)
         }
         
         # Build transformers list
