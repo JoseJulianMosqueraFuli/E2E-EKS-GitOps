@@ -12,11 +12,12 @@ labels:
     includeSelectors: false
 
 patches:
-  # MLflow server: 1 replica for dev
+  # MLflow server: 2 replicas for dev (required for realistic Phase 1 chaos testing).
+  # HPA already has minReplicas=2, so this aligns the Deployment with the autoscaler.
   - patch: |
       - op: replace
         path: /spec/replicas
-        value: 1
+        value: 2
     target:
       kind: Deployment
       name: mlflow-server

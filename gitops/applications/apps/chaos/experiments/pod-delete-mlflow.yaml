@@ -25,8 +25,10 @@ spec:
               value: "10"
             - name: FORCE
               value: "false"
+            # Affect only one pod so the Deployment remains available during chaos.
+            # MLflow runs with 2 replicas; losing 1 should not cause downtime.
             - name: PODS_AFFECTED_PERC
-              value: "100"
+              value: "50"
           experimentAnnotations:
             environment: dev
             target-service: mlflow

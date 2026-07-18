@@ -6,7 +6,9 @@ metadata:
   annotations:
     argocd.argoproj.io/sync-wave: "2"
 spec:
-  replicas: 1
+  # Replicas aligned with HPA minReplicas (2). If one pod is deleted (e.g. chaos
+  # engineering), the other keeps serving while Kubernetes recreates the failed one.
+  replicas: 2
   selector:
     matchLabels:
       app: mlflow-server
