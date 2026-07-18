@@ -1,0 +1,33 @@
+apiVersion: litmuschaos.io/v1alpha1
+kind: ChaosEngine
+metadata:
+  name: mlflow-pod-delete
+  namespace: litmus
+  labels:
+    app.kubernetes.io/name: mlflow-pod-delete
+    app.kubernetes.io/component: chaos-experiment
+    environment: dev
+spec:
+  appinfo:
+    appns: "mlflow"
+    applabel: "app=mlflow-server"
+    appkind: "deployment"
+  engineState: "active"
+  chaosServiceAccount: litmus-admin
+  experiments:
+    - name: pod-delete
+      spec:
+        components:
+          env:
+            - name: TOTAL_CHAOS_DURATION
+              value: "60"
+            - name: CHAOS_INTERVAL
+              value: "10"
+            - name: FORCE
+              value: "false"
+            - name: PODS_AFFECTED_PERC
+              value: "100"
+          experimentAnnotations:
+            environment: dev
+            target-service: mlflow
+            phase: "phase-1-pod-chaos"

@@ -2,7 +2,7 @@ apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 
 resources:
-  - ../base
+  - ../../base
 
 # Dev-specific patches (e.g., smaller PVCs, lower resource limits) can be added here.
 # For now, the base configuration is sufficient for dev chaos testing.
