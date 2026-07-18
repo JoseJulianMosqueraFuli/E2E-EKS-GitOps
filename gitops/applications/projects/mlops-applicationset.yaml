@@ -36,6 +36,9 @@ spec:
                 - app: istio
                   namespace: istio-system
                   component: service-mesh
+                - app: chaos
+                  namespace: litmus
+                  component: chaos-engineering
           - list:
               elements:
                 - environment: dev

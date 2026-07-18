@@ -1,0 +1,51 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: litmus-cluster-role
+  labels:
+    app.kubernetes.io/name: litmus
+    app.kubernetes.io/component: rbac
+rules:
+  # Core API access required by Litmus experiments
+  - apiGroups: [""]
+    resources: ["pods", "pods/exec", "pods/log", "events", "services", "configmaps", "secrets", "nodes", "namespaces"]
+    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+  - apiGroups: ["apps"]
+    resources: ["deployments", "statefulsets", "daemonsets", "replicasets"]
+    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+  - apiGroups: ["batch"]
+    resources: ["jobs", "cronjobs"]
+    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+  # Litmus CRDs
+  - apiGroups: ["litmuschaos.io"]
+    resources: ["chaosengines", "chaosexperiments", "chaosresults"]
+    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+  # ArgoCD/Flux access for GitOps-related experiments
+  - apiGroups: ["argoproj.io"]
+    resources: ["applications", "appprojects"]
+    verbs: ["get", "list", "watch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: litmus-cluster-role-binding
+  labels:
+    app.kubernetes.io/name: litmus
+    app.kubernetes.io/component: rbac
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: litmus-cluster-role
+subjects:
+  - kind: ServiceAccount
+    name: litmus-admin
+    namespace: litmus
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: litmus-admin
+  namespace: litmus
+  labels:
+    app.kubernetes.io/name: litmus
+    app.kubernetes.io/component: rbac
