@@ -45,6 +45,12 @@ data:
           - source_labels: [__meta_kubernetes_pod_annotation_prometheus_kserve_io_scrape]
             action: keep
             regex: true
+
+      - job_name: 'litmus-chaos-exporter'
+        static_configs:
+          - targets: ['litmus-chaos-exporter.litmus.svc.cluster.local:8080']
+        metrics_path: /metrics
+        scrape_interval: 15s
 ---
 apiVersion: v1
 kind: ConfigMap

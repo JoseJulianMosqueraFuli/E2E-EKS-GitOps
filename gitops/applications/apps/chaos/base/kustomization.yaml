@@ -7,6 +7,7 @@ resources:
   - namespace.yaml
   - litmus.yaml
   - rbac.yaml
+  - metrics-service.yaml
 
 commonLabels:
   app.kubernetes.io/name: litmus
