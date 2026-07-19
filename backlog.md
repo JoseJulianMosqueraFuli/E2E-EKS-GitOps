@@ -222,7 +222,7 @@ Para detalles técnicos de issues CRÍTICOS y ALTOS (CVSS, fix concreto), ver: [
 | 10 | Troubleshooting guide | Basado en experiencia real de deploy | Baja |
 | 11 | Actualizar pre-commit hooks | detect-secrets, terraform_fmt, etc. | Baja |
 | 12 | Actualizar versiones EKS addons | Fijar versiones de EBS CSI, VPC CNI, etc. | Baja |
-| 13 | Chaos Engineering | Implementar LitmusChaos: pod-delete, node-loss, dependency failure, ML pipeline chaos. Ver [`chaos-engineering-proposal.md`](docs/chaos-engineering-proposal.md). Base + ArgoCD app + primer experimento creados (`2026-07-13`). | Media |
+| 13 | Chaos Engineering | Phase 1 completo: Litmus base + ArgoCD app + 4 experimentos (MLflow, KServe, ArgoCD, CPU hog) + workflow de validacion + Prometheus metrics. Ver [`chaos-engineering-proposal.md`](docs/chaos-engineering-proposal.md). | Media |
 
 ---
 
