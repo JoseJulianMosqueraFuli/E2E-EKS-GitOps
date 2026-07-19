@@ -1,0 +1,173 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Workflow
+metadata:
+  name: mlflow-resilience-test
+  namespace: argo-workflows
+  labels:
+    app.kubernetes.io/name: mlflow-resilience-test
+    app.kubernetes.io/component: chaos-validation
+    environment: dev
+spec:
+  serviceAccountName: default
+  entrypoint: resilience-test
+  arguments:
+    parameters:
+      - name: mlflow_url
+        value: "http://mlflow-server.mlflow.svc.cluster.local:5000"
+      - name: chaos_duration
+        value: "60"
+      - name: max_acceptable_downtime_seconds
+        value: "5"
+  templates:
+    - name: resilience-test
+      steps:
+        - - name: pre-check
+            template: mlflow-health-check
+            arguments:
+              parameters:
+                - name: expected_replicas
+                  value: "2"
+
+        - - name: start-chaos
+            template: run-chaos-experiment
+
+        - - name: monitor-during-chaos
+            template: continuous-health-check
+            arguments:
+              parameters:
+                - name: duration
+                  value: "{{workflow.parameters.chaos_duration}}"
+
+        - - name: post-check
+            template: mlflow-health-check
+            arguments:
+              parameters:
+                - name: expected_replicas
+                  value: "2"
+
+        - - name: log-test-run
+            template: mlflow-log-run
+
+        - - name: report
+            template: report-results
+            arguments:
+              parameters:
+                - name: downtime
+                  value: "{{steps.monitor-during-chaos.outputs.parameters.max_downtime}}"
+
+    - name: mlflow-health-check
+      inputs:
+        parameters:
+          - name: expected_replicas
+      script:
+        image: bitnami/kubectl:1.32
+        command: [sh]
+        source: |
+          echo "Checking MLflow has {{inputs.parameters.expected_replicas}} ready replicas..."
+          ready=$(kubectl get deployment mlflow-server -n mlflow -o jsonpath='{.status.readyReplicas}')
+          if [ "$ready" != "{{inputs.parameters.expected_replicas}}" ]; then
+            echo "ERROR: expected {{inputs.parameters.expected_replicas}} ready replicas, got $ready"
+            exit 1
+          fi
+          echo "OK: $ready replicas ready"
+
+          echo "Checking MLflow /health..."
+          code=$(curl -s -o /dev/null -w "%{http_code}" "{{workflow.parameters.mlflow_url}}/health")
+          if [ "$code" != "200" ]; then
+            echo "ERROR: /health returned $code"
+            exit 1
+          fi
+          echo "OK: /health is 200"
+
+    - name: run-chaos-experiment
+      resource:
+        action: apply
+        manifest: |
+          apiVersion: litmuschaos.io/v1alpha1
+          kind: ChaosEngine
+          metadata:
+            name: mlflow-pod-delete
+            namespace: litmus
+          spec:
+            appinfo:
+              appns: "mlflow"
+              applabel: "app=mlflow-server"
+              appkind: "deployment"
+            engineState: "active"
+            chaosServiceAccount: litmus-admin
+            experiments:
+              - name: pod-delete
+                spec:
+                  components:
+                    env:
+                      - name: TOTAL_CHAOS_DURATION
+                        value: "{{workflow.parameters.chaos_duration}}"
+                      - name: CHAOS_INTERVAL
+                        value: "10"
+                      - name: FORCE
+                        value: "false"
+                      - name: PODS_AFFECTED_PERC
+                        value: "50"
+
+    - name: continuous-health-check
+      inputs:
+        parameters:
+          - name: duration
+      outputs:
+        parameters:
+          - name: max_downtime
+            valueFrom:
+              path: /tmp/max_downtime.txt
+      script:
+        image: curlimages/curl:8.5.0
+        command: [sh]
+        source: |
+          max_downtime=0
+          consecutive_failures=0
+          end=$((SECONDS + {{inputs.parameters.duration}}))
+          while [ $SECONDS -lt $end ]; do
+            code=$(curl -s -o /dev/null -w "%{http_code}" --max-time 2 "{{workflow.parameters.mlflow_url}}/health" || echo "000")
+            if [ "$code" != "200" ]; then
+              consecutive_failures=$((consecutive_failures + 1))
+              if [ $consecutive_failures -gt $max_downtime ]; then
+                max_downtime=$consecutive_failures
+              fi
+            else
+              consecutive_failures=0
+            fi
+            sleep 1
+          done
+          echo "Max consecutive failed seconds: $max_downtime"
+          echo "$max_downtime" > /tmp/max_downtime.txt
+
+    - name: mlflow-log-run
+      script:
+        image: python:3.11-slim
+        command: [python]
+        source: |
+          import mlflow
+          import os
+          mlflow.set_tracking_uri("{{workflow.parameters.mlflow_url}}")
+          with mlflow.start_run(run_name="chaos-resilience-test"):
+              mlflow.log_param("workflow", "{{workflow.name}}")
+              mlflow.log_param("test", "mlflow-resilience")
+              mlflow.log_metric("value", 1.0)
+          print("MLflow run logged successfully after chaos")
+
+    - name: report-results
+      inputs:
+        parameters:
+          - name: downtime
+      script:
+        image: alpine:3.19
+        command: [sh]
+        source: |
+          echo "=== MLflow Resilience Test Report ==="
+          echo "Workflow: {{workflow.name}}"
+          echo "Max consecutive /health failures: {{inputs.parameters.downtime}} seconds"
+          if [ "{{inputs.parameters.downtime}}" -gt "{{workflow.parameters.max_acceptable_downtime_seconds}}" ]; then
+            echo "RESULT: FAIL (downtime > {{workflow.parameters.max_acceptable_downtime_seconds}}s)"
+            exit 1
+          else
+            echo "RESULT: PASS (downtime <= {{workflow.parameters.max_acceptable_downtime_seconds}}s)"
+          fi
