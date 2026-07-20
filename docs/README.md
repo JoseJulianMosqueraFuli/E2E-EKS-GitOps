@@ -78,6 +78,7 @@ _Last updated: 2026-06-25_
 | Local ML usage             | [`ml-platform-guide.md`](ml-platform-guide.md)                                   |
 | GitOps install             | [`../gitops/SETUP.md`](../gitops/SETUP.md)                                       |
 | Chaos engineering proposal | [`chaos-engineering-proposal.md`](chaos-engineering-proposal.md)                 |
+| AWS cost estimation        | [`cost-estimation.md`](cost-estimation.md)                                       |
 
 ---
 
