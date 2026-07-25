@@ -2,12 +2,13 @@
 o
 P
 user_id%Unique identifier for the user/record"user_idJmlops_feature_store
-©ÀƒÑø¬æ(µ—æÒ¨¦ÍÖ
+©ÀƒÑø¬æ(¹æùÒøïÂì
 I
 *
 __dummy"
 __dummy_idJmlops_feature_store
-©ÀƒÑğüè(µ—æÒ€ËÓÖ1"$2012bd41-8350-4195-841d-111b9aa58f8d*µ—æÒ€Éû¸2Á
+©ÀƒÑğüè(¹æùÒ¨ÎÈì1"$0396b22e-e5d4-40a1-a975-c2fe2086a441*ºæùÒÀø¢
+2ı
 ´
 transaction_statsmlops_feature_storeuser_id"
 amount_mean"
@@ -17,8 +18,8 @@ amount_std"
 days_since_last*
 domainfraud*
 teammlops2€£:şevent_timestampZZX/home/jose/Github/E2E-EKS-GitOps/ml-platform/feature_repo/data/transaction_stats.parquetŠ1feast.infra.offline_stores.file_source.FileSource¢X/home/jose/Github/E2E-EKS-GitOps/ml-platform/feature_repo/data/transaction_stats.parquet@b
-user_id‡
-©ÀƒÑøƒÊ(µ—æÒØÓÕ’
+user_idÃ
+©ÀƒÑøƒÊ(¹æùÒ¸Å·
 ÈşĞàôõ…ÈÀƒÑˆ”†…
 ÈÀƒÑˆ”†…İÀƒÑøÑöá
 İÀƒÑøÑöáÊÂƒÑ°ß»×
@@ -26,7 +27,9 @@ amount_std"
 ÔÛ›ÑÀÍı(ĞñÔÒ°Æ´p
 ĞñÔÒ°Æ´p¬óÔÒ îËô
 ¬óÔÒ îËôË•æÒàòËµ
-Ë•æÒàòËµµ—æÒÈ·ÿ2³
+Ë•æÒàòËµµ—æÒÈ·ÿ
+µ—æÒÈ·ÿ‚šïÒ æ‰ú
+‚šïÒ æ‰ú¹æùÒØÿº¡2ï
 ¦
 user_profilemlops_feature_storeuser_id"
 	age_group"
@@ -35,8 +38,8 @@ amount_std"
 engagement_score*
 domainuser*
 teammlops2€õ$:ôevent_timestampZUS/home/jose/Github/E2E-EKS-GitOps/ml-platform/feature_repo/data/user_profile.parquetŠ1feast.infra.offline_stores.file_source.FileSource¢S/home/jose/Github/E2E-EKS-GitOps/ml-platform/feature_repo/data/user_profile.parquet@b
-user_id‡
-©ÀƒÑ˜ˆÓ(µ—æÒÈì¥
+user_idÃ
+©ÀƒÑ˜ˆÓ(¹æùÒĞ¢ÅÍ
 ÈËŞĞÈÄŸÈÀƒÑˆ”†…
 ÈÀƒÑˆ”†…İÀƒÑøÑöá
 İÀƒÑøÑöáÊÂƒÑ°ß»×
@@ -44,7 +47,9 @@ amount_std"
 ÔÛ›ÑÀÍı(ĞñÔÒ°Æ´p
 ĞñÔÒ°Æ´p¬óÔÒ îËô
 ¬óÔÒ îËôË•æÒàòËµ
-Ë•æÒàòËµµ—æÒÈ·ÿ2¶
+Ë•æÒàòËµµ—æÒÈ·ÿ
+µ—æÒÈ·ÿ‚šïÒ æ‰ú
+‚šïÒ æ‰ú¹æùÒØÿº¡2ñ
 ©
 model_featuresmlops_feature_storeuser_id"
 	feature_1"
@@ -54,8 +59,9 @@ amount_std"
 	feature_5*
 domainmodel*
 teammlops2à¨:øevent_timestampZWU/home/jose/Github/E2E-EKS-GitOps/ml-platform/feature_repo/data/model_features.parquetŠ1feast.infra.offline_stores.file_source.FileSource¢U/home/jose/Github/E2E-EKS-GitOps/ml-platform/feature_repo/data/model_features.parquet@b
-user_id‡
-©ÀƒÑ˜çİ(µ—æÒØ»è¸
+user_idÂ
+©ÀƒÑ˜çİ(ºæùÒÈÛ
+
 è—‚ÑÍ¶ÈÀƒÑˆ”†…
 ÈÀƒÑˆ”†…İÀƒÑøÑöá
 İÀƒÑøÑöáÊÂƒÑ°ß»×
@@ -63,5 +69,7 @@ amount_std"
 ÔÛ›ÑÀÍı(ĞñÔÒ°Æ´p
 ĞñÔÒ°Æ´p¬óÔÒ îËô
 ¬óÔÒ îËôË•æÒàòËµ
-Ë•æÒàòËµµ—æÒÈ·ÿb”event_timestampZZX/home/jose/Github/E2E-EKS-GitOps/ml-platform/feature_repo/data/transaction_stats.parquetŠ1feast.infra.offline_stores.file_source.FileSource¢X/home/jose/Github/E2E-EKS-GitOps/ml-platform/feature_repo/data/transaction_stats.parquetªmlops_feature_storebevent_timestampZWU/home/jose/Github/E2E-EKS-GitOps/ml-platform/feature_repo/data/model_features.parquetŠ1feast.infra.offline_stores.file_source.FileSource¢U/home/jose/Github/E2E-EKS-GitOps/ml-platform/feature_repo/data/model_features.parquetªmlops_feature_storebŠevent_timestampZUS/home/jose/Github/E2E-EKS-GitOps/ml-platform/feature_repo/data/user_profile.parquetŠ1feast.infra.offline_stores.file_source.FileSource¢S/home/jose/Github/E2E-EKS-GitOps/ml-platform/feature_repo/data/user_profile.parquetªmlops_feature_storez;
+Ë•æÒàòËµµ—æÒÈ·ÿ
+µ—æÒÈ·ÿ‚šïÒ æ‰ú
+‚šïÒ æ‰ú¹æùÒØÿº¡bŠevent_timestampZUS/home/jose/Github/E2E-EKS-GitOps/ml-platform/feature_repo/data/user_profile.parquetŠ1feast.infra.offline_stores.file_source.FileSource¢S/home/jose/Github/E2E-EKS-GitOps/ml-platform/feature_repo/data/user_profile.parquetªmlops_feature_storebevent_timestampZWU/home/jose/Github/E2E-EKS-GitOps/ml-platform/feature_repo/data/model_features.parquetŠ1feast.infra.offline_stores.file_source.FileSource¢U/home/jose/Github/E2E-EKS-GitOps/ml-platform/feature_repo/data/model_features.parquetªmlops_feature_storeb”event_timestampZZX/home/jose/Github/E2E-EKS-GitOps/ml-platform/feature_repo/data/transaction_stats.parquetŠ1feast.infra.offline_stores.file_source.FileSource¢X/home/jose/Github/E2E-EKS-GitOps/ml-platform/feature_repo/data/transaction_stats.parquetªmlops_feature_storez;
 mlops_feature_store$af925334-f879-4d5c-b1d9-61f14305c77b
