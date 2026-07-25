@@ -72,37 +72,22 @@ A dedicated `ServiceAccount` `litmus-admin` in the `litmus` namespace bound to a
 
 ## How to run an experiment
 
-### Realistic Phase 1: `pod-delete-mlflow` + resilience validation
+### Phase 1 experiments
 
-This is not just “kill a pod”. The goal is to prove that **deleting one MLflow pod does not cause downtime** because the Deployment runs with 2 replicas.
+#### 1. MLflow pod-delete (recommended first experiment)
 
-#### 1. Verify MLflow is HA
+**Goal**: Prove that deleting one MLflow pod does not cause downtime because the Deployment runs with 2 replicas.
 
 ```bash
+# Verify MLflow is HA first
 kubectl get deployment mlflow-server -n mlflow
 # READY should be 2/2
-```
 
-If it is not, check that the `HorizontalPodAutoscaler` minimum is 2 and the Deployment `replicas` is 2.
-
-#### 2. Run the resilience workflow (recommended)
-
-```bash
+# Run via Argo Workflow (recommended)
 kubectl apply -f gitops/applications/apps/chaos/workflows/mlflow-resilience-test.yaml
 argo submit --watch gitops/applications/apps/chaos/workflows/mlflow-resilience-test.yaml -n argo-workflows
-```
 
-The workflow:
-1. Pre-check: verifies 2 healthy MLflow replicas.
-2. Starts the `pod-delete` ChaosEngine (affects only 50% of pods = 1 pod).
-3. Polls `/health` every second during 60s of chaos.
-4. Post-check: verifies 2 healthy replicas again.
-5. Logs a test run to MLflow to prove data integrity.
-6. Reports max consecutive downtime; fails if > 5 seconds.
-
-#### 3. Run the experiment manually
-
-```bash
+# Or run the experiment manually
 kubectl apply -f gitops/applications/apps/chaos/experiments/pod-delete-mlflow.yaml
 kubectl wait --for=condition=EngineCompleted chaosengine/mlflow-pod-delete -n litmus --timeout=120s
 kubectl get chaosresults -n litmus
@@ -112,6 +97,42 @@ Success criteria:
 - MLflow `/health` never fails for more than 5 consecutive seconds.
 - A new MLflow run can be logged immediately after the experiment.
 - `kubectl get deployment mlflow-server -n mlflow` returns 2/2 replicas.
+
+#### 2. KServe controller pod-delete
+
+**Goal**: Verify that existing `InferenceServices` continue serving when the KServe controller is briefly down.
+
+```bash
+kubectl apply -f gitops/applications/apps/chaos/experiments/pod-delete-kserve-controller.yaml
+kubectl wait --for=condition=EngineCompleted chaosengine/kserve-controller-pod-delete -n litmus --timeout=120s
+```
+
+Note: The KServe controller has 1 replica, so there is a brief control-plane gap. The data plane (inference pods) is unaffected.
+
+#### 3. ArgoCD application-controller pod-delete
+
+**Goal**: Verify that existing GitOps Applications remain synced while the controller leader re-elects.
+
+```bash
+kubectl apply -f gitops/applications/apps/chaos/experiments/pod-delete-argocd-controller.yaml
+kubectl wait --for=condition=EngineCompleted chaosengine/argocd-controller-pod-delete -n litmus --timeout=120s
+```
+
+Note: ArgoCD application-controller uses leader election. Expect a short leader re-election pause.
+
+#### 4. MLflow CPU hog
+
+**Goal**: Stress one MLflow pod and verify the other replica still serves while HPA may scale up.
+
+```bash
+kubectl apply -f gitops/applications/apps/chaos/experiments/cpu-hog-mlflow.yaml
+kubectl wait --for=condition=EngineCompleted chaosengine/mlflow-cpu-hog -n litmus --timeout=180s
+```
+
+Success criteria:
+- One MLflow pod gets CPU-stressed; the other remains healthy.
+- HPA may add a 3rd replica if average CPU exceeds 70%.
+- After the experiment, MLflow `/health` returns 200.
 
 ---
 
@@ -251,8 +272,12 @@ kubectl get helmrelease -n litmus
 
 1. Deploy the `chaos` application via ArgoCD in `dev`.
 2. Verify Litmus pods are running.
-3. Run `workflows/mlflow-resilience-test.yaml` and confirm PASS.
-4. Document the observed RTO (Recovery Time Objective) for MLflow.
+3. Run all Phase 1 experiments and confirm expected behavior:
+   - `mlflow-resilience-test.yaml` → PASS
+   - `pod-delete-kserve-controller.yaml` → inference still works
+   - `pod-delete-argocd-controller.yaml` → apps stay synced
+   - `cpu-hog-mlflow.yaml` → HPA reacts, no downtime
+4. Document observed RTO for each target service.
 5. Move to Phase 2: node-drain and network-partition experiments.
 
 ---
