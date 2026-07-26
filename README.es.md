@@ -2,7 +2,7 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Terraform](https://img.shields.io/badge/Terraform-%3E%3D1.0-blue)](https://www.terraform.io/)
-[![Kubernetes](https://img.shields.io/badge/Kubernetes-%3E%3D1.25-blue)](https://kubernetes.io/)
+[![Kubernetes](https://img.shields.io/badge/Kubernetes-%3E%3D1.32-blue)](https://kubernetes.io/)
 
 [English](README.md) | Español
 
@@ -294,3 +294,5 @@ Este proyecto está bajo la Licencia MIT - ver [LICENSE](LICENSE) para detalles.
 ---
 
 Construido por [Jose Julian Mosquera](https://github.com/JoseJulianMosqueraFuli)
+
+_Última actualización: Julio 2026_
