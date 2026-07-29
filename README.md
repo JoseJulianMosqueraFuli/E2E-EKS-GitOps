@@ -17,22 +17,22 @@ End-to-end MLOps platform on Amazon EKS. From training to production with monito
 A complete setup to run ML workloads on Kubernetes:
 
 ```
-┌─────────────────────────────────────────────────────────────────────┐
-│                         Your ML Workflow                            │
-├─────────────────────────────────────────────────────────────────────┤
-│                                                                     │
-│   Train Model ──► Register in MLflow ──► Deploy to KServe ──► Monitor
-│        │                  │                    │                │   │
-│        ▼                  ▼                    ▼                ▼   │
-│   ┌─────────┐      ┌───────────┐       ┌───────────┐    ┌─────────┐│
-│   │Kubeflow │      │  MLflow   │       │  KServe   │    │ Grafana ││
-│   │Pipelines│      │  Registry │       │  Serving  │    │Evidently││
-│   └─────────┘      └───────────┘       └───────────┘    └─────────┘│
-│                                                                     │
-├─────────────────────────────────────────────────────────────────────┤
-│                    Amazon EKS (Terraform)                           │
-│         VPC │ EKS │ S3 │ ECR │ Glue │ KMS │ IAM                    │
-└─────────────────────────────────────────────────────────────────────┘
+┌──────────────────────────────────────────────────────────────────────┐
+│                         Your ML Workflow                             │
+├──────────────────────────────────────────────────────────────────────┤
+│                                                                      │
+│   Train Model ──► Register in MLflow ──► Deploy to KServe ──► Monitor│
+│        │                  │                    │                │    │
+│        ▼                  ▼                    ▼                ▼    │
+│   ┌─────────┐      ┌───────────┐       ┌───────────┐    ┌─────────┐  │
+│   │Kubeflow │      │  MLflow   │       │  KServe   │    │ Grafana │  │
+│   │Pipelines│      │  Registry │       │  Serving  │    │Evidently│  │
+│   └─────────┘      └───────────┘       └───────────┘    └─────────┘  │
+│                                                                      │
+├──────────────────────────────────────────────────────────────────────┤
+│                    Amazon EKS (Terraform)                            │
+│         VPC │ EKS │ S3 │ ECR │ Glue │ KMS │ IAM                      │
+└──────────────────────────────────────────────────────────────────────┘
 ```
 
 ## What you get
