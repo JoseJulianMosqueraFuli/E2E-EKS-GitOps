@@ -1,0 +1,37 @@
+apiVersion: litmuschaos.io/v1alpha1
+kind: ChaosEngine
+metadata:
+  name: kserve-controller-pod-delete
+  namespace: litmus
+  labels:
+    app.kubernetes.io/name: kserve-controller-pod-delete
+    app.kubernetes.io/component: chaos-experiment
+    environment: dev
+spec:
+  appinfo:
+    appns: "kserve"
+    applabel: "control-plane=kserve-controller-manager"
+    appkind: "deployment"
+  engineState: "active"
+  chaosServiceAccount: litmus-admin
+  experiments:
+    - name: pod-delete
+      spec:
+        components:
+          env:
+            - name: TOTAL_CHAOS_DURATION
+              value: "60"
+            - name: CHAOS_INTERVAL
+              value: "10"
+            - name: FORCE
+              value: "false"
+            # KServe controller has 1 replica. Deleting it causes a brief control-plane
+            # gap, but existing InferenceServices continue serving because the
+            # controller is not in the data path.
+            - name: PODS_AFFECTED_PERC
+              value: "100"
+          experimentAnnotations:
+            environment: dev
+            target-service: kserve
+            phase: "phase-1-pod-chaos"
+            note: "control-plane-gap-expected"

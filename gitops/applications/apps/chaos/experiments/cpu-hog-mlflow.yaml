@@ -1,0 +1,34 @@
+apiVersion: litmuschaos.io/v1alpha1
+kind: ChaosEngine
+metadata:
+  name: mlflow-cpu-hog
+  namespace: litmus
+  labels:
+    app.kubernetes.io/name: mlflow-cpu-hog
+    app.kubernetes.io/component: chaos-experiment
+    environment: dev
+spec:
+  appinfo:
+    appns: "mlflow"
+    applabel: "app=mlflow-server"
+    appkind: "deployment"
+  engineState: "active"
+  chaosServiceAccount: litmus-admin
+  experiments:
+    - name: pod-cpu-hog
+      spec:
+        components:
+          env:
+            - name: TOTAL_CHAOS_DURATION
+              value: "120"
+            - name: CPU_CORES
+              value: "1"
+            # MLflow has 2 replicas. One pod gets CPU stressed, the other should
+            # still serve. HPA may scale up if average utilization exceeds 70%.
+            - name: PODS_AFFECTED_PERC
+              value: "50"
+          experimentAnnotations:
+            environment: dev
+            target-service: mlflow
+            phase: "phase-1-resource-chaos"
+            note: "hpa-scale-up-expected"

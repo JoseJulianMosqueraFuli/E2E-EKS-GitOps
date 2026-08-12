@@ -1,0 +1,37 @@
+apiVersion: litmuschaos.io/v1alpha1
+kind: ChaosEngine
+metadata:
+  name: argocd-controller-pod-delete
+  namespace: litmus
+  labels:
+    app.kubernetes.io/name: argocd-controller-pod-delete
+    app.kubernetes.io/component: chaos-experiment
+    environment: dev
+spec:
+  appinfo:
+    appns: "argocd"
+    applabel: "app.kubernetes.io/name=argocd-application-controller"
+    appkind: "deployment"
+  engineState: "active"
+  chaosServiceAccount: litmus-admin
+  experiments:
+    - name: pod-delete
+      spec:
+        components:
+          env:
+            - name: TOTAL_CHAOS_DURATION
+              value: "60"
+            - name: CHAOS_INTERVAL
+              value: "10"
+            - name: FORCE
+              value: "false"
+            # ArgoCD application-controller has leader election. Deleting the pod
+            # causes a short leader re-election, but existing Applications remain
+            # synced and self-heal after recovery.
+            - name: PODS_AFFECTED_PERC
+              value: "100"
+          experimentAnnotations:
+            environment: dev
+            target-service: argocd
+            phase: "phase-1-pod-chaos"
+            note: "leader-re-election-expected"
