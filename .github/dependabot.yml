@@ -1,0 +1,66 @@
+# version: 2
+# updates:
+#   # GitHub Actions versions in CI workflows
+#   - package-ecosystem: "github-actions"
+#     directory: "/"
+#     schedule:
+#       interval: "weekly"
+#       day: "monday"
+#     open-pull-requests-limit: 5
+#     commit-message:
+#       prefix: "chore(ci)"
+#     labels:
+#       - "dependencies"
+#       - "github-actions"
+
+#   # Terraform providers (AWS, kubernetes, etc.)
+#   - package-ecosystem: "terraform"
+#     directory: "/infra"
+#     schedule:
+#       interval: "weekly"
+#       day: "monday"
+#     open-pull-requests-limit: 5
+#     commit-message:
+#       prefix: "chore(terraform)"
+#     labels:
+#       - "dependencies"
+#       - "terraform"
+
+#   # Base images in Dockerfiles
+#   - package-ecosystem: "docker"
+#     directory: "/ml-platform"
+#     schedule:
+#       interval: "weekly"
+#       day: "monday"
+#     open-pull-requests-limit: 5
+#     commit-message:
+#       prefix: "chore(docker)"
+#     labels:
+#       - "dependencies"
+#       - "docker"
+
+#   # Python dependencies for ML platform (pyproject.toml)
+#   - package-ecosystem: "pip"
+#     directory: "/ml-platform"
+#     schedule:
+#       interval: "weekly"
+#       day: "monday"
+#     open-pull-requests-limit: 5
+#     commit-message:
+#       prefix: "chore(deps)"
+#     labels:
+#       - "dependencies"
+#       - "python"
+
+#   # Python dependencies for GitOps tooling (pyproject.toml)
+#   - package-ecosystem: "pip"
+#     directory: "/gitops"
+#     schedule:
+#       interval: "weekly"
+#       day: "monday"
+#     open-pull-requests-limit: 5
+#     commit-message:
+#       prefix: "chore(deps)"
+#     labels:
+#       - "dependencies"
+#       - "python"
