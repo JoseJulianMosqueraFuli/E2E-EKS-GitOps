@@ -26,17 +26,17 @@ jobs:
           terraform_version: 1.6.0
 
       - name: Terraform Format Check
-        run: terraform fmt -check -recursive infra/ || true
+        run: terraform fmt -check -recursive infra/
 
       - name: Terraform Init
         run: |
           cd infra/environments/dev
-          terraform init -backend=false || true
+          terraform init -backend=false
 
       - name: Terraform Validate
         run: |
           cd infra/environments/dev
-          terraform validate || true
+          terraform validate
 
   # Infrastructure Tests
   # NOTE: These tests require AWS credentials to run properly
@@ -44,7 +44,6 @@ jobs:
     name: Terraform Tests
     runs-on: ubuntu-latest
     if: contains(github.event.head_commit.modified, 'infra/') || github.event_name == 'pull_request'
-    continue-on-error: true
 
     steps:
       - name: Checkout code
@@ -59,14 +58,14 @@ jobs:
       - name: Run VPC Tests
         run: |
           cd infra/modules/vpc/test
-          go mod download || true
-          go test -v -timeout 30m || true
+          go mod download
+          go test -v -timeout 30m
 
       - name: Run S3 Tests
         run: |
           cd infra/modules/s3/test
-          go mod download || true
-          go test -v -timeout 20m || true
+          go mod download
+          go test -v -timeout 20m
 
   # Kubernetes manifest validation
   k8s-validate:
@@ -89,26 +88,26 @@ jobs:
       - name: Validate raw Kubernetes manifests
         run: |
           # Exclude CRD files and kustomization.yaml - kubectl cannot validate CRDs without the API server
-          find k8s/ -name "*.yaml" -not -name "kustomization.yaml" -not -name "crds.yaml" | xargs -I {} kubectl --dry-run=client apply -f {} || true
+          find k8s/ -name "*.yaml" -not -name "kustomization.yaml" -not -name "crds.yaml" -print0 | xargs -0 -r -I {} kubectl --dry-run=client apply -f {}
 
       - name: Validate Kustomize overlays (GitOps source of truth)
         run: |
           echo "=== MLflow overlay ==="
-          kustomize build gitops/applications/apps/mlflow/overlays/dev/ | kubectl --dry-run=client apply -f - || true
+          kustomize build gitops/applications/apps/mlflow/overlays/dev/ | kubectl --dry-run=client apply -f -
           echo "=== KServe overlay ==="
-          kustomize build gitops/applications/apps/kserve/overlays/dev/ | kubectl --dry-run=client apply -f - || true
+          kustomize build gitops/applications/apps/kserve/overlays/dev/ | kubectl --dry-run=client apply -f -
           echo "=== Monitoring overlay ==="
-          kustomize build gitops/applications/apps/monitoring/overlays/dev/ | kubectl --dry-run=client apply -f - || true
+          kustomize build gitops/applications/apps/monitoring/overlays/dev/ | kubectl --dry-run=client apply -f -
           echo "=== Argo Workflows overlay ==="
-          kustomize build gitops/applications/apps/argo-workflows/overlays/dev/ | kubectl --dry-run=client apply -f - || true
+          kustomize build gitops/applications/apps/argo-workflows/overlays/dev/ | kubectl --dry-run=client apply -f -
           echo "=== Feast overlay ==="
-          kustomize build gitops/applications/apps/feast/overlays/dev/ | kubectl --dry-run=client apply -f - || true
+          kustomize build gitops/applications/apps/feast/overlays/dev/ | kubectl --dry-run=client apply -f -
           echo "=== External Secrets overlay ==="
-          kustomize build gitops/applications/apps/external-secrets/overlays/dev/ | kubectl --dry-run=client apply -f - || true
+          kustomize build gitops/applications/apps/external-secrets/overlays/dev/ | kubectl --dry-run=client apply -f -
           echo "=== Gatekeeper overlay ==="
-          kustomize build gitops/applications/apps/gatekeeper/overlays/dev/ | kubectl --dry-run=client apply -f - || true
+          kustomize build gitops/applications/apps/gatekeeper/overlays/dev/ | kubectl --dry-run=client apply -f -
           echo "=== Istio overlay ==="
-          kustomize build gitops/applications/apps/istio/overlays/dev/ | kubectl --dry-run=client apply -f - || true
+          kustomize build gitops/applications/apps/istio/overlays/dev/ | kubectl --dry-run=client apply -f -
 
   # ML Platform Tests
   ml-platform-test:
@@ -130,20 +129,19 @@ jobs:
       - name: Install dependencies
         run: |
           cd ml-platform
-          pip install -e . || true
-          pip install -e ".[dev]" || true
+          pip install -e .
+          pip install -e ".[dev]"
 
       - name: Run linting
-        continue-on-error: true
         run: |
           cd ml-platform
-          flake8 src/ tests/ || true
-          black --check src/ tests/ || true
+          flake8 src/ tests/
+          black --check src/ tests/
 
       - name: Run tests
         run: |
           cd ml-platform
-          pytest tests/ -v || true
+          pytest tests/ -v
 
   # Security scanning
   security-scan:
@@ -193,14 +191,14 @@ jobs:
         run: |
           for chart in gitops/charts/*/; do
             echo "=== Linting $(basename "$chart") ==="
-            helm lint "$chart" || true
+            helm lint "$chart"
           done
 
       - name: Template Helm charts
         run: |
           for chart in gitops/charts/*/; do
             echo "=== Template $(basename "$chart") ==="
-            helm template --debug "$chart" > /dev/null || true
+            helm template --debug "$chart" > /dev/null
           done
 
   # MLOps Stack Validation

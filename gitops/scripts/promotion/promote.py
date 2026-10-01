@@ -92,49 +92,56 @@ class PromotionValidator:
     def _check_source_environment_exists(self):
         """Verify source environment configurations exist."""
         infra_path = self.gitops_root / "infrastructure" / "clusters" / self.source_env
-        apps_path = self.gitops_root / "applications" / "environments" / self.source_env
+        apps_path = self.gitops_root / "applications" / "apps"
 
         if not infra_path.exists():
             self.errors.append(f"Source infrastructure not found: {infra_path}")
         if not apps_path.exists():
-            self.errors.append(f"Source applications not found: {apps_path}")
+            self.errors.append(f"Canonical applications not found: {apps_path}")
 
     def _check_target_environment_exists(self):
         """Verify target environment configurations exist."""
         infra_path = self.gitops_root / "infrastructure" / "clusters" / self.target_env
-        apps_path = self.gitops_root / "applications" / "environments" / self.target_env
+        apps_path = self.gitops_root / "applications" / "apps"
 
         if not infra_path.exists():
             self.errors.append(f"Target infrastructure not found: {infra_path}")
         if not apps_path.exists():
-            self.errors.append(f"Target applications not found: {apps_path}")
+            self.errors.append(f"Canonical applications not found: {apps_path}")
 
     def _check_argocd_applications_valid(self):
         """Verify ArgoCD Applications are valid YAML."""
         import yaml
 
-        apps_path = self.gitops_root / "applications" / "environments" / self.source_env
-        if not apps_path.exists():
+        applicationset = self.gitops_root / "applications" / "projects" / "mlops-applicationset.yaml"
+        if not applicationset.exists():
+            self.errors.append(f"ApplicationSet not found: {applicationset}")
             return
 
-        for app_file in apps_path.glob("*-application.yaml"):
-            try:
-                with open(app_file, "r") as f:
-                    data = yaml.safe_load(f)
-                if data is None:
-                    self.errors.append(f"Empty YAML file: {app_file}")
-                elif data.get("kind") != "Application":
-                    self.errors.append(
-                        f"Expected Application kind in {app_file}, got {data.get('kind')}"
-                    )
-            except yaml.YAMLError as e:
-                self.errors.append(f"Invalid YAML in {app_file}: {e}")
+        try:
+            with open(applicationset, "r") as f:
+                data = yaml.safe_load(f)
+            if data is None or data.get("kind") != "ApplicationSet":
+                self.errors.append(f"Expected ApplicationSet in {applicationset}")
+        except yaml.YAMLError as e:
+            self.errors.append(f"Invalid YAML in {applicationset}: {e}")
 
     def _check_kustomize_overlays_valid(self):
         """Verify Kustomize overlays are valid."""
         import yaml
 
-        apps = ["mlflow", "kubeflow", "kserve", "monitoring"]
+        apps = [
+            "mlflow",
+            "kubeflow",
+            "kserve",
+            "monitoring",
+            "argo-workflows",
+            "feast",
+            "external-secrets",
+            "gatekeeper",
+            "istio",
+            "chaos",
+        ]
         for app in apps:
             overlay_path = (
                 self.gitops_root / "applications" / "apps" / app / "overlays" / self.source_env
@@ -154,7 +161,26 @@ class PromotionValidator:
         """Check all YAML files in source environment for syntax errors."""
         import yaml
 
-        yaml_files = list((self.gitops_root / "applications" / "environments" / self.source_env).rglob("*.yaml"))
+        yaml_files = list(
+            (self.gitops_root / "applications" / "projects").glob("*.yaml")
+        )
+        for app in [
+            "mlflow",
+            "kubeflow",
+            "kserve",
+            "monitoring",
+            "argo-workflows",
+            "feast",
+            "external-secrets",
+            "gatekeeper",
+            "istio",
+            "chaos",
+        ]:
+            yaml_files.extend(
+                (self.gitops_root / "applications" / "apps" / app / "overlays" / self.source_env).rglob(
+                    "*.yaml"
+                )
+            )
         yaml_files.extend(
             (self.gitops_root / "infrastructure" / "clusters" / self.source_env).rglob("*.yaml")
         )
@@ -169,8 +195,8 @@ class PromotionValidator:
     def _check_required_files_exist(self):
         """Verify required files exist in source environment."""
         required = [
-            self.gitops_root / "applications" / "environments" / self.source_env / "kustomization.yaml",
             self.gitops_root / "infrastructure" / "clusters" / self.source_env / "kustomization.yaml",
+            self.gitops_root / "applications" / "projects" / "mlops-applicationset.yaml",
         ]
 
         for path in required:

@@ -24,7 +24,6 @@ prometheus:
     retention: "200h"
     extraFlags:
       - web.enable-lifecycle
-      - web.enable-admin-api
 
   alertmanager:
     enabled: true
@@ -119,7 +118,7 @@ evidently:
   enabled: true
   image:
     repository: evidentlyai/evidently-service
-    tag: "latest"
+    tag: "0.4.40"
     pullPolicy: IfNotPresent
 
   replicaCount: 1

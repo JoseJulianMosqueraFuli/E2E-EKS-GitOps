@@ -9,7 +9,7 @@ spec:
     branch: staging
   secretRef:
     name: flux-system
-  url: ssh://git@github.com/org/gitops-infrastructure
+  url: https://github.com/JoseJulianMosqueraFuli/E2E-EKS-GitOps.git
 ---
 apiVersion: kustomize.toolkit.fluxcd.io/v1
 kind: Kustomization
@@ -18,7 +18,7 @@ metadata:
   namespace: flux-system
 spec:
   interval: 5m
-  path: ./infrastructure/clusters/staging
+  path: ./gitops/infrastructure/clusters/staging
   prune: true
   sourceRef:
     kind: GitRepository
