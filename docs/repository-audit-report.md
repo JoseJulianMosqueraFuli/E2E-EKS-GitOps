@@ -18,8 +18,8 @@ Sus principales fortalezas son la cobertura de extremo a extremo, la separación
 
 La auditoría también encontró inconsistencias que deben resolverse antes de considerar el flujo operativo como reproducible:
 
-1. La configuración de Flux referencia una URL externa y la rama `dev`, mientras que la documentación y ArgoCD usan este repositorio y las ramas `develop`, `staging` y `main`.
-2. La ruta documentada `gitops/applications/environments/` no existe en el checkout analizado, aunque el script de promoción la requiere.
+1. La configuración de Flux referencia una URL externa en los tres clusters, mientras que ArgoCD usa este repositorio. Las ramas también difieren en dev: Flux usa `dev` y ArgoCD usa `develop`.
+2. La ruta `gitops/applications/environments/` no existe en el checkout analizado, aunque el script de promoción la requiere; no es una ruta canónica documentada para las aplicaciones actuales.
 3. La mayoría de validaciones CI son no bloqueantes por el uso de `|| true`, `allow_failure` o `soft-fail`.
 4. El AppProject de ArgoCD permite repositorios, namespaces y recursos mediante comodines.
 5. Persisten imágenes con tag `latest`, lo que impide despliegues reproducibles.
@@ -58,9 +58,9 @@ La documentación declara `gitops/applications/apps/<app>/base/` como fuente de 
 
 ### Inconsistencia crítica encontrada
 
-`gitops/infrastructure/clusters/dev/flux-system/gotk-sync.yaml:9,12,21` referencia la rama `dev`, la URL `ssh://git@github.com/org/gitops-infrastructure` y el path `./infrastructure/clusters/dev`. En cambio, `gitops/applications/projects/mlops-applicationset.yaml:44-57,73-75` usa las ramas `develop`, `staging`, `main` y el repositorio `JoseJulianMosqueraFuli/E2E-EKS-GitOps.git`.
+`gitops/infrastructure/clusters/{dev,staging,production}/flux-system/gotk-sync.yaml:9,12,21` referencia respectivamente las ramas `dev`, `staging` y `main`, pero siempre usa la URL `ssh://git@github.com/org/gitops-infrastructure`. En cambio, `gitops/applications/projects/mlops-applicationset.yaml:44-57,73-75` usa las ramas `develop`, `staging`, `main` y el repositorio `JoseJulianMosqueraFuli/E2E-EKS-GitOps.git`.
 
-Esto puede impedir que Flux reconcilie el repositorio esperado. Debe confirmarse si la configuración Flux es un bootstrap de ejemplo o una referencia que quedó sin adaptar.
+Esto puede impedir que Flux reconcilie el repositorio esperado y además produce una diferencia de rama en dev. Debe confirmarse si la URL `org/gitops-infrastructure` es intencional para un repositorio separado o si quedó como placeholder de bootstrap.
 
 ## 3. Fase 2 — Terraform y AWS
 
@@ -107,11 +107,11 @@ Las aplicaciones cubren MLflow, Kubeflow, KServe, monitoring, Argo Workflows, Fe
 | Crítica | Cualquier namespace puede ser destino | `gitops/applications/projects/mlops-core.yaml:14-26` |
 | Crítica | Se permiten todos los recursos de cluster y namespace | `gitops/applications/projects/mlops-core.yaml:28-34` |
 | Alta | Existen imágenes `latest` en workflows, Feast y monitoring | `gitops/applications/apps/argo-workflows/base/workflow-templates/`, `gitops/applications/apps/feast/base/feast-server.yaml`, `gitops/applications/apps/monitoring/base/` |
-| Alta | El script de promoción espera `gitops/applications/environments/`, pero esa ruta no existe en el checkout | `gitops/scripts/promotion/promote.py:94-110`; verificación de estructura 2026-10-01 |
+| Alta | El script de promoción espera `gitops/applications/environments/`, pero esa ruta no existe en el checkout y las aplicaciones actuales están bajo `gitops/applications/apps/` | `gitops/scripts/promotion/promote.py:94-110`; `gitops/applications/README.md:5-6`; verificación de estructura 2026-10-01 |
 
 ### Validaciones ejecutadas
 
-Se enumeraron diez overlays de desarrollo bajo `gitops/applications/apps/*/overlays/dev`. No se ejecutó `kustomize build` porque la disponibilidad del binario debe confirmarse en un runner de validación; los builds deben cubrir todos los overlays, no únicamente dev.
+Se enumeraron diez overlays de desarrollo bajo `gitops/applications/apps/*/overlays/dev`. No se ejecutó `kustomize build` en este entorno; los builds deben cubrir todos los overlays, no únicamente dev. La presencia de un directorio no demuestra que el manifiesto renderice correctamente.
 
 ### Ownership recomendado
 
@@ -147,7 +147,7 @@ python promote.py dev staging --dry-run
 python promote.py staging production --dry-run
 ```
 
-Esto está en `.github/workflows/environment-promotion.yml:108-111,156-159`. El modo dry-run solamente informa cambios; no escribe los archivos que la pull request debería transportar. Además, `promote.py:94-110` requiere directorios de entorno que no existen en el checkout analizado. El flujo debe probarse con una pull request real antes de considerarse operativo.
+Esto está en `.github/workflows/environment-promotion.yml:108-111,156-159`. El modo dry-run solamente informa cambios; no escribe los archivos que la pull request debería transportar. Además, `promote.py:94-110` requiere directorios de entorno que no existen en el checkout analizado. El flujo debe probarse con una pull request real y un diff no vacío antes de considerarse operativo.
 
 ## 6. Ventajas del proyecto
 
@@ -193,7 +193,6 @@ Esto está en `.github/workflows/environment-promotion.yml:108-111,156-159`. El 
 ## 9. Límites del análisis
 
 - No se aplicaron cambios en AWS ni Kubernetes.
-- No se pudo ejecutar Terraform localmente porque no está instalado.
+- No se pudo ejecutar Terraform localmente porque el binario no está instalado en este entorno de análisis; esto no demuestra un fallo de la configuración Terraform.
 - No se confirmó conectividad a un cluster EKS.
 - La auditoría estática no sustituye un `terraform plan` autenticado, un build completo de Kustomize/Helm ni una ejecución real de GitHub Actions.
-
