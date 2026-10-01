@@ -16,16 +16,22 @@ Terraform → Amazon EKS → Flux (infraestructura) → ArgoCD (aplicaciones)
 
 Sus principales fortalezas son la cobertura de extremo a extremo, la separación por entornos, los módulos Terraform reutilizables, la observabilidad y la incorporación de controles de seguridad.
 
-La auditoría también encontró inconsistencias que deben resolverse antes de considerar el flujo operativo como reproducible:
+La auditoría encontró inconsistencias que requieren seguimiento antes de considerar el flujo operativo como completamente reproducible:
 
-1. La configuración de Flux referencia una URL externa en los tres clusters, mientras que ArgoCD usa este repositorio. Las ramas también difieren en dev: Flux usa `dev` y ArgoCD usa `develop`.
-2. La ruta `gitops/applications/environments/` no existe en el checkout analizado, aunque el script de promoción la requiere; no es una ruta canónica documentada para las aplicaciones actuales.
-3. La mayoría de validaciones CI son no bloqueantes por el uso de `|| true`, `allow_failure` o `soft-fail`.
-4. El AppProject de ArgoCD permite repositorios, namespaces y recursos mediante comodines.
-5. Persisten imágenes con tag `latest`, lo que impide despliegues reproducibles.
-6. Terraform no pudo ser ejecutado localmente porque el binario `terraform` no está instalado en el entorno de análisis.
+1. Persisten imágenes con tag `latest` en algunos workflows y manifiestos.
+2. Terraform no pudo ser ejecutado localmente porque el binario `terraform` no está instalado en el entorno de análisis.
+3. La promoción requiere verificarse en GitHub con una pull request real entre ramas.
 
-**Conclusión:** el diseño conceptual es claro, pero el camino real desde commit hasta despliegue necesita una fase de reconciliación y endurecimiento.
+**Conclusión:** el diseño conceptual es claro y se aplicó una primera fase de reconciliación y endurecimiento. Todavía se requiere validar el flujo contra GitHub, un cluster y AWS.
+
+### Cambios implementados después de la auditoría
+
+- Flux apunta ahora a este repositorio, usa las ramas de entorno documentadas y reconcilia desde `gitops/infrastructure/...`.
+- El AppProject de ArgoCD restringe el repositorio, los namespaces y los tipos de recursos permitidos.
+- Las validaciones principales de GitHub Actions, GitLab CI y CircleCI ya no ocultan errores con `|| true`, `allow_failure` o `soft-fail`.
+- La promoción crea una pull request entre ramas con `gh pr create`; producción sigue dependiendo de protección de rama y aprobación configuradas en GitHub.
+- La validación de promoción usa el `ApplicationSet` y los overlays canónicos existentes.
+- Se eliminó `web.enable-admin-api` de Prometheus y se fijó Evidently a `0.4.40`.
 
 ## 2. Fase 1 — Inventario y arquitectura
 
