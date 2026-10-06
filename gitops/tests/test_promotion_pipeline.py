@@ -12,6 +12,7 @@ Validates: Requirements 5.1, 5.2, 5.3, 5.4, 5.5
 """
 
 import os
+import shutil
 import sys
 import pytest
 import yaml
@@ -108,67 +109,21 @@ def tmp_gitops(tmp_path):
         with open(tmp_path / "infrastructure" / "clusters" / env / "infrastructure" / "kustomization.yaml", "w") as f:
             yaml.dump(infra_kust, f)
 
-    # Create app structures
-    for app in ["mlflow", "kubeflow", "kserve", "monitoring"]:
-        (tmp_path / "applications" / "apps" / app / "base").mkdir(parents=True, exist_ok=True)
-
-        # Create base kustomization and namespace
-        kust = {
-            "apiVersion": "kustomize.config.k8s.io/v1beta1",
-            "kind": "Kustomization",
-            "resources": ["namespace.yaml"],
-        }
-        with open(tmp_path / "applications" / "apps" / app / "base" / "kustomization.yaml", "w") as f:
-            yaml.dump(kust, f)
-
-        ns = {
-            "apiVersion": "v1",
-            "kind": "Namespace",
-            "metadata": {"name": app},
-        }
-        with open(tmp_path / "applications" / "apps" / app / "base" / "namespace.yaml", "w") as f:
-            yaml.dump(ns, f)
-
-        for env in ["dev", "staging", "production"]:
-            (tmp_path / "applications" / "apps" / app / "overlays" / env).mkdir(parents=True, exist_ok=True)
-
-            # Create overlay kustomization
-            overlay = {**kust, "resources": ["../../base"]}
-            with open(tmp_path / "applications" / "apps" / app / "overlays" / env / "kustomization.yaml", "w") as f:
-                yaml.dump(overlay, f)
-
-            # Create ArgoCD Application
-            app_data = {
-                "apiVersion": "argoproj.io/v1alpha1",
-                "kind": "Application",
-                "metadata": {
-                    "name": f"{app}-{env}",
-                    "labels": {"environment": env},
-                    "annotations": {
-                        "notifications.argoproj.io/subscribe.on-sync-failed.slack": f"mlops-alerts-{env}",
-                    },
-                },
-                "spec": {
-                    "project": "mlops-core",
-                    "source": {
-                        "repoURL": "https://github.com/org/gitops-applications",
-                        "targetRevision": ENV_BRANCHES[env],
-                        "path": f"apps/{app}/overlays/{env}",
-                    },
-                    "destination": {
-                        "server": "https://kubernetes.default.svc",
-                        "namespace": app,
-                    },
-                    "syncPolicy": {
-                        "automated": {
-                            "prune": env != "production",
-                            "selfHeal": True,
-                        },
-                    },
-                },
-            }
-            with open(tmp_path / "applications" / "environments" / env / f"{app}-{env}.yaml", "w") as f:
-                yaml.dump(app_data, f)
+    import copy
+    source_root = Path(__file__).resolve().parents[1]
+    projects = tmp_path / "applications" / "projects"
+    projects.mkdir(parents=True)
+    for filename in ["mlops-applicationset.yaml", "mlops-core.yaml"]:
+        shutil.copy(source_root / "applications" / "projects" / filename, projects / filename)
+    for app in ["mlflow", "kubeflow", "kserve", "monitoring", "argo-workflows", "feast", "external-secrets", "gatekeeper", "istio", "chaos"]:
+        base = tmp_path / "applications" / "apps" / app / "base"
+        base.mkdir(parents=True)
+        (base / "namespace.yaml").write_text(yaml.safe_dump({"apiVersion": "v1", "kind": "Namespace", "metadata": {"name": app}}))
+        (base / "kustomization.yaml").write_text(yaml.safe_dump({"apiVersion": "kustomize.config.k8s.io/v1beta1", "kind": "Kustomization", "resources": ["namespace.yaml"]}))
+        for environment in ["dev", "staging", "production"]:
+            overlay = base.parent / "overlays" / environment
+            overlay.mkdir(parents=True)
+            (overlay / "kustomization.yaml").write_text(yaml.safe_dump({"apiVersion": "kustomize.config.k8s.io/v1beta1", "kind": "Kustomization", "resources": ["../../base"]}))
 
     # Create flux-config
     flux_config = [
@@ -269,7 +224,7 @@ class TestPromotionValidator:
     def test_detects_invalid_yaml(self, tmp_gitops):
         """Invalid YAML should be detected."""
         # Write invalid YAML
-        app_file = tmp_gitops / "applications" / "environments" / "dev" / "mlflow-application.yaml"
+        app_file = tmp_gitops / "applications" / "projects" / "mlops-applicationset.yaml"
         with open(app_file, "w") as f:
             f.write("invalid: yaml: content: [")
 
@@ -281,7 +236,7 @@ class TestPromotionValidator:
     def test_detects_missing_files(self, tmp_gitops):
         """Missing required files should be detected."""
         # Remove required file
-        kust_file = tmp_gitops / "applications" / "environments" / "dev" / "kustomization.yaml"
+        kust_file = tmp_gitops / "infrastructure" / "clusters" / "dev" / "kustomization.yaml"
         kust_file.unlink()
 
         validator = PromotionValidator("dev", "staging", gitops_root=tmp_gitops)
@@ -307,65 +262,26 @@ class TestPromotionEngine:
         assert any("DRY RUN" in c for c in result.changes)
 
     @pytest.mark.unit
-    def test_promotion_updates_application_name(self, tmp_gitops):
-        """Promotion should update application name for target environment."""
-        engine = PromotionEngine("dev", "staging", dry_run=False, gitops_root=tmp_gitops)
-        result = engine.promote()
-
+    def test_branch_promotion_preserves_environment_configuration(self, tmp_gitops):
+        before = {str(p): p.read_bytes() for p in tmp_gitops.rglob("*.yaml")}
+        result = PromotionEngine("dev", "staging", gitops_root=tmp_gitops).promote()
         assert result.success
-
-        # Check staging application has correct name
-        staging_app = tmp_gitops / "applications" / "environments" / "staging" / "mlflow-staging.yaml"
-        assert staging_app.exists()
-
-        with open(staging_app, "r") as f:
-            data = yaml.safe_load(f)
-        assert data["metadata"]["name"] == "mlflow-staging"
+        assert "develop to staging" in result.changes[0]
+        assert before == {str(p): p.read_bytes() for p in tmp_gitops.rglob("*.yaml")}
 
     @pytest.mark.unit
-    def test_promotion_updates_environment_label(self, tmp_gitops):
-        """Promotion should update environment label."""
-        engine = PromotionEngine("dev", "staging", dry_run=False, gitops_root=tmp_gitops)
-        result = engine.promote()
-
-        assert result.success
-
-        staging_app = tmp_gitops / "applications" / "environments" / "staging" / "mlflow-staging.yaml"
-        with open(staging_app, "r") as f:
-            data = yaml.safe_load(f)
-        assert data["metadata"]["labels"]["environment"] == "staging"
-
-    @pytest.mark.unit
-    def test_promotion_updates_source_path(self, tmp_gitops):
-        """Promotion should update source path to target overlay."""
-        engine = PromotionEngine("dev", "staging", dry_run=False, gitops_root=tmp_gitops)
-        result = engine.promote()
-
-        assert result.success
-
-        staging_app = tmp_gitops / "applications" / "environments" / "staging" / "mlflow-staging.yaml"
-        with open(staging_app, "r") as f:
-            data = yaml.safe_load(f)
-        assert "staging" in data["spec"]["source"]["path"]
-
-    @pytest.mark.unit
-    def test_promotion_updates_target_revision(self, tmp_gitops):
-        """Promotion should update targetRevision to target branch."""
-        engine = PromotionEngine("dev", "staging", dry_run=False, gitops_root=tmp_gitops)
-        result = engine.promote()
-
-        assert result.success
-
-        staging_app = tmp_gitops / "applications" / "environments" / "staging" / "mlflow-staging.yaml"
-        with open(staging_app, "r") as f:
-            data = yaml.safe_load(f)
-        assert data["spec"]["source"]["targetRevision"] == ENV_BRANCHES["staging"]
+    def test_promotion_rejects_broken_target_overlay(self, tmp_gitops):
+        overlay = tmp_gitops / "applications/apps/mlflow/overlays/staging/kustomization.yaml"
+        overlay.write_text("resources: [missing.yaml]\n")
+        result = PromotionEngine("dev", "staging", gitops_root=tmp_gitops).promote()
+        assert not result.success
+        assert any("missing.yaml" in error for error in result.errors)
 
     @pytest.mark.unit
     def test_promotion_validates_before_applying(self, tmp_gitops):
         """Promotion should fail if validation fails."""
         # Remove required file
-        kust_file = tmp_gitops / "applications" / "environments" / "dev" / "kustomization.yaml"
+        kust_file = tmp_gitops / "infrastructure" / "clusters" / "dev" / "kustomization.yaml"
         kust_file.unlink()
 
         engine = PromotionEngine("dev", "staging", dry_run=False, gitops_root=tmp_gitops)
@@ -406,10 +322,10 @@ class TestPRDescription:
         assert "approval" in desc.lower()
 
     @pytest.mark.unit
-    def test_pr_non_production_auto_merge(self):
+    def test_pr_non_production_requires_review(self):
         """Non-production PR should mention auto-merge."""
         desc = create_promotion_pr("dev", "staging", ["change1"])
-        assert "Auto-merge" in desc
+        assert "review required" in desc
 
     @pytest.mark.unit
     def test_pr_contains_changes(self):

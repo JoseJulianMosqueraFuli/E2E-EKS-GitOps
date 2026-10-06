@@ -21,6 +21,11 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+
+from application_config import generate_applications
+from validate_applications import validate_applications
+
 
 # Valid promotion paths
 VALID_PROMOTIONS = {
@@ -127,35 +132,9 @@ class PromotionValidator:
             self.errors.append(f"Invalid YAML in {applicationset}: {e}")
 
     def _check_kustomize_overlays_valid(self):
-        """Verify Kustomize overlays are valid."""
-        import yaml
-
-        apps = [
-            "mlflow",
-            "kubeflow",
-            "kserve",
-            "monitoring",
-            "argo-workflows",
-            "feast",
-            "external-secrets",
-            "gatekeeper",
-            "istio",
-            "chaos",
-        ]
-        for app in apps:
-            overlay_path = (
-                self.gitops_root / "applications" / "apps" / app / "overlays" / self.source_env
-            )
-            if overlay_path.exists():
-                kust_file = overlay_path / "kustomization.yaml"
-                if kust_file.exists():
-                    try:
-                        with open(kust_file, "r") as f:
-                            data = yaml.safe_load(f)
-                        if data is None:
-                            self.errors.append(f"Empty kustomization: {kust_file}")
-                    except yaml.YAMLError as e:
-                        self.errors.append(f"Invalid kustomization {kust_file}: {e}")
+        for environment in [self.source_env, self.target_env]:
+            _, errors = validate_applications(self.gitops_root, environment)
+            self.errors.extend(errors)
 
     def _check_no_yaml_syntax_errors(self):
         """Check all YAML files in source environment for syntax errors."""
@@ -231,134 +210,16 @@ class PromotionEngine:
             return result
 
         try:
-            # Promote application configurations
-            app_changes = self._promote_applications()
-            self.changes.extend(app_changes)
-
-            # Promote infrastructure configurations
-            infra_changes = self._promote_infrastructure()
-            self.changes.extend(infra_changes)
-
-            # Promote cluster configurations
-            cluster_changes = self._promote_cluster()
-            self.changes.extend(cluster_changes)
-
-            result.changes = self.changes
+            source_branch = ENV_BRANCHES[self.source_env]
+            target_branch = ENV_BRANCHES[self.target_env]
+            prefix = "[DRY RUN] " if self.dry_run else ""
+            result.changes = [f"{prefix}Promote branch {source_branch} to {target_branch} through a pull request"]
             result.success = True
 
         except Exception as e:
             result.errors.append(f"Promotion failed: {e}")
 
         return result
-
-    def _promote_applications(self) -> List[str]:
-        """Promote application configurations from source to target."""
-        changes = []
-        source_apps = self.gitops_root / "applications" / "environments" / self.source_env
-        target_apps = self.gitops_root / "applications" / "environments" / self.target_env
-
-        if not source_apps.exists():
-            return changes
-
-        for app_file in source_apps.glob("*.yaml"):
-            if app_file.name == "kustomization.yaml":
-                continue
-
-            # Extract app name from filename (e.g., mlflow-dev.yaml -> mlflow)
-            stem = app_file.stem
-            app_name = stem.replace(f"-{self.source_env}", "")
-            target_file = target_apps / f"{app_name}-{self.target_env}.yaml"
-
-            if self.dry_run:
-                changes.append(f"[DRY RUN] Would update {target_file}")
-                continue
-
-            # Read source and update for target
-            import yaml
-            with open(app_file, "r") as f:
-                data = yaml.safe_load(f)
-
-            if data:
-                # Update metadata
-                data["metadata"]["name"] = f"{app_name}-{self.target_env}"
-                data["metadata"]["labels"]["environment"] = self.target_env
-
-                # Update source path to target overlay
-                data["spec"]["source"]["path"] = f"apps/{app_name}/overlays/{self.target_env}"
-
-                # Update target revision
-                data["spec"]["source"]["targetRevision"] = ENV_BRANCHES[self.target_env]
-
-                # Update notification annotations for target environment
-                if "annotations" not in data["metadata"]:
-                    data["metadata"]["annotations"] = {}
-
-                # Update Slack channel based on environment
-                for key in list(data["metadata"]["annotations"].keys()):
-                    if "slack" in key:
-                        old_channel = data["metadata"]["annotations"][key]
-                        if self.target_env == "production":
-                            new_channel = old_channel.replace("-dev", "").replace("alerts", "deployments")
-                        else:
-                            new_channel = old_channel
-                        data["metadata"]["annotations"][key] = new_channel
-
-                # Write updated file
-                with open(target_file, "w") as f:
-                    yaml.dump(data, f, default_flow_style=False, sort_keys=False)
-
-                changes.append(f"Updated {target_file}")
-
-        return changes
-
-    def _promote_infrastructure(self) -> List[str]:
-        """Promote infrastructure configurations."""
-        changes = []
-        source_infra = self.gitops_root / "infrastructure" / "clusters" / self.source_env / "infrastructure"
-        target_infra = self.gitops_root / "infrastructure" / "clusters" / self.target_env / "infrastructure"
-
-        if not source_infra.exists() or not target_infra.exists():
-            return changes
-
-        # The infrastructure kustomization already references the correct paths
-        # Just verify it's properly configured
-        import yaml
-        target_kust = target_infra / "kustomization.yaml"
-        if target_kust.exists():
-            with open(target_kust, "r") as f:
-                data = yaml.safe_load(f)
-
-            if data:
-                # Verify commonLabels has correct environment
-                labels = data.get("commonLabels", {})
-                if labels.get("environment") != self.target_env:
-                    if self.dry_run:
-                        changes.append(f"[DRY RUN] Would update environment label in {target_kust}")
-                    else:
-                        data["commonLabels"]["environment"] = self.target_env
-                        with open(target_kust, "w") as f:
-                            yaml.dump(data, f, default_flow_style=False, sort_keys=False)
-                        changes.append(f"Updated environment label in {target_kust}")
-
-        return changes
-
-    def _promote_cluster(self) -> List[str]:
-        """Promote cluster configurations."""
-        changes = []
-        source_config = self.gitops_root / "infrastructure" / "clusters" / self.source_env / "config"
-        target_config = self.gitops_root / "infrastructure" / "clusters" / self.target_env / "config"
-
-        if not source_config.exists() or not target_config.exists():
-            return changes
-
-        import yaml
-        target_cluster_config = target_config / "cluster-config.yaml"
-        if target_cluster_config.exists():
-            # Cluster config is environment-specific, don't overwrite
-            # Just verify it exists
-            changes.append(f"Verified cluster config exists: {target_cluster_config}")
-
-        return changes
 
 
 def create_promotion_pr(source_env: str, target_env: str, changes: List[str]) -> str:
@@ -388,7 +249,7 @@ def create_promotion_pr(source_env: str, target_env: str, changes: List[str]) ->
 
 ## Approval Required
 
-{'⚠️ **PRODUCTION PROMOTION** - Manual approval required before merge.' if target_env == 'production' else '✅ Auto-merge enabled for non-production environments.'}
+{'⚠️ **PRODUCTION PROMOTION** - Manual approval required before merge.' if target_env == 'production' else 'Pull request review required before merge.'}
 
 ## Post-Merge Actions
 
