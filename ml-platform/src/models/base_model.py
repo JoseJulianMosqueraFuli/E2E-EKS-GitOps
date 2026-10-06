@@ -51,9 +51,7 @@ class BaseModel(ABC):
         """Create and return the ML model instance."""
 
     @abstractmethod
-    def evaluate_model(
-        self, X_test: pd.DataFrame, y_test: pd.Series
-    ) -> Dict[str, float]:
+    def evaluate_model(self, X_test: pd.DataFrame, y_test: pd.Series) -> Dict[str, float]:
         """Evaluate model and return metrics."""
 
     def prepare_data(
@@ -136,9 +134,7 @@ class BaseModel(ABC):
             mlflow.log_metrics(metrics)
 
             # Log model
-            mlflow.sklearn.log_model(
-                self.model, "model", registered_model_name=self.model_name
-            )
+            mlflow.sklearn.log_model(self.model, "model", registered_model_name=self.model_name)
 
             logger.info(f"Model training completed. Metrics: {metrics}")
 

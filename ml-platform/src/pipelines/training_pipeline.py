@@ -55,9 +55,7 @@ class TrainingPipeline:
                 mlflow.set_tracking_uri("sqlite:///mlflow.db")
                 logger.info("Using SQLite MLflow backend for local development")
 
-        self.experiment_name = mlflow_config.get(
-            "experiment_name", "default_experiment"
-        )
+        self.experiment_name = mlflow_config.get("experiment_name", "default_experiment")
         mlflow.set_experiment(self.experiment_name)
 
     def _load_config(self, config_path: Optional[str]) -> Dict[str, Any]:
@@ -116,9 +114,7 @@ class TrainingPipeline:
         if data_config["format"] == "csv":
             data = self.data_loader.load_csv(data_path, source=data_config["source"])
         elif data_config["format"] == "parquet":
-            data = self.data_loader.load_parquet(
-                data_path, source=data_config["source"]
-            )
+            data = self.data_loader.load_parquet(data_path, source=data_config["source"])
         elif data_config["format"] == "json":
             data = self.data_loader.load_json(data_path, source=data_config["source"])
         else:
@@ -188,16 +184,12 @@ class TrainingPipeline:
         if not fit:
             X_transformed = self.feature_engineer.transform(X)
             if self.feature_engineer.feature_selector is not None:
-                X_transformed = self.feature_engineer.feature_selector.transform(
-                    X_transformed
-                )
+                X_transformed = self.feature_engineer.feature_selector.transform(X_transformed)
             return X_transformed, y, self.feature_engineer.get_selected_feature_names()
 
         # Identify feature types
         numeric_features = X.select_dtypes(include=[np.number]).columns.tolist()
-        categorical_features = X.select_dtypes(
-            include=["object", "category"]
-        ).columns.tolist()
+        categorical_features = X.select_dtypes(include=["object", "category"]).columns.tolist()
 
         logger.info(f"Numeric features: {len(numeric_features)}")
         logger.info(f"Categorical features: {len(categorical_features)}")
@@ -267,13 +259,12 @@ class TrainingPipeline:
             y_temp,
             test_size=val_size_adjusted,
             random_state=42,
-            stratify=y_temp
-            if self.config["model"]["type"] == "classification"
-            else None,
+            stratify=y_temp if self.config["model"]["type"] == "classification" else None,
         )
 
         logger.info(
-            f"Data split - Train: {X_train.shape[0]}, Val: {X_val.shape[0]}, Test: {X_test.shape[0]}"
+            f"Data split - Train: {X_train.shape[0]}, Val: {X_val.shape[0]}, "
+            f"Test: {X_test.shape[0]}"
         )
 
         return X_train, X_val, X_test, y_train, y_val, y_test
@@ -394,7 +385,10 @@ class TrainingPipeline:
         Returns:
             Pipeline results
         """
-        run_name = f"{self.config['mlflow'].get('run_name_prefix', 'pipeline')}_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+        run_name = (
+            f"{self.config['mlflow'].get('run_name_prefix', 'pipeline')}_"
+            f"{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+        )
 
         with mlflow.start_run(run_name=run_name) as run:
             try:
@@ -414,9 +408,7 @@ class TrainingPipeline:
                 if not validation_results["success"]:
                     logger.warning(f"Data validation failed: {validation_results}")
 
-                logger.info(
-                    "Splitting raw data into train, validation and test sets..."
-                )
+                logger.info("Splitting raw data into train, validation and test sets...")
                 target = data[self.config["data"]["target_column"]]
                 train_data, val_data, test_data, _, _, _ = self.split_data(data, target)
                 X_train, y_train, feature_names = self.prepare_features(train_data)
@@ -457,9 +449,7 @@ class TrainingPipeline:
                 mlflow.log_param("error_message", str(e))
                 raise
 
-    def _flatten_config(
-        self, config: Dict[str, Any], prefix: str = ""
-    ) -> Dict[str, Any]:
+    def _flatten_config(self, config: Dict[str, Any], prefix: str = "") -> Dict[str, Any]:
         """Flatten nested configuration for MLflow logging."""
         flat_config = {}
 
@@ -501,9 +491,7 @@ def run_training_example():
             "algorithm": "random_forest",
             "hyperparameters": {"n_estimators": 50, "max_depth": 8, "random_state": 42},
         },
-        "preprocessing": {
-            "feature_selection": {"enabled": True, "method": "k_best", "k": 8}
-        },
+        "preprocessing": {"feature_selection": {"enabled": True, "method": "k_best", "k": 8}},
     }
 
     # Save configuration
@@ -514,7 +502,7 @@ def run_training_example():
     pipeline = TrainingPipeline("config/training_config.yaml")
     results = pipeline.run_pipeline("data/sample_training_data.csv")
 
-    print(f"Pipeline completed!")
+    print("Pipeline completed!")
     print(f"Run ID: {results['run_id']}")
     print(f"Test metrics: {results['test_metrics']}")
 

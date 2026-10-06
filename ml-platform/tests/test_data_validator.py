@@ -45,9 +45,7 @@ class TestDataValidator:
     def test_create_expectation_suite(self, validator, sample_data):
         """Test creating an expectation suite from data."""
         suite_name = "test_suite"
-        result = validator.create_expectation_suite(
-            suite_name, sample_data, overwrite=True
-        )
+        result = validator.create_expectation_suite(suite_name, sample_data, overwrite=True)
         assert result == suite_name
 
         # Verify suite exists
@@ -57,9 +55,7 @@ class TestDataValidator:
     def test_validate_data_pass(self, validator, sample_data):
         """Test data validation that should pass."""
         suite_name = "test_validate_pass"
-        validator.create_expectation_suite(
-            suite_name, sample_data.head(50), overwrite=True
-        )
+        validator.create_expectation_suite(suite_name, sample_data.head(50), overwrite=True)
 
         results = validator.validate_data(sample_data, suite_name)
         assert "success" in results
@@ -72,13 +68,9 @@ class TestDataValidator:
     def test_validate_data_with_run_name(self, validator, sample_data):
         """Test validation with custom run name."""
         suite_name = "test_run_name"
-        validator.create_expectation_suite(
-            suite_name, sample_data.head(50), overwrite=True
-        )
+        validator.create_expectation_suite(suite_name, sample_data.head(50), overwrite=True)
 
-        results = validator.validate_data(
-            sample_data, suite_name, run_name="custom_run"
-        )
+        results = validator.validate_data(sample_data, suite_name, run_name="custom_run")
         assert results["run_name"] == "custom_run"
 
     def test_create_data_quality_suite(self, validator):
@@ -145,9 +137,7 @@ class TestDataValidator:
     def test_multiple_validations(self, validator, sample_data):
         """Test running multiple validations sequentially."""
         suite_name = "multi_validation"
-        validator.create_expectation_suite(
-            suite_name, sample_data.head(50), overwrite=True
-        )
+        validator.create_expectation_suite(suite_name, sample_data.head(50), overwrite=True)
 
         results1 = validator.validate_data(sample_data, suite_name, run_name="run_1")
         results2 = validator.validate_data(sample_data, suite_name, run_name="run_2")

@@ -74,15 +74,9 @@ class FeatureEngineer:
         # Note: 'label' uses OrdinalEncoder because LabelEncoder is 1D-only and
         # incompatible with ColumnTransformer (it expects one column per transformer).
         categorical_transformers = {
-            "onehot": OneHotEncoder(
-                drop="first", sparse_output=False, handle_unknown="ignore"
-            ),
-            "ordinal": OrdinalEncoder(
-                handle_unknown="use_encoded_value", unknown_value=-1
-            ),
-            "label": OrdinalEncoder(
-                handle_unknown="use_encoded_value", unknown_value=-1
-            ),
+            "onehot": OneHotEncoder(drop="first", sparse_output=False, handle_unknown="ignore"),
+            "ordinal": OrdinalEncoder(handle_unknown="use_encoded_value", unknown_value=-1),
+            "label": OrdinalEncoder(handle_unknown="use_encoded_value", unknown_value=-1),
         }
 
         # Build transformers list
@@ -102,16 +96,12 @@ class FeatureEngineer:
                 )
             )
 
-        self.preprocessor = ColumnTransformer(
-            transformers=transformers, remainder="passthrough"
-        )
+        self.preprocessor = ColumnTransformer(transformers=transformers, remainder="passthrough")
 
         logger.info(f"Created preprocessor with {len(transformers)} transformers")
         return self.preprocessor
 
-    def fit_transform(
-        self, X: pd.DataFrame, y: Optional[pd.Series] = None
-    ) -> np.ndarray:
+    def fit_transform(self, X: pd.DataFrame, y: Optional[pd.Series] = None) -> np.ndarray:
         """
         Fit preprocessor and transform data.
 
@@ -123,9 +113,7 @@ class FeatureEngineer:
             Transformed features
         """
         if self.preprocessor is None:
-            raise ValueError(
-                "Preprocessor not created. Call create_preprocessor first."
-            )
+            raise ValueError("Preprocessor not created. Call create_preprocessor first.")
 
         self.feature_names_in_ = list(X.columns)
         X_transformed = self.preprocessor.fit_transform(X)
@@ -134,9 +122,7 @@ class FeatureEngineer:
         # Get output feature names
         self._set_output_feature_names()
 
-        logger.info(
-            f"Fitted preprocessor on {X.shape[0]} samples, {X.shape[1]} features"
-        )
+        logger.info(f"Fitted preprocessor on {X.shape[0]} samples, {X.shape[1]} features")
         logger.info(f"Output shape: {X_transformed.shape}")
 
         return X_transformed
@@ -160,9 +146,7 @@ class FeatureEngineer:
         """Set output feature names after fitting."""
         try:
             if hasattr(self.preprocessor, "get_feature_names_out"):
-                self.feature_names_out_ = list(
-                    self.preprocessor.get_feature_names_out()
-                )
+                self.feature_names_out_ = list(self.preprocessor.get_feature_names_out())
             else:
                 # Fallback for older sklearn versions
                 self.feature_names_out_ = [
@@ -209,9 +193,7 @@ class FeatureEngineer:
         if method == "k_best":
             self.feature_selector = SelectKBest(score_func=score_func, k=k)
         elif method == "percentile":
-            self.feature_selector = SelectPercentile(
-                score_func=score_func, percentile=k
-            )
+            self.feature_selector = SelectPercentile(score_func=score_func, percentile=k)
         elif method == "mutual_info":
             self.feature_selector = SelectKBest(score_func=mutual_info_func, k=k)
         elif method == "rfe":
@@ -236,9 +218,7 @@ class FeatureEngineer:
         # Fit and transform
         X_selected = self.feature_selector.fit_transform(X, y)
 
-        logger.info(
-            f"Selected {X_selected.shape[1]} features from {X.shape[1]} using {method}"
-        )
+        logger.info(f"Selected {X_selected.shape[1]} features from {X.shape[1]} using {method}")
 
         return X_selected
 
@@ -260,11 +240,7 @@ class FeatureEngineer:
         # Get selected feature mask
         if hasattr(self.feature_selector, "get_support"):
             mask = self.feature_selector.get_support()
-            return [
-                name
-                for name, selected in zip(self.feature_names_out_, mask)
-                if selected
-            ]
+            return [name for name, selected in zip(self.feature_names_out_, mask) if selected]
 
         return self.feature_names_out_
 

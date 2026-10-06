@@ -31,9 +31,7 @@ class TestClassificationModel:
 
     def test_model_initialization(self):
         """Test model initialization."""
-        model = ClassificationModel(
-            model_name="test_classifier", algorithm="random_forest"
-        )
+        model = ClassificationModel(model_name="test_classifier", algorithm="random_forest")
 
         assert model.model_name == "test_classifier"
         assert model.algorithm == "random_forest"
@@ -46,14 +44,10 @@ class TestClassificationModel:
 
     def test_model_training(self, sample_classification_data):
         """Test model training."""
-        model = ClassificationModel(
-            model_name="test_classifier", algorithm="random_forest"
-        )
+        model = ClassificationModel(model_name="test_classifier", algorithm="random_forest")
 
         # Prepare data
-        X_train, X_test, y_train, y_test = model.prepare_data(
-            sample_classification_data, "target"
-        )
+        X_train, X_test, y_train, y_test = model.prepare_data(sample_classification_data, "target")
 
         # Train model
         metrics = model.train(
@@ -77,9 +71,7 @@ class TestClassificationModel:
         model = ClassificationModel(algorithm="random_forest")
 
         # Prepare and train
-        X_train, X_test, y_train, y_test = model.prepare_data(
-            sample_classification_data, "target"
-        )
+        X_train, X_test, y_train, y_test = model.prepare_data(sample_classification_data, "target")
         model.train(X_train, y_train, X_test, y_test, n_estimators=10)
 
         # Test predictions
@@ -97,9 +89,7 @@ class TestClassificationModel:
         model = ClassificationModel(algorithm="random_forest")
 
         # Prepare and train
-        X_train, X_test, y_train, y_test = model.prepare_data(
-            sample_classification_data, "target"
-        )
+        X_train, X_test, y_train, y_test = model.prepare_data(sample_classification_data, "target")
         model.train(X_train, y_train, X_test, y_test, n_estimators=10)
 
         # Get feature importance
@@ -115,9 +105,7 @@ class TestClassificationModel:
         model = ClassificationModel(algorithm="random_forest")
 
         # Prepare and train
-        X_train, X_test, y_train, y_test = model.prepare_data(
-            sample_classification_data, "target"
-        )
+        X_train, X_test, y_train, y_test = model.prepare_data(sample_classification_data, "target")
         model.train(X_train, y_train, X_test, y_test, n_estimators=10)
 
         # Test confident predictions
@@ -159,9 +147,7 @@ class TestRegressionModel:
         model = RegressionModel(model_name="test_regressor", algorithm="random_forest")
 
         # Prepare data
-        X_train, X_test, y_train, y_test = model.prepare_data(
-            sample_regression_data, "target"
-        )
+        X_train, X_test, y_train, y_test = model.prepare_data(sample_regression_data, "target")
 
         # Train model
         metrics = model.train(
@@ -187,9 +173,7 @@ class TestRegressionModel:
         model = RegressionModel(algorithm="random_forest")
 
         # Prepare and train
-        X_train, X_test, y_train, y_test = model.prepare_data(
-            sample_regression_data, "target"
-        )
+        X_train, X_test, y_train, y_test = model.prepare_data(sample_regression_data, "target")
         model.train(X_train, y_train, X_test, y_test, n_estimators=10)
 
         # Test predictions
@@ -202,9 +186,7 @@ class TestRegressionModel:
         model = RegressionModel(algorithm="random_forest")
 
         # Prepare and train
-        X_train, X_test, y_train, y_test = model.prepare_data(
-            sample_regression_data, "target"
-        )
+        X_train, X_test, y_train, y_test = model.prepare_data(sample_regression_data, "target")
         model.train(X_train, y_train, X_test, y_test, n_estimators=10)
 
         # Test predictions with intervals

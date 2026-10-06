@@ -89,9 +89,7 @@ class TestDataLoader:
 
             # Test Parquet
             parquet_path = os.path.join(temp_dir, "test.parquet")
-            loader.save_data(
-                sample_data, parquet_path, format="parquet", source="local"
-            )
+            loader.save_data(sample_data, parquet_path, format="parquet", source="local")
 
             assert os.path.exists(parquet_path)
             loaded_parquet = pd.read_parquet(parquet_path)
@@ -194,9 +192,7 @@ class TestFeatureEngineer:
 
         assert fe.is_fitted
         assert X_transformed.shape[0] == X.shape[0]
-        assert (
-            X_transformed.shape[1] > X.shape[1]
-        )  # One-hot encoding increases features
+        assert X_transformed.shape[1] > X.shape[1]  # One-hot encoding increases features
 
     def test_transform_after_fit(self, sample_data):
         """Test transforming new data after fitting."""
@@ -243,9 +239,7 @@ class TestFeatureEngineer:
         assert fe.is_fitted
         assert X_transformed.shape[0] == X.shape[0]
         # 3 numeric + 2 categorical = 5 output columns
-        assert X_transformed.shape[1] == len(numeric_features) + len(
-            categorical_features
-        )
+        assert X_transformed.shape[1] == len(numeric_features) + len(categorical_features)
 
     def test_feature_selection(self, sample_data):
         """Test feature selection."""
@@ -288,6 +282,7 @@ class TestFeatureEngineer:
             X_transformed, y, method="k_best", k=3, task_type="classification"
         )
 
+        assert X_selected.shape[1] == 3
         selected_names = fe.get_selected_feature_names()
         assert len(selected_names) == 3
         assert all(isinstance(name, str) for name in selected_names)

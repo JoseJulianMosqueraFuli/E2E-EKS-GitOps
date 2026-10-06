@@ -159,9 +159,7 @@ class InferencePipeline:
 
             # Apply feature selection if available
             if self.feature_engineer.feature_selector is not None:
-                X_transformed = self.feature_engineer.feature_selector.transform(
-                    X_transformed
-                )
+                X_transformed = self.feature_engineer.feature_selector.transform(X_transformed)
 
             return X_transformed
 
@@ -217,9 +215,7 @@ class InferencePipeline:
 
                 # Apply confidence threshold if specified
                 if confidence_threshold is not None:
-                    confident_mask = (
-                        np.max(probabilities, axis=1) >= confidence_threshold
-                    )
+                    confident_mask = np.max(probabilities, axis=1) >= confidence_threshold
                     result["confident_predictions"] = predictions.copy()
                     result["confident_predictions"][
                         ~confident_mask
@@ -231,9 +227,7 @@ class InferencePipeline:
             self.inference_stats["total_predictions"] += len(predictions)
             self.inference_stats["total_inference_time"] += result["inference_time"]
 
-            logger.info(
-                f"Made {len(predictions)} predictions in {result['inference_time']:.3f}s"
-            )
+            logger.info(f"Made {len(predictions)} predictions in {result['inference_time']:.3f}s")
 
             return result
 
@@ -290,9 +284,7 @@ class InferencePipeline:
             if "probabilities" in batch_results:
                 all_probabilities.extend(batch_results["probabilities"])
 
-            logger.info(
-                f"Processed batch {i//batch_size + 1}/{(len(data)-1)//batch_size + 1}"
-            )
+            logger.info(f"Processed batch {i//batch_size + 1}/{(len(data)-1)//batch_size + 1}")
 
         # Prepare results
         results = {
@@ -376,9 +368,7 @@ class InferencePipeline:
                 # Create dummy data based on expected input
                 if self.feature_engineer and self.feature_engineer.feature_names_in_:
                     dummy_data = pd.DataFrame(
-                        np.random.randn(
-                            1, len(self.feature_engineer.feature_names_in_)
-                        ),
+                        np.random.randn(1, len(self.feature_engineer.feature_names_in_)),
                         columns=self.feature_engineer.feature_names_in_,
                     )
                 else:
@@ -398,9 +388,7 @@ class InferencePipeline:
 
         return health_status
 
-    def save_predictions_with_metadata(
-        self, predictions: Dict[str, Any], output_path: str
-    ):
+    def save_predictions_with_metadata(self, predictions: Dict[str, Any], output_path: str):
         """
         Save predictions with metadata in JSON format.
 
@@ -476,9 +464,7 @@ def inference_example():
     )
 
     print(f"Single predictions: {single_predictions['predictions']}")
-    print(
-        f"Confident predictions: {single_predictions.get('confident_count', 'N/A')}/5"
-    )
+    print(f"Confident predictions: {single_predictions.get('confident_count', 'N/A')}/5")
 
     # Batch prediction
     print("Making batch predictions...")

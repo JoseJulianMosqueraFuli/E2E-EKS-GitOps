@@ -68,11 +68,18 @@ def get_default_logging_config() -> Dict[str, Any]:
                 "datefmt": "%Y-%m-%d %H:%M:%S",
             },
             "detailed": {
-                "format": "%(asctime)s - %(name)s - %(levelname)s - %(module)s - %(funcName)s - %(message)s",
+                "format": (
+                    "%(asctime)s - %(name)s - %(levelname)s - "
+                    "%(module)s - %(funcName)s - %(message)s"
+                ),
                 "datefmt": "%Y-%m-%d %H:%M:%S",
             },
             "json": {
-                "format": '{"timestamp": "%(asctime)s", "logger": "%(name)s", "level": "%(levelname)s", "module": "%(module)s", "function": "%(funcName)s", "message": "%(message)s"}',
+                "format": (
+                    '{"timestamp": "%(asctime)s", "logger": "%(name)s", '
+                    '"level": "%(levelname)s", "module": "%(module)s", '
+                    '"function": "%(funcName)s", "message": "%(message)s"}'
+                ),
                 "datefmt": "%Y-%m-%d %H:%M:%S",
             },
         },
@@ -160,9 +167,7 @@ class MLOpsLogger:
         """Log data operation with structured information."""
         self.logger.info(f"DATA_OP: {operation}", extra=details)
 
-    def log_model_operation(
-        self, operation: str, model_name: str, details: Dict[str, Any]
-    ):
+    def log_model_operation(self, operation: str, model_name: str, details: Dict[str, Any]):
         """Log model operation with structured information."""
         self.logger.info(f"MODEL_OP: {operation} - {model_name}", extra=details)
 
@@ -174,13 +179,9 @@ class MLOpsLogger:
         if details:
             extra.update(details)
 
-        self.logger.info(
-            f"PIPELINE_STEP: {step} - {status} ({duration:.2f}s)", extra=extra
-        )
+        self.logger.info(f"PIPELINE_STEP: {step} - {status} ({duration:.2f}s)", extra=extra)
 
-    def log_metric(
-        self, metric_name: str, value: float, context: Dict[str, Any] = None
-    ):
+    def log_metric(self, metric_name: str, value: float, context: Dict[str, Any] = None):
         """Log metric with context."""
         extra = {"metric_name": metric_name, "metric_value": value}
         if context:
@@ -194,9 +195,7 @@ class MLOpsLogger:
         if context:
             extra.update(context)
 
-        self.logger.error(
-            f"ERROR: {type(error).__name__}: {error}", extra=extra, exc_info=True
-        )
+        self.logger.error(f"ERROR: {type(error).__name__}: {error}", extra=extra, exc_info=True)
 
 
 # Example usage

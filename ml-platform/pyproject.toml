@@ -56,7 +56,7 @@ dev = [
     "pytest-cov==4.1.0",
     "pytest-mock==3.11.1",
     "black==23.7.0",
-    "flake8==6.0.0",
+    "flake8>=7.1,<8",
     "isort==5.12.0",
     "mypy==1.5.1",
 ]
@@ -69,7 +69,8 @@ Homepage = "https://github.com/JoseJulianMosqueraFuli/E2E-EKS-GitOps"
 Repository = "https://github.com/JoseJulianMosqueraFuli/E2E-EKS-GitOps"
 
 [tool.setuptools.packages.find]
-where = ["src"]
+where = ["."]
+include = ["src", "src.*"]
 
 [tool.black]
 line-length = 100

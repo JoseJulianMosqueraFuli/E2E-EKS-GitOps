@@ -63,12 +63,8 @@ class TestInferencePipelineIntegration:
         train_pipeline.model.save_model(model_path)
 
         # Inference
-        inf_pipeline = InferencePipeline(
-            model_path=model_path, feature_pipeline_path=None
-        )
-        predictions = inf_pipeline.predict(
-            sample_classification_data.drop(columns=["target"])
-        )
+        inf_pipeline = InferencePipeline(model_path=model_path, feature_pipeline_path=None)
+        predictions = inf_pipeline.predict(sample_classification_data.drop(columns=["target"]))
 
         assert predictions is not None
         assert predictions["num_samples"] == len(sample_classification_data)
@@ -91,9 +87,7 @@ class TestInferencePipelineIntegration:
         train_pipeline.model.save_model(model_path)
 
         inf_pipeline = InferencePipeline(model_path=model_path)
-        results = inf_pipeline.predict_batch(
-            infer_data_path, output_path, batch_size=50
-        )
+        results = inf_pipeline.predict_batch(infer_data_path, output_path, batch_size=50)
 
         assert results["num_samples"] == len(sample_classification_data)
         assert os.path.exists(output_path)

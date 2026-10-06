@@ -109,9 +109,7 @@ class ClassificationModel(BaseModel):
 
         return self.algorithm_class(**params)
 
-    def evaluate_model(
-        self, X_test: pd.DataFrame, y_test: pd.Series
-    ) -> Dict[str, float]:
+    def evaluate_model(self, X_test: pd.DataFrame, y_test: pd.Series) -> Dict[str, float]:
         """
         Evaluate classification model.
 
@@ -145,7 +143,7 @@ class ClassificationModel(BaseModel):
                 logger.warning(f"Could not calculate ROC AUC: {e}")
 
         # Log detailed classification report
-        report = classification_report(y_test, y_pred, output_dict=True)
+        logger.info("Classification report: %s", classification_report(y_test, y_pred))
 
         # Log confusion matrix as artifact
         cm = confusion_matrix(y_test, y_pred)
@@ -197,9 +195,7 @@ class ClassificationModel(BaseModel):
 
         return importance_df
 
-    def predict_with_confidence(
-        self, X: pd.DataFrame, confidence_threshold: float = 0.8
-    ) -> Dict:
+    def predict_with_confidence(self, X: pd.DataFrame, confidence_threshold: float = 0.8) -> Dict:
         """
         Make predictions with confidence scores.
 
@@ -255,17 +251,13 @@ def train_classification_example():
     data["target"] = y
 
     # Initialize model
-    model = ClassificationModel(
-        model_name="example_classifier", algorithm="random_forest"
-    )
+    model = ClassificationModel(model_name="example_classifier", algorithm="random_forest")
 
     # Prepare data
     X_train, X_test, y_train, y_test = model.prepare_data(data, "target")
 
     # Train model
-    metrics = model.train(
-        X_train, y_train, X_test, y_test, n_estimators=50, max_depth=8
-    )
+    metrics = model.train(X_train, y_train, X_test, y_test, n_estimators=50, max_depth=8)
 
     # Get feature importance
     importance = model.get_feature_importance()
@@ -275,7 +267,8 @@ def train_classification_example():
     # Make predictions with confidence
     predictions = model.predict_with_confidence(X_test.head())
     print(
-        f"Confident predictions: {np.sum(predictions['is_confident'])}/{len(predictions['predictions'])}"
+        f"Confident predictions: {np.sum(predictions['is_confident'])}/"
+        f"{len(predictions['predictions'])}"
     )
 
     return model, metrics

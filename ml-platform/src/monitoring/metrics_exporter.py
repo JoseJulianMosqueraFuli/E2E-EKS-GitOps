@@ -171,9 +171,7 @@ class MetricsExporter:
 
         # Per-column drift scores
         for col, scores in drift_results.get("column_drift_scores", {}).items():
-            self.column_drift_score.labels(*labels, col).set(
-                scores.get("drift_score", 0.0)
-            )
+            self.column_drift_score.labels(*labels, col).set(scores.get("drift_score", 0.0))
 
         # Missing values
         missing = drift_results.get("missing_values", {})
@@ -193,15 +191,11 @@ class MetricsExporter:
         # Classification metrics
         if "current_accuracy" in perf_results:
             if perf_results.get("current_accuracy") is not None:
-                self.model_accuracy.labels(*labels).set(
-                    perf_results["current_accuracy"]
-                )
+                self.model_accuracy.labels(*labels).set(perf_results["current_accuracy"])
             if perf_results.get("current_f1") is not None:
                 self.model_f1_score.labels(*labels).set(perf_results["current_f1"])
             if perf_results.get("current_precision") is not None:
-                self.model_precision.labels(*labels).set(
-                    perf_results["current_precision"]
-                )
+                self.model_precision.labels(*labels).set(perf_results["current_precision"])
             if perf_results.get("current_recall") is not None:
                 self.model_recall.labels(*labels).set(perf_results["current_recall"])
 

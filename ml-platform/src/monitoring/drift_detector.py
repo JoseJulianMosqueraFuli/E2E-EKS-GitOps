@@ -10,11 +10,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 import pandas as pd
-from evidently.legacy.metric_preset import (
-    DataDriftPreset,
-    DataQualityPreset,
-    TargetDriftPreset,
-)
+from evidently.legacy.metric_preset import DataDriftPreset, DataQualityPreset, TargetDriftPreset
 from evidently.legacy.metrics import (
     ColumnDriftMetric,
     DatasetDriftMetric,
@@ -116,9 +112,7 @@ class DriftDetector:
             if "DatasetDriftMetric" in metric_id:
                 results["dataset_drift"] = result.get("dataset_drift", False)
                 results["drift_share"] = result.get("drift_share", 0.0)
-                results["number_of_drifted_columns"] = result.get(
-                    "number_of_drifted_columns", 0
-                )
+                results["number_of_drifted_columns"] = result.get("number_of_drifted_columns", 0)
 
             elif "ColumnDriftMetric" in metric_id:
                 col_name = result.get("column_name", "unknown")

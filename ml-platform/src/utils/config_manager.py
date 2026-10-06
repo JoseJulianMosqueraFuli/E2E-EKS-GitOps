@@ -152,9 +152,7 @@ class ConfigManager:
         env_config_path = self.config_dir / f"{config_name}.{self.environment}.yaml"
         env_config = {}
         if env_config_path.exists():
-            env_config = self._load_config_file(
-                f"{config_name}.{self.environment}.yaml"
-            )
+            env_config = self._load_config_file(f"{config_name}.{self.environment}.yaml")
 
         # Merge configurations (environment overrides base)
         merged_config = self._deep_merge(base_config, env_config)
@@ -220,18 +218,12 @@ class ConfigManager:
 
         return secrets
 
-    def _deep_merge(
-        self, base: Dict[str, Any], override: Dict[str, Any]
-    ) -> Dict[str, Any]:
+    def _deep_merge(self, base: Dict[str, Any], override: Dict[str, Any]) -> Dict[str, Any]:
         """Deep merge two dictionaries."""
         result = base.copy()
 
         for key, value in override.items():
-            if (
-                key in result
-                and isinstance(result[key], dict)
-                and isinstance(value, dict)
-            ):
+            if key in result and isinstance(result[key], dict) and isinstance(value, dict):
                 result[key] = self._deep_merge(result[key], value)
             else:
                 result[key] = value
@@ -250,9 +242,7 @@ class ConfigManager:
         # Extract nested configurations
         data_config = DataConfig(**config_dict.get("data", {}))
         model_config = ModelConfig(**config_dict.get("model", {}))
-        preprocessing_config = PreprocessingConfig(
-            **config_dict.get("preprocessing", {})
-        )
+        preprocessing_config = PreprocessingConfig(**config_dict.get("preprocessing", {}))
         mlflow_config = MLflowConfig(**config_dict.get("mlflow", {}))
         validation_config = ValidationConfig(**config_dict.get("validation", {}))
         inference_config = InferenceConfig(**config_dict.get("inference", {}))
@@ -384,9 +374,7 @@ class ConfigManager:
             "minmax",
             "robust",
         ]:
-            errors.append(
-                f"Invalid numeric_strategy: {config.preprocessing.numeric_strategy}"
-            )
+            errors.append(f"Invalid numeric_strategy: {config.preprocessing.numeric_strategy}")
 
         if config.preprocessing.categorical_strategy not in [
             "onehot",

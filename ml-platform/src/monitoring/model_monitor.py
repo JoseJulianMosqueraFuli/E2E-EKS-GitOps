@@ -12,10 +12,7 @@ from typing import Any, Dict, List, Optional
 
 import pandas as pd
 from evidently.legacy.metric_preset import ClassificationPreset, RegressionPreset
-from evidently.legacy.metrics import (
-    ClassificationQualityMetric,
-    RegressionQualityMetric,
-)
+from evidently.legacy.metrics import ClassificationQualityMetric, RegressionQualityMetric
 from evidently.legacy.pipeline.column_mapping import ColumnMapping
 from evidently.legacy.report import Report
 
@@ -61,18 +58,14 @@ class ModelMonitor:
             self.feature_columns = feature_columns
         else:
             exclude = {target_column, prediction_column}
-            self.feature_columns = [
-                c for c in reference_data.columns if c not in exclude
-            ]
+            self.feature_columns = [c for c in reference_data.columns if c not in exclude]
 
         # Setup column mapping
         self.column_mapping = ColumnMapping(
             target=target_column,
             prediction=prediction_column,
             numerical_features=[
-                c
-                for c in self.feature_columns
-                if reference_data[c].dtype in ["int64", "float64"]
+                c for c in self.feature_columns if reference_data[c].dtype in ["int64", "float64"]
             ],
             categorical_features=[
                 c for c in self.feature_columns if reference_data[c].dtype == "object"

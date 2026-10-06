@@ -180,7 +180,8 @@ class DriftCheckRunner:
                         },
                         {
                             "type": "mrkdwn",
-                            "text": f"*Drifted Columns:*\n{len(drift_data.get('drifted_columns', []))}",
+                            "text": "*Drifted Columns:*\n"
+                            f"{len(drift_data.get('drifted_columns', []))}",
                         },
                     ],
                 },
@@ -188,7 +189,8 @@ class DriftCheckRunner:
                     "type": "section",
                     "text": {
                         "type": "mrkdwn",
-                        "text": f"*Drifted Features:*\n`{', '.join(drift_data.get('drifted_columns', [])[:5])}`",
+                        "text": "*Drifted Features:*\n"
+                        f"`{', '.join(drift_data.get('drifted_columns', [])[:5])}`",
                     },
                 },
                 {
@@ -238,7 +240,9 @@ Errors: {errors}
         logger.info(summary)
 
         # Save results to file
-        output_path = f"/data/reports/drift_check_{datetime.utcnow().strftime('%Y%m%d_%H%M%S')}.json"
+        output_path = (
+            f"/data/reports/drift_check_{datetime.utcnow().strftime('%Y%m%d_%H%M%S')}.json"
+        )
         os.makedirs(os.path.dirname(output_path), exist_ok=True)
         with open(output_path, "w") as f:
             json.dump(self.results, f, indent=2, default=str)

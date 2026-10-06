@@ -77,9 +77,7 @@ class DataValidator:
         return suite_name
 
     def _add_basic_expectations(self, suite, data: pd.DataFrame):
-        suite.add_expectation(
-            gx.expectations.ExpectTableRowCountToBeBetween(min_value=1)
-        )
+        suite.add_expectation(gx.expectations.ExpectTableRowCountToBeBetween(min_value=1))
         suite.add_expectation(
             gx.expectations.ExpectTableColumnsToMatchSet(
                 column_set=list(data.columns), exact_match=False
@@ -90,9 +88,7 @@ class DataValidator:
             col_data = data[column]
             null_percentage = col_data.isnull().mean()
             if null_percentage < 0.05:
-                suite.add_expectation(
-                    gx.expectations.ExpectColumnValuesToNotBeNull(column=column)
-                )
+                suite.add_expectation(gx.expectations.ExpectColumnValuesToNotBeNull(column=column))
             else:
                 suite.add_expectation(
                     gx.expectations.ExpectColumnValuesToNotBeNull(
@@ -179,9 +175,7 @@ class DataValidator:
         }
 
         if summary["success"]:
-            logger.info(
-                f"Data validation passed: {summary['success_percent']:.1f}% success rate"
-            )
+            logger.info(f"Data validation passed: {summary['success_percent']:.1f}% success rate")
         else:
             logger.warning(
                 f"Data validation failed: {summary['success_percent']:.1f}% success rate"
@@ -201,9 +195,7 @@ class DataValidator:
     def create_data_quality_suite(self, suite_name: str = "data_quality_suite"):
         suite = self._get_or_create_suite(suite_name, overwrite=True)
 
-        suite.add_expectation(
-            gx.expectations.ExpectTableRowCountToBeBetween(min_value=1)
-        )
+        suite.add_expectation(gx.expectations.ExpectTableRowCountToBeBetween(min_value=1))
         suite.add_expectation(
             gx.expectations.ExpectTableColumnsToMatchSet(
                 column_set=["id", "feature_1", "feature_2", "target"]
@@ -234,7 +226,7 @@ def validate_sample_data():
     )
     results = validator.validate_data(data, suite_name)
 
-    print(f"Validation Results:")
+    print("Validation Results:")
     print(f"Success: {results['success']}")
     print(f"Success Rate: {results['success_percent']:.1f}%")
     print(f"Report URL: {validator.get_validation_report_url()}")

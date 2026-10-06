@@ -28,9 +28,7 @@ def train_model(args):
 
     try:
         # Load configuration
-        config_manager = ConfigManager(
-            config_dir=args.config_dir, environment=args.environment
-        )
+        config_manager = ConfigManager(config_dir=args.config_dir, environment=args.environment)
         config = config_manager.load_config(args.config_name)
 
         # Validate configuration
@@ -51,7 +49,7 @@ def train_model(args):
             {"run_id": results["run_id"], "test_metrics": results["test_metrics"]},
         )
 
-        print(f"Training completed successfully!")
+        print("Training completed successfully!")
         print(f"Run ID: {results['run_id']}")
         print(f"Test Metrics: {results['test_metrics']}")
 
@@ -100,9 +98,7 @@ def run_inference(args):
 
             # Save results if output path specified
             if args.output_path:
-                inference_pipeline.save_predictions_with_metadata(
-                    results, args.output_path
-                )
+                inference_pipeline.save_predictions_with_metadata(results, args.output_path)
 
         logger.log_pipeline_step(
             "inference_complete",
@@ -153,7 +149,7 @@ def validate_data(args):
             },
         )
 
-        print(f"Data validation completed!")
+        print("Data validation completed!")
         print(f"Success: {results['success']}")
         print(f"Success Rate: {results['success_percent']:.1f}%")
         print(f"Report URL: {validator.get_validation_report_url()}")
@@ -240,15 +236,9 @@ def main():
     parser = argparse.ArgumentParser(description="MLOps Platform CLI")
 
     # Global arguments
-    parser.add_argument(
-        "--config-dir", default="config", help="Configuration directory"
-    )
-    parser.add_argument(
-        "--config-name", default="config", help="Configuration file name"
-    )
-    parser.add_argument(
-        "--environment", default="dev", help="Environment (dev/staging/prod)"
-    )
+    parser.add_argument("--config-dir", default="config", help="Configuration directory")
+    parser.add_argument("--config-name", default="config", help="Configuration file name")
+    parser.add_argument("--environment", default="dev", help="Environment (dev/staging/prod)")
     parser.add_argument("--verbose", "-v", action="store_true", help="Verbose logging")
 
     # Subcommands
@@ -264,16 +254,12 @@ def main():
     inference_parser.add_argument("data_path", help="Path to input data")
     inference_parser.add_argument("--model-uri", help="MLflow model URI")
     inference_parser.add_argument("--model-path", help="Local model path")
-    inference_parser.add_argument(
-        "--feature-pipeline-path", help="Feature pipeline path"
-    )
+    inference_parser.add_argument("--feature-pipeline-path", help="Feature pipeline path")
     inference_parser.add_argument("--output-path", help="Output path for predictions")
     inference_parser.add_argument(
         "--batch-inference", action="store_true", help="Run batch inference"
     )
-    inference_parser.add_argument(
-        "--batch-size", type=int, default=1000, help="Batch size"
-    )
+    inference_parser.add_argument("--batch-size", type=int, default=1000, help="Batch size")
     inference_parser.add_argument(
         "--return-probabilities", action="store_true", help="Return probabilities"
     )
@@ -294,12 +280,8 @@ def main():
     # Create sample data command
     sample_parser = subparsers.add_parser("create-sample", help="Create sample data")
     sample_parser.add_argument("output_path", help="Output path for sample data")
-    sample_parser.add_argument(
-        "--n-samples", type=int, default=1000, help="Number of samples"
-    )
-    sample_parser.add_argument(
-        "--n-features", type=int, default=10, help="Number of features"
-    )
+    sample_parser.add_argument("--n-samples", type=int, default=1000, help="Number of samples")
+    sample_parser.add_argument("--n-features", type=int, default=10, help="Number of features")
     sample_parser.add_argument(
         "--task-type",
         choices=["classification", "regression"],

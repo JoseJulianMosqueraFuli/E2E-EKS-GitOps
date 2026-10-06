@@ -55,9 +55,7 @@ def train_cmd(data_path, config_dir, config_name, environment):
 @click.option("--batch/--single", default=False, help="Batch or single inference")
 @click.option("--batch-size", default=1000, type=int, help="Batch size")
 @click.option("--return-probabilities", is_flag=True, help="Return probabilities")
-@click.option(
-    "--confidence-threshold", default=0.8, type=float, help="Confidence threshold"
-)
+@click.option("--confidence-threshold", default=0.8, type=float, help="Confidence threshold")
 def inference_cmd(
     data_path,
     model_uri,
@@ -83,9 +81,7 @@ def inference_cmd(
     loader = DataLoader()
 
     if batch:
-        results = inference_pipeline.predict_batch(
-            data_path, output_path, batch_size=batch_size
-        )
+        results = inference_pipeline.predict_batch(data_path, output_path, batch_size=batch_size)
         click.echo(f"Batch inference completed: {results['num_samples']} predictions")
     else:
         data = loader.load_csv(data_path)
@@ -101,9 +97,7 @@ def inference_cmd(
 
 @main.command("validate")
 @click.argument("data_path")
-@click.option(
-    "--suite-name", default="data_validation_suite", help="Expectation suite name"
-)
+@click.option("--suite-name", default="data_validation_suite", help="Expectation suite name")
 @click.option("--create-suite", is_flag=True, help="Create new expectation suite")
 def validate_cmd(data_path, suite_name, create_suite):
     """Validate data quality."""
@@ -119,7 +113,7 @@ def validate_cmd(data_path, suite_name, create_suite):
 
     results = validator.validate_data(data, suite_name)
 
-    click.echo(f"Data validation completed!")
+    click.echo("Data validation completed!")
     click.echo(f"Success: {results['success']}")
     click.echo(f"Success Rate: {results['success_percent']:.1f}%")
     click.echo(f"Report URL: {validator.get_validation_report_url()}")

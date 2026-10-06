@@ -109,9 +109,7 @@ class RegressionModel(BaseModel):
 
         return self.algorithm_class(**params)
 
-    def evaluate_model(
-        self, X_test: pd.DataFrame, y_test: pd.Series
-    ) -> Dict[str, float]:
+    def evaluate_model(self, X_test: pd.DataFrame, y_test: pd.Series) -> Dict[str, float]:
         """
         Evaluate regression model.
 
@@ -151,9 +149,7 @@ class RegressionModel(BaseModel):
 
             # Predicted vs Actual
             ax1.scatter(y_test, y_pred, alpha=0.6)
-            ax1.plot(
-                [y_test.min(), y_test.max()], [y_test.min(), y_test.max()], "r--", lw=2
-            )
+            ax1.plot([y_test.min(), y_test.max()], [y_test.min(), y_test.max()], "r--", lw=2)
             ax1.set_xlabel("Actual")
             ax1.set_ylabel("Predicted")
             ax1.set_title("Predicted vs Actual")
@@ -211,9 +207,7 @@ class RegressionModel(BaseModel):
 
         return importance_df
 
-    def predict_with_intervals(
-        self, X: pd.DataFrame, confidence_level: float = 0.95
-    ) -> Dict:
+    def predict_with_intervals(self, X: pd.DataFrame, confidence_level: float = 0.95) -> Dict:
         """
         Make predictions with prediction intervals (for tree-based models).
 
@@ -234,21 +228,15 @@ class RegressionModel(BaseModel):
         # For RandomForest, we can estimate prediction intervals
         if self.algorithm == "random_forest":
             # Get predictions from all trees
-            tree_predictions = np.array(
-                [tree.predict(X) for tree in self.model.estimators_]
-            )
+            tree_predictions = np.array([tree.predict(X) for tree in self.model.estimators_])
 
             # Calculate percentiles for intervals
             alpha = 1 - confidence_level
             lower_percentile = (alpha / 2) * 100
             upper_percentile = (1 - alpha / 2) * 100
 
-            result["lower_bound"] = np.percentile(
-                tree_predictions, lower_percentile, axis=0
-            )
-            result["upper_bound"] = np.percentile(
-                tree_predictions, upper_percentile, axis=0
-            )
+            result["lower_bound"] = np.percentile(tree_predictions, lower_percentile, axis=0)
+            result["upper_bound"] = np.percentile(tree_predictions, upper_percentile, axis=0)
             result["prediction_std"] = np.std(tree_predictions, axis=0)
 
         return result
@@ -275,12 +263,8 @@ class RegressionModel(BaseModel):
 
         # Perform cross-validation
         cv_scores = {
-            "cv_mse": -cross_val_score(
-                model, X, y, cv=cv, scoring="neg_mean_squared_error"
-            ),
-            "cv_mae": -cross_val_score(
-                model, X, y, cv=cv, scoring="neg_mean_absolute_error"
-            ),
+            "cv_mse": -cross_val_score(model, X, y, cv=cv, scoring="neg_mean_squared_error"),
+            "cv_mae": -cross_val_score(model, X, y, cv=cv, scoring="neg_mean_absolute_error"),
             "cv_r2": cross_val_score(model, X, y, cv=cv, scoring="r2"),
         }
 
@@ -317,9 +301,7 @@ def train_regression_example():
     X_train, X_test, y_train, y_test = model.prepare_data(data, "target")
 
     # Train model
-    metrics = model.train(
-        X_train, y_train, X_test, y_test, n_estimators=50, max_depth=8
-    )
+    metrics = model.train(X_train, y_train, X_test, y_test, n_estimators=50, max_depth=8)
 
     # Get feature importance
     importance = model.get_feature_importance()
@@ -332,9 +314,7 @@ def train_regression_example():
 
     # Cross-validation
     cv_results = model.cross_validate(X_train, y_train, cv=3)
-    print(
-        f"Cross-validation R2: {cv_results['cv_r2_mean']:.3f} ± {cv_results['cv_r2_std']:.3f}"
-    )
+    print(f"Cross-validation R2: {cv_results['cv_r2_mean']:.3f} ± {cv_results['cv_r2_std']:.3f}")
 
     return model, metrics
 

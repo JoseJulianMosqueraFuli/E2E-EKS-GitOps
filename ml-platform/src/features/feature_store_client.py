@@ -64,8 +64,7 @@ class MLOpsFeatureStore:
         ).to_df()
 
         logger.info(
-            f"Retrieved online features for {len(entity_rows)} rows, "
-            f"refs={feature_refs}"
+            f"Retrieved online features for {len(entity_rows)} rows, " f"refs={feature_refs}"
         )
         return features
 
@@ -183,8 +182,7 @@ class MLOpsFeatureStore:
         )
 
         logger.info(
-            f"Built training dataset: shape={training_df.shape}, "
-            f"features={len(feature_refs)}"
+            f"Built training dataset: shape={training_df.shape}, " f"features={len(feature_refs)}"
         )
         return training_df
 

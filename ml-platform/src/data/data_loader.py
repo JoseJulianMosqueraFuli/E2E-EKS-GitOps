@@ -69,9 +69,7 @@ class DataLoader:
             logger.error(f"Error loading CSV from {filepath}: {e}")
             raise
 
-    def _load_s3_csv(
-        self, s3_key: str, bucket: Optional[str] = None, **kwargs
-    ) -> pd.DataFrame:
+    def _load_s3_csv(self, s3_key: str, bucket: Optional[str] = None, **kwargs) -> pd.DataFrame:
         """Load CSV from S3."""
         if self.s3_client is None:
             raise ValueError("S3 client not available")
@@ -93,9 +91,7 @@ class DataLoader:
             logger.error(f"Error loading CSV from S3: {e}")
             raise
 
-    def load_parquet(
-        self, filepath: str, source: str = "local", **kwargs
-    ) -> pd.DataFrame:
+    def load_parquet(self, filepath: str, source: str = "local", **kwargs) -> pd.DataFrame:
         """
         Load Parquet file from local or S3.
 
@@ -124,9 +120,7 @@ class DataLoader:
             logger.error(f"Error loading Parquet from {filepath}: {e}")
             raise
 
-    def _load_s3_parquet(
-        self, s3_key: str, bucket: Optional[str] = None, **kwargs
-    ) -> pd.DataFrame:
+    def _load_s3_parquet(self, s3_key: str, bucket: Optional[str] = None, **kwargs) -> pd.DataFrame:
         """Load Parquet from S3."""
         bucket = bucket or self.s3_bucket
         if not bucket:
@@ -172,9 +166,7 @@ class DataLoader:
             logger.error(f"Error loading JSON from {filepath}: {e}")
             raise
 
-    def _load_s3_json(
-        self, s3_key: str, bucket: Optional[str] = None, **kwargs
-    ) -> pd.DataFrame:
+    def _load_s3_json(self, s3_key: str, bucket: Optional[str] = None, **kwargs) -> pd.DataFrame:
         """Load JSON from S3."""
         if self.s3_client is None:
             raise ValueError("S3 client not available")
@@ -283,9 +275,7 @@ class DataLoader:
             logger.error(f"Error saving {format.upper()} to S3: {e}")
             raise
 
-    def list_s3_objects(
-        self, prefix: str = "", bucket: Optional[str] = None
-    ) -> List[str]:
+    def list_s3_objects(self, prefix: str = "", bucket: Optional[str] = None) -> List[str]:
         """
         List objects in S3 bucket with given prefix.
 

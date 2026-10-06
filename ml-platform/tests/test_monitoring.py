@@ -67,9 +67,7 @@ class TestDriftDetector:
         assert isinstance(results["dataset_drift"], bool)
         assert 0.0 <= results["drift_share"] <= 1.0
 
-    def test_detect_data_drift_with_drift(
-        self, reference_data, current_data_with_drift
-    ):
+    def test_detect_data_drift_with_drift(self, reference_data, current_data_with_drift):
         """Test drift detection on clearly drifted data."""
         detector = DriftDetector(reference_data=reference_data)
         results = detector.detect_data_drift(current_data=current_data_with_drift)
@@ -80,9 +78,7 @@ class TestDriftDetector:
         # With very different distributions we expect some drift
         assert results["drift_share"] > 0.0
 
-    def test_detect_data_drift_specific_columns(
-        self, reference_data, current_data_with_drift
-    ):
+    def test_detect_data_drift_specific_columns(self, reference_data, current_data_with_drift):
         """Test drift detection on specific columns."""
         detector = DriftDetector(reference_data=reference_data)
         results = detector.detect_data_drift(
@@ -91,9 +87,7 @@ class TestDriftDetector:
         )
 
         assert "column_drift_scores" in results
-        assert any(
-            col in results["column_drift_scores"] for col in ["feature_0", "feature_1"]
-        )
+        assert any(col in results["column_drift_scores"] for col in ["feature_0", "feature_1"])
 
     def test_get_last_results(self, reference_data, current_data_no_drift):
         """Test retrieving last results."""
