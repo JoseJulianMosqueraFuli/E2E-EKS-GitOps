@@ -175,7 +175,7 @@ class TrainingPipeline:
         
         return results
     
-    def prepare_features(self, data: pd.DataFrame) -> Tuple[np.ndarray, pd.Series, List[str]]:
+    def prepare_features(self, data: pd.DataFrame, fit: bool = True) -> Tuple[np.ndarray, pd.Series, List[str]]:
         """
         Prepare features using feature engineering pipeline.
         
@@ -192,6 +192,12 @@ class TrainingPipeline:
         X = data.drop(columns=[target_column])
         y = data[target_column]
         
+        if not fit:
+            X_transformed = self.feature_engineer.transform(X)
+            if self.feature_engineer.feature_selector is not None:
+                X_transformed = self.feature_engineer.feature_selector.transform(X_transformed)
+            return X_transformed, y, self.feature_engineer.get_selected_feature_names()
+
         # Identify feature types
         numeric_features = X.select_dtypes(include=[np.number]).columns.tolist()
         categorical_features = X.select_dtypes(include=['object', 'category']).columns.tolist()
@@ -389,14 +395,13 @@ class TrainingPipeline:
                 if not validation_results['success']:
                     logger.warning(f"Data validation failed: {validation_results}")
                 
-                # Step 3: Feature engineering
-                logger.info("Step 3: Feature engineering...")
-                X, y, feature_names = self.prepare_features(data)
-                mlflow.log_metric("final_features", X.shape[1])
-                
-                # Step 4: Split data
-                logger.info("Step 4: Splitting data...")
-                X_train, X_val, X_test, y_train, y_val, y_test = self.split_data(X, y)
+                logger.info("Splitting raw data into train, validation and test sets...")
+                target = data[self.config['data']['target_column']]
+                train_data, val_data, test_data, _, _, _ = self.split_data(data, target)
+                X_train, y_train, feature_names = self.prepare_features(train_data)
+                X_val, y_val, _ = self.prepare_features(val_data, fit=False)
+                X_test, y_test, _ = self.prepare_features(test_data, fit=False)
+                mlflow.log_metric("final_features", X_train.shape[1])
                 
                 # Step 5: Train model
                 logger.info("Step 5: Training model...")

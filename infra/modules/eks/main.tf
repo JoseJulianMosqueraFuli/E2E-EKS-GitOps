@@ -353,7 +353,7 @@ resource "aws_iam_policy" "aws_load_balancer_controller" {
         ]
         Condition = {
           Null = {
-            "aws:RequestedRegion" = "false"
+            "aws:RequestedRegion"                   = "false"
             "aws:ResourceTag/elbv2.k8s.aws/cluster" = "false"
           }
         }
@@ -443,10 +443,10 @@ resource "aws_iam_role_policy_attachment" "ebs_csi_driver" {
 
 # EKS Addon for EBS CSI Driver
 resource "aws_eks_addon" "ebs_csi_driver" {
-  cluster_name             = aws_eks_cluster.main.name
-  addon_name               = "aws-ebs-csi-driver"
-  addon_version            = var.ebs_csi_driver_version
-  service_account_role_arn = aws_iam_role.ebs_csi_driver.arn
+  cluster_name                = aws_eks_cluster.main.name
+  addon_name                  = "aws-ebs-csi-driver"
+  addon_version               = var.ebs_csi_driver_version
+  service_account_role_arn    = aws_iam_role.ebs_csi_driver.arn
   resolve_conflicts_on_create = "OVERWRITE"
   resolve_conflicts_on_update = "OVERWRITE"
 
@@ -455,9 +455,9 @@ resource "aws_eks_addon" "ebs_csi_driver" {
 
 # EKS Addon for VPC CNI
 resource "aws_eks_addon" "vpc_cni" {
-  cluster_name      = aws_eks_cluster.main.name
-  addon_name        = "vpc-cni"
-  addon_version     = var.vpc_cni_version
+  cluster_name                = aws_eks_cluster.main.name
+  addon_name                  = "vpc-cni"
+  addon_version               = var.vpc_cni_version
   resolve_conflicts_on_create = "OVERWRITE"
   resolve_conflicts_on_update = "OVERWRITE"
 
@@ -466,9 +466,9 @@ resource "aws_eks_addon" "vpc_cni" {
 
 # EKS Addon for CoreDNS
 resource "aws_eks_addon" "coredns" {
-  cluster_name      = aws_eks_cluster.main.name
-  addon_name        = "coredns"
-  addon_version     = var.coredns_version
+  cluster_name                = aws_eks_cluster.main.name
+  addon_name                  = "coredns"
+  addon_version               = var.coredns_version
   resolve_conflicts_on_create = "OVERWRITE"
   resolve_conflicts_on_update = "OVERWRITE"
 
@@ -477,9 +477,9 @@ resource "aws_eks_addon" "coredns" {
 
 # EKS Addon for kube-proxy
 resource "aws_eks_addon" "kube_proxy" {
-  cluster_name      = aws_eks_cluster.main.name
-  addon_name        = "kube-proxy"
-  addon_version     = var.kube_proxy_version
+  cluster_name                = aws_eks_cluster.main.name
+  addon_name                  = "kube-proxy"
+  addon_version               = var.kube_proxy_version
   resolve_conflicts_on_create = "OVERWRITE"
   resolve_conflicts_on_update = "OVERWRITE"
 
@@ -522,7 +522,7 @@ resource "aws_eks_node_group" "gpu" {
   }
 
   labels = {
-    "nvidia.com/gpu.present" = "true"
+    "nvidia.com/gpu.present"                        = "true"
     "k8s.io/cluster-autoscaler/${var.cluster_name}" = "owned"
     "k8s.io/cluster-autoscaler/enabled"             = "true"
   }
@@ -534,7 +534,7 @@ resource "aws_eks_node_group" "gpu" {
   ]
 
   tags = merge(var.tags, {
-    Name                                        = "${var.cluster_name}-gpu-node"
+    Name                                            = "${var.cluster_name}-gpu-node"
     "k8s.io/cluster-autoscaler/${var.cluster_name}" = "owned"
     "k8s.io/cluster-autoscaler/enabled"             = "true"
   })

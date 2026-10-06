@@ -3,16 +3,16 @@
 variable "buckets" {
   description = "Map of S3 bucket configurations"
   type = map(object({
-    name                = string
-    versioning_enabled  = bool
-    force_destroy       = bool
-    tags                = map(string)
-    bucket_policy       = optional(string)
+    name               = string
+    versioning_enabled = bool
+    force_destroy      = bool
+    tags               = map(string)
+    bucket_policy      = optional(string)
     lifecycle_rules = optional(list(object({
-      id                                    = string
-      enabled                              = bool
-      expiration_days                      = optional(number)
-      noncurrent_version_expiration_days   = optional(number)
+      id                                 = string
+      enabled                            = bool
+      expiration_days                    = optional(number)
+      noncurrent_version_expiration_days = optional(number)
       transitions = optional(list(object({
         days          = number
         storage_class = string

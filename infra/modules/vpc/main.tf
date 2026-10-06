@@ -69,7 +69,7 @@ resource "aws_subnet" "private" {
 resource "aws_eip" "nat" {
   count = var.enable_nat_gateway ? var.public_subnet_count : 0
 
-  domain = "vpc"
+  domain     = "vpc"
   depends_on = [aws_internet_gateway.main]
 
   tags = merge(var.tags, {
@@ -192,18 +192,18 @@ resource "aws_security_group" "eks_nodes" {
   }
 
   ingress {
-    description = "Cluster API to node kubelets"
-    from_port   = 10250
-    to_port     = 10250
-    protocol    = "tcp"
+    description     = "Cluster API to node kubelets"
+    from_port       = 10250
+    to_port         = 10250
+    protocol        = "tcp"
     security_groups = [aws_security_group.eks_cluster.id]
   }
 
   ingress {
-    description = "Cluster API to node proxy"
-    from_port   = 10256
-    to_port     = 10256
-    protocol    = "tcp"
+    description     = "Cluster API to node proxy"
+    from_port       = 10256
+    to_port         = 10256
+    protocol        = "tcp"
     security_groups = [aws_security_group.eks_cluster.id]
   }
 

@@ -54,12 +54,12 @@ resource "aws_glue_catalog_table" "tables" {
     for_each = each.value.storage_descriptor != null ? [each.value.storage_descriptor] : []
     content {
       location                  = storage_descriptor.value.location
-      input_format             = storage_descriptor.value.input_format
-      output_format            = storage_descriptor.value.output_format
-      compressed               = storage_descriptor.value.compressed
-      number_of_buckets        = storage_descriptor.value.number_of_buckets
-      bucket_columns           = storage_descriptor.value.bucket_columns
-      parameters               = storage_descriptor.value.parameters
+      input_format              = storage_descriptor.value.input_format
+      output_format             = storage_descriptor.value.output_format
+      compressed                = storage_descriptor.value.compressed
+      number_of_buckets         = storage_descriptor.value.number_of_buckets
+      bucket_columns            = storage_descriptor.value.bucket_columns
+      parameters                = storage_descriptor.value.parameters
       stored_as_sub_directories = storage_descriptor.value.stored_as_sub_directories
 
       dynamic "columns" {
