@@ -4,14 +4,12 @@ Drift Detector Module
 Detects data drift and model drift using Evidently AI.
 """
 
-import json
 import logging
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional
 
 import pandas as pd
-from evidently.legacy.pipeline.column_mapping import ColumnMapping
 from evidently.legacy.metric_preset import (
     DataDriftPreset,
     DataQualityPreset,
@@ -22,6 +20,7 @@ from evidently.legacy.metrics import (
     DatasetDriftMetric,
     DatasetMissingValuesMetric,
 )
+from evidently.legacy.pipeline.column_mapping import ColumnMapping
 from evidently.legacy.report import Report
 from evidently.legacy.test_preset import DataDriftTestPreset, DataQualityTestPreset
 from evidently.legacy.test_suite import TestSuite
@@ -70,10 +69,12 @@ class DriftDetector:
         logger.info("Running data drift detection...")
 
         # Build report with drift metrics
-        report = Report(metrics=[
-            DatasetDriftMetric(),
-            DatasetMissingValuesMetric(),
-        ])
+        report = Report(
+            metrics=[
+                DatasetDriftMetric(),
+                DatasetMissingValuesMetric(),
+            ]
+        )
 
         # Add per-column drift if specific columns requested
         if columns:
@@ -93,7 +94,6 @@ class DriftDetector:
 
         logger.info(f"Data drift detected: {results['dataset_drift']}")
         return results
-
 
     def _parse_drift_report(self, report: Report) -> Dict[str, Any]:
         """Parse Evidently report into structured results."""
@@ -154,10 +154,12 @@ class DriftDetector:
         """
         logger.info("Running drift test suite...")
 
-        test_suite = TestSuite(tests=[
-            DataDriftTestPreset(),
-            DataQualityTestPreset(),
-        ])
+        test_suite = TestSuite(
+            tests=[
+                DataDriftTestPreset(),
+                DataQualityTestPreset(),
+            ]
+        )
 
         test_suite.run(
             reference_data=self.reference_data,

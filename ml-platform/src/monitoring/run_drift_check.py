@@ -61,11 +61,13 @@ class DriftCheckRunner:
 
             except Exception as e:
                 logger.error(f"Failed to check model {model_config.get('name')}: {e}")
-                self.results.append({
-                    "model_name": model_config.get("name"),
-                    "status": "error",
-                    "error": str(e),
-                })
+                self.results.append(
+                    {
+                        "model_name": model_config.get("name"),
+                        "status": "error",
+                        "error": str(e),
+                    }
+                )
 
         self.generate_summary()
 
@@ -141,7 +143,6 @@ class DriftCheckRunner:
         # Placeholder - implement based on your data warehouse
         logger.warning("Database query not implemented")
         return None
-
 
     def send_alert(self, result: Dict[str, Any]):
         """Send alert for critical drift detection."""

@@ -9,8 +9,4 @@ from .base_model import BaseModel
 from .classification_model import ClassificationModel
 from .regression_model import RegressionModel
 
-__all__ = [
-    "BaseModel",
-    "ClassificationModel", 
-    "RegressionModel"
-]
+__all__ = ["BaseModel", "ClassificationModel", "RegressionModel"]

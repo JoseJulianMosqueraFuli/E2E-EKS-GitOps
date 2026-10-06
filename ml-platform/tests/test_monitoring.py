@@ -15,8 +15,8 @@ import pytest
 from sklearn.datasets import make_classification
 
 from src.monitoring.drift_detector import DriftDetector
-from src.monitoring.model_monitor import ModelMonitor
 from src.monitoring.metrics_exporter import MetricsExporter
+from src.monitoring.model_monitor import ModelMonitor
 
 
 class TestDriftDetector:
@@ -67,7 +67,9 @@ class TestDriftDetector:
         assert isinstance(results["dataset_drift"], bool)
         assert 0.0 <= results["drift_share"] <= 1.0
 
-    def test_detect_data_drift_with_drift(self, reference_data, current_data_with_drift):
+    def test_detect_data_drift_with_drift(
+        self, reference_data, current_data_with_drift
+    ):
         """Test drift detection on clearly drifted data."""
         detector = DriftDetector(reference_data=reference_data)
         results = detector.detect_data_drift(current_data=current_data_with_drift)
@@ -78,7 +80,9 @@ class TestDriftDetector:
         # With very different distributions we expect some drift
         assert results["drift_share"] > 0.0
 
-    def test_detect_data_drift_specific_columns(self, reference_data, current_data_with_drift):
+    def test_detect_data_drift_specific_columns(
+        self, reference_data, current_data_with_drift
+    ):
         """Test drift detection on specific columns."""
         detector = DriftDetector(reference_data=reference_data)
         results = detector.detect_data_drift(
@@ -87,7 +91,9 @@ class TestDriftDetector:
         )
 
         assert "column_drift_scores" in results
-        assert any(col in results["column_drift_scores"] for col in ["feature_0", "feature_1"])
+        assert any(
+            col in results["column_drift_scores"] for col in ["feature_0", "feature_1"]
+        )
 
     def test_get_last_results(self, reference_data, current_data_no_drift):
         """Test retrieving last results."""
@@ -335,7 +341,11 @@ class TestMetricsExporter:
             # Check that the gauge has the expected value
             lines = [l for l in metrics.split("\n") if "ml_model_health_status{" in l]
             # The value should appear in a line like: ml_model_health_status{...} 1.0
-            value_lines = [l for l in metrics.split("\n") if l.startswith("ml_model_health_status{")]
+            value_lines = [
+                l
+                for l in metrics.split("\n")
+                if line.startswith("ml_model_health_status{")
+            ]
             assert len(value_lines) > 0
 
 

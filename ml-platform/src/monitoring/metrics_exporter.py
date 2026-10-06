@@ -151,7 +151,6 @@ class MetricsExporter:
             registry=self.registry,
         )
 
-
     def update_drift_metrics(self, drift_results: Dict[str, Any]):
         """
         Update Prometheus metrics from drift detection results.
@@ -165,9 +164,7 @@ class MetricsExporter:
         self.drift_detected.labels(*labels).set(
             1 if drift_results.get("dataset_drift", False) else 0
         )
-        self.drift_share.labels(*labels).set(
-            drift_results.get("drift_share", 0.0)
-        )
+        self.drift_share.labels(*labels).set(drift_results.get("drift_share", 0.0))
         self.drifted_columns_count.labels(*labels).set(
             drift_results.get("number_of_drifted_columns", 0)
         )
@@ -180,9 +177,7 @@ class MetricsExporter:
 
         # Missing values
         missing = drift_results.get("missing_values", {})
-        self.missing_values_share.labels(*labels).set(
-            missing.get("share_missing", 0.0)
-        )
+        self.missing_values_share.labels(*labels).set(missing.get("share_missing", 0.0))
 
         logger.info("Updated drift metrics in Prometheus")
 
@@ -202,17 +197,13 @@ class MetricsExporter:
                     perf_results["current_accuracy"]
                 )
             if perf_results.get("current_f1") is not None:
-                self.model_f1_score.labels(*labels).set(
-                    perf_results["current_f1"]
-                )
+                self.model_f1_score.labels(*labels).set(perf_results["current_f1"])
             if perf_results.get("current_precision") is not None:
                 self.model_precision.labels(*labels).set(
                     perf_results["current_precision"]
                 )
             if perf_results.get("current_recall") is not None:
-                self.model_recall.labels(*labels).set(
-                    perf_results["current_recall"]
-                )
+                self.model_recall.labels(*labels).set(perf_results["current_recall"])
 
         # Performance degradation
         if perf_results.get("performance_degradation") is not None:
@@ -245,9 +236,7 @@ class MetricsExporter:
         self.health_status.labels(*labels).set(health_value)
 
         # Update counters
-        self.samples_analyzed.labels(*labels).inc(
-            results.get("samples_analyzed", 0)
-        )
+        self.samples_analyzed.labels(*labels).inc(results.get("samples_analyzed", 0))
         self.monitoring_runs.labels(*labels, health).inc()
 
         logger.info(f"Updated all monitoring metrics. Health: {health}")

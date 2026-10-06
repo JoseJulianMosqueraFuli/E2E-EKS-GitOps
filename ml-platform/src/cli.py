@@ -6,18 +6,15 @@ Provides commands for training, inference, validation, and sample data generatio
 """
 
 import os
-import tempfile
-import logging
 
 import click
-import pandas as pd
 
-from src.utils.logging_config import setup_logging, MLOpsLogger
-from src.utils.config_manager import ConfigManager
-from src.pipelines.training_pipeline import TrainingPipeline
-from src.pipelines.inference_pipeline import InferencePipeline
 from src.data.data_loader import DataLoader
 from src.data.data_validator import DataValidator
+from src.pipelines.inference_pipeline import InferencePipeline
+from src.pipelines.training_pipeline import TrainingPipeline
+from src.utils.config_manager import ConfigManager
+from src.utils.logging_config import MLOpsLogger, setup_logging
 
 setup_logging()
 logger = MLOpsLogger("cli")
@@ -26,7 +23,6 @@ logger = MLOpsLogger("cli")
 @click.group()
 def main():
     """MLOps Platform CLI - Training, inference, and data validation."""
-    pass
 
 
 @main.command("train")
@@ -59,9 +55,20 @@ def train_cmd(data_path, config_dir, config_name, environment):
 @click.option("--batch/--single", default=False, help="Batch or single inference")
 @click.option("--batch-size", default=1000, type=int, help="Batch size")
 @click.option("--return-probabilities", is_flag=True, help="Return probabilities")
-@click.option("--confidence-threshold", default=0.8, type=float, help="Confidence threshold")
-def inference_cmd(data_path, model_uri, model_path, feature_pipeline_path,
-                  output_path, batch, batch_size, return_probabilities, confidence_threshold):
+@click.option(
+    "--confidence-threshold", default=0.8, type=float, help="Confidence threshold"
+)
+def inference_cmd(
+    data_path,
+    model_uri,
+    model_path,
+    feature_pipeline_path,
+    output_path,
+    batch,
+    batch_size,
+    return_probabilities,
+    confidence_threshold,
+):
     """Run model inference."""
     inference_pipeline = InferencePipeline(
         model_uri=model_uri,
@@ -94,7 +101,9 @@ def inference_cmd(data_path, model_uri, model_path, feature_pipeline_path,
 
 @main.command("validate")
 @click.argument("data_path")
-@click.option("--suite-name", default="data_validation_suite", help="Expectation suite name")
+@click.option(
+    "--suite-name", default="data_validation_suite", help="Expectation suite name"
+)
 @click.option("--create-suite", is_flag=True, help="Create new expectation suite")
 def validate_cmd(data_path, suite_name, create_suite):
     """Validate data quality."""
@@ -120,8 +129,12 @@ def validate_cmd(data_path, suite_name, create_suite):
 @click.argument("output_path")
 @click.option("--n-samples", default=1000, type=int, help="Number of samples")
 @click.option("--n-features", default=10, type=int, help="Number of features")
-@click.option("--task-type", type=click.Choice(["classification", "regression"]),
-              default="classification", help="Task type")
+@click.option(
+    "--task-type",
+    type=click.Choice(["classification", "regression"]),
+    default="classification",
+    help="Task type",
+)
 def create_sample_cmd(output_path, n_samples, n_features, task_type):
     """Create sample data for testing."""
     loader = DataLoader()

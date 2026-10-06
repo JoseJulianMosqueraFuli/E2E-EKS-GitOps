@@ -20,7 +20,9 @@ def merge_template(base, override):
 
 def render_value(value, parameters):
     if isinstance(value, str):
-        return re.sub(r"{{\s*([A-Za-z0-9_]+)\s*}}", lambda m: str(parameters[m[1]]), value)
+        return re.sub(
+            r"{{\s*([A-Za-z0-9_]+)\s*}}", lambda m: str(parameters[m[1]]), value
+        )
     if isinstance(value, dict):
         return {key: render_value(item, parameters) for key, item in value.items()}
     if isinstance(value, list):
@@ -37,13 +39,21 @@ def generate_applications(gitops_root=GITOPS_ROOT):
     for generator in config["spec"]["generators"]:
         matrix = generator["matrix"]
         lists = [item["list"]["elements"] for item in matrix["generators"]]
-        template = merge_template(config["spec"]["template"], matrix.get("template", {}))
+        template = merge_template(
+            config["spec"]["template"], matrix.get("template", {})
+        )
         for elements in itertools.product(*lists):
             parameters = {}
             for element in elements:
                 parameters.update(element)
             rendered = render_value(template, parameters)
-            applications.append({"apiVersion": "argoproj.io/v1alpha1", "kind": "Application", **rendered})
+            applications.append(
+                {
+                    "apiVersion": "argoproj.io/v1alpha1",
+                    "kind": "Application",
+                    **rendered,
+                }
+            )
     return applications
 
 

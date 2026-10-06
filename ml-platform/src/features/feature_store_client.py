@@ -89,9 +89,7 @@ class MLOpsFeatureStore:
             entity_df=entity_df,
         ).to_df()
 
-        logger.info(
-            f"Retrieved historical features for {len(training_df)} rows"
-        )
+        logger.info(f"Retrieved historical features for {len(training_df)} rows")
         return training_df
 
     # ------------------------------------------------------------------
@@ -112,9 +110,7 @@ class MLOpsFeatureStore:
         """
         # Push to offline store
         self.store.push(feature_view_name, df)
-        logger.info(
-            f"Ingested {len(df)} rows into FeatureView '{feature_view_name}'"
-        )
+        logger.info(f"Ingested {len(df)} rows into FeatureView '{feature_view_name}'")
 
     def materialize(
         self,
@@ -137,9 +133,7 @@ class MLOpsFeatureStore:
             start_date=start_date,
             end_date=end_date,
         )
-        logger.info(
-            f"Materialized features from {start_date} to {end_date}"
-        )
+        logger.info(f"Materialized features from {start_date} to {end_date}")
 
     def materialize_incremental(self, end_date: Optional[datetime] = None) -> None:
         """

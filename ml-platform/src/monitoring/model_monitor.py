@@ -11,15 +11,12 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 import pandas as pd
-from evidently.legacy.pipeline.column_mapping import ColumnMapping
-from evidently.legacy.metric_preset import (
-    ClassificationPreset,
-    RegressionPreset,
-)
+from evidently.legacy.metric_preset import ClassificationPreset, RegressionPreset
 from evidently.legacy.metrics import (
     ClassificationQualityMetric,
     RegressionQualityMetric,
 )
+from evidently.legacy.pipeline.column_mapping import ColumnMapping
 from evidently.legacy.report import Report
 
 from .drift_detector import DriftDetector
@@ -73,12 +70,12 @@ class ModelMonitor:
             target=target_column,
             prediction=prediction_column,
             numerical_features=[
-                c for c in self.feature_columns
-                if reference_data[c].dtype in ['int64', 'float64']
+                c
+                for c in self.feature_columns
+                if reference_data[c].dtype in ["int64", "float64"]
             ],
             categorical_features=[
-                c for c in self.feature_columns
-                if reference_data[c].dtype == 'object'
+                c for c in self.feature_columns if reference_data[c].dtype == "object"
             ],
         )
 
@@ -90,7 +87,6 @@ class ModelMonitor:
         )
 
         self._monitoring_history: List[Dict[str, Any]] = []
-
 
     def run_monitoring(
         self,

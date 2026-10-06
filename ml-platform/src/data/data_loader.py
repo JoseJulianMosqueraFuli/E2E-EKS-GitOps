@@ -7,13 +7,13 @@ and databases. Supports multiple formats and includes data validation.
 
 import logging
 import os
-from typing import Dict, List, Optional, Union, Any
-import pandas as pd
-import numpy as np
-from pathlib import Path
+from typing import Any, Dict, List, Optional
+
 import boto3
-from botocore.exceptions import ClientError, NoCredentialsError
+import numpy as np
+import pandas as pd
 import yaml
+from botocore.exceptions import ClientError, NoCredentialsError
 
 logger = logging.getLogger(__name__)
 
@@ -21,9 +21,7 @@ logger = logging.getLogger(__name__)
 class DataLoader:
     """Data loading utilities for various sources and formats."""
 
-    def __init__(self, 
-                 aws_region: str = "us-west-2",
-                 s3_bucket: Optional[str] = None):
+    def __init__(self, aws_region: str = "us-west-2", s3_bucket: Optional[str] = None):
         """
         Initialize data loader.
 
@@ -37,15 +35,12 @@ class DataLoader:
 
         # Initialize S3 client if credentials available
         try:
-            self.s3_client = boto3.client('s3', region_name=aws_region)
+            self.s3_client = boto3.client("s3", region_name=aws_region)
             logger.info("S3 client initialized successfully")
         except (NoCredentialsError, Exception) as e:
             logger.warning(f"Could not initialize S3 client: {e}")
 
-    def load_csv(self,
-                 filepath: str,
-                 source: str = "local",
-                 **kwargs) -> pd.DataFrame:
+    def load_csv(self, filepath: str, source: str = "local", **kwargs) -> pd.DataFrame:
         """
         Load CSV file from local or S3.
 
@@ -74,7 +69,9 @@ class DataLoader:
             logger.error(f"Error loading CSV from {filepath}: {e}")
             raise
 
-    def _load_s3_csv(self, s3_key: str, bucket: Optional[str] = None, **kwargs) -> pd.DataFrame:
+    def _load_s3_csv(
+        self, s3_key: str, bucket: Optional[str] = None, **kwargs
+    ) -> pd.DataFrame:
         """Load CSV from S3."""
         if self.s3_client is None:
             raise ValueError("S3 client not available")
@@ -88,18 +85,17 @@ class DataLoader:
             response = self.s3_client.get_object(Bucket=bucket, Key=s3_key)
 
             # Read CSV
-            df = pd.read_csv(response['Body'], **kwargs)
+            df = pd.read_csv(response["Body"], **kwargs)
             logger.info(f"Loaded CSV from s3://{bucket}/{s3_key}: {df.shape}")
             return df
 
         except ClientError as e:
             logger.error(f"Error loading CSV from S3: {e}")
             raise
-    
-    def load_parquet(self,
-                    filepath: str,
-                    source: str = "local",
-                    **kwargs) -> pd.DataFrame:
+
+    def load_parquet(
+        self, filepath: str, source: str = "local", **kwargs
+    ) -> pd.DataFrame:
         """
         Load Parquet file from local or S3.
 
@@ -128,7 +124,9 @@ class DataLoader:
             logger.error(f"Error loading Parquet from {filepath}: {e}")
             raise
 
-    def _load_s3_parquet(self, s3_key: str, bucket: Optional[str] = None, **kwargs) -> pd.DataFrame:
+    def _load_s3_parquet(
+        self, s3_key: str, bucket: Optional[str] = None, **kwargs
+    ) -> pd.DataFrame:
         """Load Parquet from S3."""
         bucket = bucket or self.s3_bucket
         if not bucket:
@@ -145,10 +143,7 @@ class DataLoader:
             logger.error(f"Error loading Parquet from S3: {e}")
             raise
 
-    def load_json(self,
-                 filepath: str,
-                 source: str = "local",
-                 **kwargs) -> pd.DataFrame:
+    def load_json(self, filepath: str, source: str = "local", **kwargs) -> pd.DataFrame:
         """
         Load JSON file from local or S3.
 
@@ -177,7 +172,9 @@ class DataLoader:
             logger.error(f"Error loading JSON from {filepath}: {e}")
             raise
 
-    def _load_s3_json(self, s3_key: str, bucket: Optional[str] = None, **kwargs) -> pd.DataFrame:
+    def _load_s3_json(
+        self, s3_key: str, bucket: Optional[str] = None, **kwargs
+    ) -> pd.DataFrame:
         """Load JSON from S3."""
         if self.s3_client is None:
             raise ValueError("S3 client not available")
@@ -191,7 +188,7 @@ class DataLoader:
             response = self.s3_client.get_object(Bucket=bucket, Key=s3_key)
 
             # Read JSON
-            df = pd.read_json(response['Body'], **kwargs)
+            df = pd.read_json(response["Body"], **kwargs)
             logger.info(f"Loaded JSON from s3://{bucket}/{s3_key}: {df.shape}")
             return df
 
@@ -199,15 +196,17 @@ class DataLoader:
             logger.error(f"Error loading JSON from S3: {e}")
             raise
 
-    def save_data(self,
-                 df: pd.DataFrame,
-                 filepath: str,
-                 format: str = "csv",
-                 source: str = "local",
-                 **kwargs):
+    def save_data(
+        self,
+        df: pd.DataFrame,
+        filepath: str,
+        format: str = "csv",
+        source: str = "local",
+        **kwargs,
+    ):
         """
         Save DataFrame to various formats and destinations.
-        
+
         Args:
             df: DataFrame to save
             filepath: Destination path
@@ -226,7 +225,7 @@ class DataLoader:
         """Save DataFrame to local filesystem."""
         # Create directory if it doesn't exist
         os.makedirs(os.path.dirname(filepath), exist_ok=True)
-        
+
         try:
             if format == "csv":
                 df.to_csv(filepath, index=False, **kwargs)
@@ -236,14 +235,21 @@ class DataLoader:
                 df.to_json(filepath, **kwargs)
             else:
                 raise ValueError(f"Unsupported format: {format}")
-                
+
             logger.info(f"Saved {format.upper()} to {filepath}: {df.shape}")
-            
+
         except Exception as e:
             logger.error(f"Error saving {format.upper()} to {filepath}: {e}")
             raise
 
-    def _save_s3(self, df: pd.DataFrame, s3_key: str, format: str, bucket: Optional[str] = None, **kwargs):
+    def _save_s3(
+        self,
+        df: pd.DataFrame,
+        s3_key: str,
+        format: str,
+        bucket: Optional[str] = None,
+        **kwargs,
+    ):
         """Save DataFrame to S3."""
         if self.s3_client is None:
             raise ValueError("S3 client not available")
@@ -277,7 +283,9 @@ class DataLoader:
             logger.error(f"Error saving {format.upper()} to S3: {e}")
             raise
 
-    def list_s3_objects(self, prefix: str = "", bucket: Optional[str] = None) -> List[str]:
+    def list_s3_objects(
+        self, prefix: str = "", bucket: Optional[str] = None
+    ) -> List[str]:
         """
         List objects in S3 bucket with given prefix.
 
@@ -296,14 +304,11 @@ class DataLoader:
             raise ValueError("S3 bucket not specified")
 
         try:
-            response = self.s3_client.list_objects_v2(
-                Bucket=bucket,
-                Prefix=prefix
-            )
+            response = self.s3_client.list_objects_v2(Bucket=bucket, Prefix=prefix)
 
             objects = []
-            if 'Contents' in response:
-                objects = [obj['Key'] for obj in response['Contents']]
+            if "Contents" in response:
+                objects = [obj["Key"] for obj in response["Contents"]]
 
             logger.info(f"Found {len(objects)} objects in s3://{bucket}/{prefix}")
             return objects
@@ -323,7 +328,7 @@ class DataLoader:
             Configuration dictionary
         """
         try:
-            with open(config_path, 'r') as f:
+            with open(config_path, "r") as f:
                 config = yaml.safe_load(f)
             logger.info(f"Loaded config from {config_path}")
             return config
@@ -331,10 +336,12 @@ class DataLoader:
             logger.error(f"Error loading config from {config_path}: {e}")
             raise
 
-    def create_sample_data(self,
-                          n_samples: int = 1000,
-                          n_features: int = 10,
-                          task_type: str = "classification") -> pd.DataFrame:
+    def create_sample_data(
+        self,
+        n_samples: int = 1000,
+        n_features: int = 10,
+        task_type: str = "classification",
+    ) -> pd.DataFrame:
         """
         Create sample data for testing.
 
@@ -353,19 +360,19 @@ class DataLoader:
         for i in range(n_features):
             if i % 3 == 0:
                 # Numeric features
-                data[f'numeric_{i}'] = np.random.normal(0, 1, n_samples)
+                data[f"numeric_{i}"] = np.random.normal(0, 1, n_samples)
             elif i % 3 == 1:
                 # Categorical features
-                data[f'categorical_{i}'] = np.random.choice(['A', 'B', 'C'], n_samples)
+                data[f"categorical_{i}"] = np.random.choice(["A", "B", "C"], n_samples)
             else:
                 # Mixed features
-                data[f'mixed_{i}'] = np.random.uniform(0, 100, n_samples)
+                data[f"mixed_{i}"] = np.random.uniform(0, 100, n_samples)
 
         # Generate target
         if task_type == "classification":
-            data['target'] = np.random.randint(0, 3, n_samples)
+            data["target"] = np.random.randint(0, 3, n_samples)
         else:
-            data['target'] = np.random.normal(50, 10, n_samples)
+            data["target"] = np.random.normal(50, 10, n_samples)
 
         df = pd.DataFrame(data)
         logger.info(f"Created sample {task_type} data: {df.shape}")
@@ -381,9 +388,7 @@ def data_loading_example():
 
     # Create sample data
     sample_data = loader.create_sample_data(
-        n_samples=1000,
-        n_features=5,
-        task_type="classification"
+        n_samples=1000, n_features=5, task_type="classification"
     )
 
     print(f"Sample data shape: {sample_data.shape}")

@@ -10,12 +10,12 @@ from datetime import datetime
 from typing import Any, Dict, List, Optional
 
 import pandas as pd
-from fastapi import FastAPI, HTTPException, BackgroundTasks
+from fastapi import BackgroundTasks, FastAPI, HTTPException
 from fastapi.responses import PlainTextResponse
 from pydantic import BaseModel
 
-from .model_monitor import ModelMonitor
 from .metrics_exporter import MetricsExporter
+from .model_monitor import ModelMonitor
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -34,6 +34,7 @@ reference_datasets: Dict[str, pd.DataFrame] = {}
 
 class RegisterModelRequest(BaseModel):
     """Request to register a model for monitoring."""
+
     model_name: str
     model_version: str = "1.0"
     model_type: str = "classification"
@@ -45,6 +46,7 @@ class RegisterModelRequest(BaseModel):
 
 class MonitoringRequest(BaseModel):
     """Request to run monitoring on current data."""
+
     model_name: str
     current_data_path: Optional[str] = None
     current_data: Optional[List[Dict[str, Any]]] = None
@@ -54,6 +56,7 @@ class MonitoringRequest(BaseModel):
 
 class DriftCheckRequest(BaseModel):
     """Request for quick drift check."""
+
     model_name: str
     current_data: List[Dict[str, Any]]
     columns: Optional[List[str]] = None
@@ -61,6 +64,7 @@ class DriftCheckRequest(BaseModel):
 
 class HealthResponse(BaseModel):
     """Health check response."""
+
     status: str
     timestamp: str
     registered_models: List[str]
@@ -79,7 +83,8 @@ async def health_check():
 @app.get("/metrics", response_class=PlainTextResponse)
 async def get_metrics():
     """Prometheus metrics endpoint."""
-    from prometheus_client import generate_latest, REGISTRY
+    from prometheus_client import REGISTRY, generate_latest
+
     return generate_latest(REGISTRY)
 
 
@@ -166,8 +171,8 @@ async def run_monitoring(
 
         # Generate report in background if requested
         if request.generate_report:
-            timestamp = datetime.utcnow().strftime('%Y%m%d_%H%M%S')
-            model_key_safe = model_key.replace(':', '_')
+            timestamp = datetime.utcnow().strftime("%Y%m%d_%H%M%S")
+            model_key_safe = model_key.replace(":", "_")
             report_path = f"/tmp/reports/{model_key_safe}_{timestamp}.html"
             background_tasks.add_task(
                 monitor.generate_monitoring_report,
@@ -271,5 +276,6 @@ def create_app():
 
 if __name__ == "__main__":
     import uvicorn
+
     port = int(os.getenv("PORT", "8080"))
     uvicorn.run(app, host="0.0.0.0", port=port)

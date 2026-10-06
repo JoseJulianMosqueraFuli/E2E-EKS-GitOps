@@ -6,11 +6,12 @@ Validates data schema, distributions, and business rules.
 """
 
 import logging
-from typing import Dict, Optional, Any
-import pandas as pd
-import numpy as np
 from datetime import datetime
+from typing import Any, Dict, Optional
+
 import great_expectations as gx
+import numpy as np
+import pandas as pd
 
 logger = logging.getLogger(__name__)
 
@@ -44,10 +45,9 @@ class DataValidator:
         except Exception:
             return self.context.suites.add(gx.ExpectationSuite(name=name))
 
-    def create_expectation_suite(self,
-                                 suite_name: str,
-                                 data: pd.DataFrame,
-                                 overwrite: bool = False) -> str:
+    def create_expectation_suite(
+        self, suite_name: str, data: pd.DataFrame, overwrite: bool = False
+    ) -> str:
         suite = self._get_or_create_suite(suite_name, overwrite=overwrite)
 
         datasource = self._get_or_create_datasource(f"{suite_name}_ds")
@@ -123,10 +123,9 @@ class DataValidator:
                         )
                     )
 
-    def validate_data(self,
-                      data: pd.DataFrame,
-                      suite_name: str,
-                      run_name: Optional[str] = None) -> Dict[str, Any]:
+    def validate_data(
+        self, data: pd.DataFrame, suite_name: str, run_name: Optional[str] = None
+    ) -> Dict[str, Any]:
         if run_name is None:
             run_name = f"validation_run_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
 
@@ -180,9 +179,13 @@ class DataValidator:
         }
 
         if summary["success"]:
-            logger.info(f"Data validation passed: {summary['success_percent']:.1f}% success rate")
+            logger.info(
+                f"Data validation passed: {summary['success_percent']:.1f}% success rate"
+            )
         else:
-            logger.warning(f"Data validation failed: {summary['success_percent']:.1f}% success rate")
+            logger.warning(
+                f"Data validation failed: {summary['success_percent']:.1f}% success rate"
+            )
 
         return summary
 
@@ -214,13 +217,15 @@ class DataValidator:
 
 def validate_sample_data():
     np.random.seed(42)
-    data = pd.DataFrame({
-        "id": range(1000),
-        "feature_1": np.random.normal(0, 1, 1000),
-        "feature_2": np.random.uniform(0, 100, 1000),
-        "feature_3": np.random.choice(["A", "B", "C"], 1000),
-        "target": np.random.normal(50, 10, 1000),
-    })
+    data = pd.DataFrame(
+        {
+            "id": range(1000),
+            "feature_1": np.random.normal(0, 1, 1000),
+            "feature_2": np.random.uniform(0, 100, 1000),
+            "feature_3": np.random.choice(["A", "B", "C"], 1000),
+            "target": np.random.normal(50, 10, 1000),
+        }
+    )
     data.loc[data.sample(50).index, "feature_1"] = np.nan
 
     validator = DataValidator()

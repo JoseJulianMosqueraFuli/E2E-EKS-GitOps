@@ -16,7 +16,15 @@ def test_pipeline_fits_preprocessing_and_selection_only_on_training_data(task):
     pipeline.config["preprocessing"]["feature_selection"]["k"] = 1
     pipeline.experiment_name = "isolation"
     pipeline.feature_engineer = FeatureEngineer()
-    data = pd.DataFrame({"a": np.arange(100, dtype=float), "b": np.arange(100, dtype=float) ** 2, "target": np.tile([0, 1], 50) if task == "classification" else np.arange(100, dtype=float)})
+    data = pd.DataFrame(
+        {
+            "a": np.arange(100, dtype=float),
+            "b": np.arange(100, dtype=float) ** 2,
+            "target": np.tile([0, 1], 50)
+            if task == "classification"
+            else np.arange(100, dtype=float),
+        }
+    )
     train, validation, test, _, _, _ = pipeline.split_data(data, data["target"])
     pipeline.load_data = MagicMock(return_value=data)
     pipeline.validate_data = MagicMock(return_value={"success": True})
@@ -32,9 +40,17 @@ def test_pipeline_fits_preprocessing_and_selection_only_on_training_data(task):
     selector = pipeline.feature_engineer.feature_selector
     train_x, train_y, validation_x, validation_y = pipeline.train_model.call_args.args
     test_x, test_y = pipeline.evaluate_model.call_args.args
-    np.testing.assert_allclose(train_x, selector.transform(preprocessor.transform(train.drop(columns="target"))))
-    np.testing.assert_allclose(validation_x, selector.transform(preprocessor.transform(validation.drop(columns="target"))))
-    np.testing.assert_allclose(test_x, selector.transform(preprocessor.transform(test.drop(columns="target"))))
+    np.testing.assert_allclose(
+        train_x,
+        selector.transform(preprocessor.transform(train.drop(columns="target"))),
+    )
+    np.testing.assert_allclose(
+        validation_x,
+        selector.transform(preprocessor.transform(validation.drop(columns="target"))),
+    )
+    np.testing.assert_allclose(
+        test_x, selector.transform(preprocessor.transform(test.drop(columns="target")))
+    )
     assert train_y.index.equals(train.index)
     assert validation_y.index.equals(validation.index)
     assert test_y.index.equals(test.index)

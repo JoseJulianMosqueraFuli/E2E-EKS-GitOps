@@ -3,19 +3,27 @@ import subprocess
 from pathlib import Path
 
 import yaml
-
 from application_config import GITOPS_ROOT, generate_applications
 
 CLUSTER_KINDS = {
-    "Namespace", "CustomResourceDefinition", "ClusterRole", "ClusterRoleBinding",
-    "ClusterSecretStore", "ConstraintTemplate", "PriorityClass", "ClusterServingRuntime",
-    "ValidatingWebhookConfiguration", "MutatingWebhookConfiguration",
+    "Namespace",
+    "CustomResourceDefinition",
+    "ClusterRole",
+    "ClusterRoleBinding",
+    "ClusterSecretStore",
+    "ConstraintTemplate",
+    "PriorityClass",
+    "ClusterServingRuntime",
+    "ValidatingWebhookConfiguration",
+    "MutatingWebhookConfiguration",
 }
 
 
 def validate_applications(gitops_root=GITOPS_ROOT, environment=None):
     root = Path(gitops_root)
-    project = yaml.safe_load((root / "applications/projects/mlops-core.yaml").read_text())["spec"]
+    project = yaml.safe_load(
+        (root / "applications/projects/mlops-core.yaml").read_text()
+    )["spec"]
     applications = generate_applications(root)
     errors = []
     names = set()
@@ -37,10 +45,18 @@ def validate_applications(gitops_root=GITOPS_ROOT, environment=None):
         if type(spec["revisionHistoryLimit"]) is not int:
             errors.append(f"Invalid revision history type: {metadata['name']}")
         overlay = (root / Path(source["path"]).relative_to("gitops")).resolve()
-        if not overlay.is_relative_to(root.resolve()) or not (overlay / "kustomization.yaml").is_file():
+        if (
+            not overlay.is_relative_to(root.resolve())
+            or not (overlay / "kustomization.yaml").is_file()
+        ):
             errors.append(f"Missing canonical overlay: {source['path']}")
             continue
-        result = subprocess.run(["kustomize", "build", str(overlay)], text=True, capture_output=True, timeout=60)
+        result = subprocess.run(
+            ["kustomize", "build", str(overlay)],
+            text=True,
+            capture_output=True,
+            timeout=60,
+        )
         if result.returncode:
             errors.append(f"{metadata['name']}: {result.stderr.strip()}")
             continue
@@ -48,13 +64,29 @@ def validate_applications(gitops_root=GITOPS_ROOT, environment=None):
             if not resource:
                 continue
             kind = resource["kind"]
-            group = resource["apiVersion"].split("/")[0] if "/" in resource["apiVersion"] else ""
+            group = (
+                resource["apiVersion"].split("/")[0]
+                if "/" in resource["apiVersion"]
+                else ""
+            )
             namespace = resource["metadata"].get("namespace", destination["namespace"])
-            if not any(d.get("name") == destination.get("name") and d["namespace"] == namespace for d in project["destinations"]):
+            if not any(
+                d.get("name") == destination.get("name") and d["namespace"] == namespace
+                for d in project["destinations"]
+            ):
                 errors.append(f"{metadata['name']}: unauthorized namespace {namespace}")
-            whitelist = project["clusterResourceWhitelist" if kind in CLUSTER_KINDS else "namespaceResourceWhitelist"]
-            if not any(rule["group"] == group and rule["kind"] in (kind, "*") for rule in whitelist):
-                errors.append(f"{metadata['name']}: unauthorized resource {group}/{kind}")
+            whitelist = project[
+                "clusterResourceWhitelist"
+                if kind in CLUSTER_KINDS
+                else "namespaceResourceWhitelist"
+            ]
+            if not any(
+                rule["group"] == group and rule["kind"] in (kind, "*")
+                for rule in whitelist
+            ):
+                errors.append(
+                    f"{metadata['name']}: unauthorized resource {group}/{kind}"
+                )
             if kind == "ExternalSecret" and "secretStoreRef" not in resource["spec"]:
                 errors.append(f"{metadata['name']}: missing secret store reference")
     if count == 0:

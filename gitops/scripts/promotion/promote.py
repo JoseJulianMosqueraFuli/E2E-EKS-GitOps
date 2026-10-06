@@ -26,7 +26,6 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from application_config import generate_applications
 from validate_applications import validate_applications
 
-
 # Valid promotion paths
 VALID_PROMOTIONS = {
     ("dev", "staging"),
@@ -47,6 +46,7 @@ GITOPS_ROOT = Path(__file__).parent.parent.parent
 @dataclass
 class PromotionResult:
     """Result of a promotion operation."""
+
     success: bool
     source_env: str
     target_env: str
@@ -59,7 +59,9 @@ class PromotionResult:
 class PromotionValidator:
     """Validates promotion readiness."""
 
-    def __init__(self, source_env: str, target_env: str, gitops_root: Optional[Path] = None):
+    def __init__(
+        self, source_env: str, target_env: str, gitops_root: Optional[Path] = None
+    ):
         self.source_env = source_env
         self.target_env = target_env
         self.gitops_root = gitops_root or GITOPS_ROOT
@@ -118,7 +120,9 @@ class PromotionValidator:
         """Verify ArgoCD Applications are valid YAML."""
         import yaml
 
-        applicationset = self.gitops_root / "applications" / "projects" / "mlops-applicationset.yaml"
+        applicationset = (
+            self.gitops_root / "applications" / "projects" / "mlops-applicationset.yaml"
+        )
         if not applicationset.exists():
             self.errors.append(f"ApplicationSet not found: {applicationset}")
             return
@@ -156,12 +160,19 @@ class PromotionValidator:
             "chaos",
         ]:
             yaml_files.extend(
-                (self.gitops_root / "applications" / "apps" / app / "overlays" / self.source_env).rglob(
-                    "*.yaml"
-                )
+                (
+                    self.gitops_root
+                    / "applications"
+                    / "apps"
+                    / app
+                    / "overlays"
+                    / self.source_env
+                ).rglob("*.yaml")
             )
         yaml_files.extend(
-            (self.gitops_root / "infrastructure" / "clusters" / self.source_env).rglob("*.yaml")
+            (self.gitops_root / "infrastructure" / "clusters" / self.source_env).rglob(
+                "*.yaml"
+            )
         )
 
         for yaml_file in yaml_files:
@@ -174,8 +185,15 @@ class PromotionValidator:
     def _check_required_files_exist(self):
         """Verify required files exist in source environment."""
         required = [
-            self.gitops_root / "infrastructure" / "clusters" / self.source_env / "kustomization.yaml",
-            self.gitops_root / "applications" / "projects" / "mlops-applicationset.yaml",
+            self.gitops_root
+            / "infrastructure"
+            / "clusters"
+            / self.source_env
+            / "kustomization.yaml",
+            self.gitops_root
+            / "applications"
+            / "projects"
+            / "mlops-applicationset.yaml",
         ]
 
         for path in required:
@@ -186,7 +204,13 @@ class PromotionValidator:
 class PromotionEngine:
     """Handles the actual promotion of configurations."""
 
-    def __init__(self, source_env: str, target_env: str, dry_run: bool = False, gitops_root: Optional[Path] = None):
+    def __init__(
+        self,
+        source_env: str,
+        target_env: str,
+        dry_run: bool = False,
+        gitops_root: Optional[Path] = None,
+    ):
         self.source_env = source_env
         self.target_env = target_env
         self.dry_run = dry_run
@@ -202,7 +226,9 @@ class PromotionEngine:
         )
 
         # Validate first
-        validator = PromotionValidator(self.source_env, self.target_env, gitops_root=self.gitops_root)
+        validator = PromotionValidator(
+            self.source_env, self.target_env, gitops_root=self.gitops_root
+        )
         result.validation_passed = validator.validate()
 
         if not result.validation_passed:
@@ -213,7 +239,9 @@ class PromotionEngine:
             source_branch = ENV_BRANCHES[self.source_env]
             target_branch = ENV_BRANCHES[self.target_env]
             prefix = "[DRY RUN] " if self.dry_run else ""
-            result.changes = [f"{prefix}Promote branch {source_branch} to {target_branch} through a pull request"]
+            result.changes = [
+                f"{prefix}Promote branch {source_branch} to {target_branch} through a pull request"
+            ]
             result.success = True
 
         except Exception as e:

@@ -7,9 +7,7 @@ without requiring external Redis/DynamoDB backends.
 
 import os
 import shutil
-import tempfile
 
-import numpy as np
 import pandas as pd
 import pytest
 
@@ -91,12 +89,14 @@ class TestFeatureStoreWithDefinitions:
         # Apply feature definitions to populate the registry
         from feature_repo import feature_definitions
 
-        store.store.apply([
-            feature_definitions.user_entity,
-            feature_definitions.transaction_stats_view,
-            feature_definitions.user_profile_view,
-            feature_definitions.model_features_view,
-        ])
+        store.store.apply(
+            [
+                feature_definitions.user_entity,
+                feature_definitions.transaction_stats_view,
+                feature_definitions.user_profile_view,
+                feature_definitions.model_features_view,
+            ]
+        )
         return store
 
     def test_project_store_initialization(self, project_store):
@@ -133,10 +133,12 @@ class TestFeatureStoreWithDefinitions:
 
     def test_historical_features(self, project_store):
         """Test retrieving historical features for training."""
-        entity_df = pd.DataFrame({
-            "user_id": [1, 2, 3],
-            "event_timestamp": pd.Timestamp.now(),
-        })
+        entity_df = pd.DataFrame(
+            {
+                "user_id": [1, 2, 3],
+                "event_timestamp": pd.Timestamp.now(),
+            }
+        )
         feature_refs = [
             "model_features:feature_1",
             "model_features:feature_2",

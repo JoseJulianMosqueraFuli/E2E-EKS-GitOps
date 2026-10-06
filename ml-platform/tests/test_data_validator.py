@@ -5,8 +5,6 @@ These tests verify data quality validation functionality
 without requiring external services.
 """
 
-import os
-import tempfile
 
 import numpy as np
 import pandas as pd
@@ -22,13 +20,15 @@ class TestDataValidator:
     def sample_data(self):
         """Create sample data for validation."""
         np.random.seed(42)
-        return pd.DataFrame({
-            "id": range(100),
-            "feature_1": np.random.normal(0, 1, 100),
-            "feature_2": np.random.uniform(0, 100, 100),
-            "category": np.random.choice(["A", "B", "C"], 100),
-            "target": np.random.randint(0, 2, 100),
-        })
+        return pd.DataFrame(
+            {
+                "id": range(100),
+                "feature_1": np.random.normal(0, 1, 100),
+                "feature_2": np.random.uniform(0, 100, 100),
+                "category": np.random.choice(["A", "B", "C"], 100),
+                "target": np.random.randint(0, 2, 100),
+            }
+        )
 
     @pytest.fixture
     def validator(self):
@@ -57,7 +57,9 @@ class TestDataValidator:
     def test_validate_data_pass(self, validator, sample_data):
         """Test data validation that should pass."""
         suite_name = "test_validate_pass"
-        validator.create_expectation_suite(suite_name, sample_data.head(50), overwrite=True)
+        validator.create_expectation_suite(
+            suite_name, sample_data.head(50), overwrite=True
+        )
 
         results = validator.validate_data(sample_data, suite_name)
         assert "success" in results
@@ -70,9 +72,13 @@ class TestDataValidator:
     def test_validate_data_with_run_name(self, validator, sample_data):
         """Test validation with custom run name."""
         suite_name = "test_run_name"
-        validator.create_expectation_suite(suite_name, sample_data.head(50), overwrite=True)
+        validator.create_expectation_suite(
+            suite_name, sample_data.head(50), overwrite=True
+        )
 
-        results = validator.validate_data(sample_data, suite_name, run_name="custom_run")
+        results = validator.validate_data(
+            sample_data, suite_name, run_name="custom_run"
+        )
         assert results["run_name"] == "custom_run"
 
     def test_create_data_quality_suite(self, validator):
@@ -104,10 +110,12 @@ class TestDataValidator:
     def test_validate_data_with_missing_values(self, validator):
         """Test validation with data containing missing values."""
         np.random.seed(42)
-        data = pd.DataFrame({
-            "feature_1": np.random.normal(0, 1, 100),
-            "feature_2": np.random.uniform(0, 100, 100),
-        })
+        data = pd.DataFrame(
+            {
+                "feature_1": np.random.normal(0, 1, 100),
+                "feature_2": np.random.uniform(0, 100, 100),
+            }
+        )
         # Introduce some missing values
         data.loc[data.sample(10).index, "feature_1"] = np.nan
 
@@ -120,10 +128,12 @@ class TestDataValidator:
 
     def test_validate_data_with_categorical(self, validator):
         """Test validation with categorical columns."""
-        data = pd.DataFrame({
-            "category": np.random.choice(["A", "B", "C", "D"], 200),
-            "label": np.random.choice(["X", "Y"], 200),
-        })
+        data = pd.DataFrame(
+            {
+                "category": np.random.choice(["A", "B", "C", "D"], 200),
+                "label": np.random.choice(["X", "Y"], 200),
+            }
+        )
 
         suite_name = "categorical_test"
         validator.create_expectation_suite(suite_name, data.head(50), overwrite=True)
@@ -135,7 +145,9 @@ class TestDataValidator:
     def test_multiple_validations(self, validator, sample_data):
         """Test running multiple validations sequentially."""
         suite_name = "multi_validation"
-        validator.create_expectation_suite(suite_name, sample_data.head(50), overwrite=True)
+        validator.create_expectation_suite(
+            suite_name, sample_data.head(50), overwrite=True
+        )
 
         results1 = validator.validate_data(sample_data, suite_name, run_name="run_1")
         results2 = validator.validate_data(sample_data, suite_name, run_name="run_2")
