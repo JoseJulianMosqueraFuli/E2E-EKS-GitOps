@@ -1,0 +1,21 @@
+nameReference:
+  - kind: SecretStore
+    group: external-secrets.io
+    fieldSpecs:
+      - kind: ExternalSecret
+        path: spec/secretStoreRef/name
+  - kind: ServiceAccount
+    fieldSpecs:
+      - kind: SecretStore
+        path: spec/provider/aws/auth/jwt/serviceAccountRef/name
+  - kind: ExternalSecret
+    group: external-secrets.io
+    fieldSpecs:
+      - kind: ExternalSecret
+        path: spec/target/name
+      - kind: Deployment
+        path: spec/template/spec/containers/env/valueFrom/secretKeyRef/name
+      - kind: StatefulSet
+        path: spec/template/spec/containers/env/valueFrom/secretKeyRef/name
+      - kind: CronJob
+        path: spec/jobTemplate/spec/template/spec/containers/env/valueFrom/secretKeyRef/name
