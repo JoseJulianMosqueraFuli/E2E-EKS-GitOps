@@ -20,6 +20,7 @@ This module validates:
 
 import os
 import pytest
+from .application_helpers import generate_applications, load_application
 import yaml
 from pathlib import Path
 from typing import Dict, List, Optional, Set
@@ -70,14 +71,14 @@ REQUIRED_WORKLOADS = {
     "mlflow": ["deployment.yaml"],
     "kubeflow": ["pipeline-controller.yaml"],
     "kserve": ["serving-runtime.yaml"],
-    "monitoring": ["prometheus-deployment.yaml", "grafana-deployment.yaml"],
+    "monitoring": ["prometheus-statefulset.yaml", "grafana-deployment.yaml"],
 }
 
 # Required ArgoCD Application fields
 REQUIRED_APP_FIELDS = {"apiVersion", "kind", "metadata", "spec"}
 REQUIRED_SPEC_FIELDS = {"project", "source", "destination", "syncPolicy"}
 REQUIRED_SOURCE_FIELDS = {"repoURL", "targetRevision", "path"}
-REQUIRED_DESTINATION_FIELDS = {"server", "namespace"}
+REQUIRED_DESTINATION_FIELDS = {"name", "namespace"}
 
 # Environment-specific target revisions
 ENV_TARGET_REVISIONS = {
@@ -160,7 +161,7 @@ class TestArgocdApplicationExistence:
         app_name = combo["app"]
         env = combo["env"]
         path = get_env_app_path(app_name, env)
-        assert path.exists(), f"Missing ArgoCD Application: {path}"
+        assert load_application(app_name, env)["kind"] == "Application"
 
     @pytest.mark.property
     @settings(max_examples=100, deadline=None)
@@ -170,9 +171,7 @@ class TestArgocdApplicationExistence:
         app_name = combo["app"]
         env = combo["env"]
         path = get_env_app_path(app_name, env)
-        if not path.exists():
-            pytest.skip(f"Application {app_name}/{env} does not exist")
-        data = load_yaml(path)
+        data = load_application(app_name, env)
         assert data is not None, f"Invalid YAML in {app_name}/{env}"
 
     @pytest.mark.property
@@ -182,7 +181,7 @@ class TestArgocdApplicationExistence:
         """Property: Every ArgoCD Application must have kind=Application."""
         app_name = combo["app"]
         env = combo["env"]
-        data = load_yaml(get_env_app_path(app_name, env))
+        data = load_application(app_name, env)
         if data is None:
             pytest.skip(f"Application {app_name}/{env} not loadable")
         assert data.get("kind") == "Application"
@@ -194,7 +193,7 @@ class TestArgocdApplicationExistence:
         """Property: Every ArgoCD Application must use argoproj.io/v1alpha1."""
         app_name = combo["app"]
         env = combo["env"]
-        data = load_yaml(get_env_app_path(app_name, env))
+        data = load_application(app_name, env)
         if data is None:
             pytest.skip(f"Application {app_name}/{env} not loadable")
         assert data.get("apiVersion") == "argoproj.io/v1alpha1"
@@ -210,7 +209,7 @@ class TestArgocdApplicationStructure:
         """Property: Every ArgoCD Application must have all required fields."""
         app_name = combo["app"]
         env = combo["env"]
-        data = load_yaml(get_env_app_path(app_name, env))
+        data = load_application(app_name, env)
         if data is None:
             pytest.skip(f"Application {app_name}/{env} not loadable")
 
@@ -224,7 +223,7 @@ class TestArgocdApplicationStructure:
         """Property: Every ArgoCD Application spec must have project, source, destination, syncPolicy."""
         app_name = combo["app"]
         env = combo["env"]
-        data = load_yaml(get_env_app_path(app_name, env))
+        data = load_application(app_name, env)
         if data is None:
             pytest.skip(f"Application {app_name}/{env} not loadable")
 
@@ -239,7 +238,7 @@ class TestArgocdApplicationStructure:
         """Property: Every ArgoCD Application source must have repoURL, targetRevision, path."""
         app_name = combo["app"]
         env = combo["env"]
-        data = load_yaml(get_env_app_path(app_name, env))
+        data = load_application(app_name, env)
         if data is None:
             pytest.skip(f"Application {app_name}/{env} not loadable")
 
@@ -254,7 +253,7 @@ class TestArgocdApplicationStructure:
         """Property: Every ArgoCD Application destination must have server and namespace."""
         app_name = combo["app"]
         env = combo["env"]
-        data = load_yaml(get_env_app_path(app_name, env))
+        data = load_application(app_name, env)
         if data is None:
             pytest.skip(f"Application {app_name}/{env} not loadable")
 
@@ -269,7 +268,7 @@ class TestArgocdApplicationStructure:
         """Property: Every ArgoCD Application must have resource finalizer."""
         app_name = combo["app"]
         env = combo["env"]
-        data = load_yaml(get_env_app_path(app_name, env))
+        data = load_application(app_name, env)
         if data is None:
             pytest.skip(f"Application {app_name}/{env} not loadable")
 
@@ -289,7 +288,7 @@ class TestSyncPolicies:
         """Property: Every ArgoCD Application must have automated sync policy."""
         app_name = combo["app"]
         env = combo["env"]
-        data = load_yaml(get_env_app_path(app_name, env))
+        data = load_application(app_name, env)
         if data is None:
             pytest.skip(f"Application {app_name}/{env} not loadable")
 
@@ -303,7 +302,7 @@ class TestSyncPolicies:
         """Property: Every ArgoCD Application must have selfHeal enabled."""
         app_name = combo["app"]
         env = combo["env"]
-        data = load_yaml(get_env_app_path(app_name, env))
+        data = load_application(app_name, env)
         if data is None:
             pytest.skip(f"Application {app_name}/{env} not loadable")
 
@@ -319,7 +318,7 @@ class TestSyncPolicies:
         """Property: Every ArgoCD Application must have retry configuration."""
         app_name = combo["app"]
         env = combo["env"]
-        data = load_yaml(get_env_app_path(app_name, env))
+        data = load_application(app_name, env)
         if data is None:
             pytest.skip(f"Application {app_name}/{env} not loadable")
 
@@ -333,7 +332,7 @@ class TestSyncPolicies:
         """Property: Every ArgoCD Application retry must have backoff configuration."""
         app_name = combo["app"]
         env = combo["env"]
-        data = load_yaml(get_env_app_path(app_name, env))
+        data = load_application(app_name, env)
         if data is None:
             pytest.skip(f"Application {app_name}/{env} not loadable")
 
@@ -350,7 +349,7 @@ class TestSyncPolicies:
         """Property: Every ArgoCD Application must have CreateNamespace sync option."""
         app_name = combo["app"]
         env = combo["env"]
-        data = load_yaml(get_env_app_path(app_name, env))
+        data = load_application(app_name, env)
         if data is None:
             pytest.skip(f"Application {app_name}/{env} not loadable")
 
@@ -367,7 +366,7 @@ class TestProductionStricterPolicies:
     @pytest.mark.parametrize("app", APPLICATIONS)
     def test_production_no_auto_prune(self, app):
         """Production must NOT auto-prune to prevent accidental deletions."""
-        data = load_yaml(get_env_app_path(app, "production"))
+        data = load_application(app, "production")
         assert data is not None
         automated = data["spec"]["syncPolicy"]["automated"]
         assert automated.get("prune") is False, (
@@ -378,7 +377,7 @@ class TestProductionStricterPolicies:
     @pytest.mark.parametrize("app", APPLICATIONS)
     def test_dev_has_auto_prune(self, app):
         """Dev should auto-prune for fast iteration."""
-        data = load_yaml(get_env_app_path(app, "dev"))
+        data = load_application(app, "dev")
         assert data is not None
         automated = data["spec"]["syncPolicy"]["automated"]
         assert automated.get("prune") is True, (
@@ -389,8 +388,8 @@ class TestProductionStricterPolicies:
     @pytest.mark.parametrize("app", APPLICATIONS)
     def test_production_has_longer_retry_max_duration(self, app):
         """Production should have longer retry maxDuration than dev."""
-        dev_data = load_yaml(get_env_app_path(app, "dev"))
-        prod_data = load_yaml(get_env_app_path(app, "production"))
+        dev_data = load_application(app, "dev")
+        prod_data = load_application(app, "production")
         assert dev_data is not None and prod_data is not None
 
         dev_max = dev_data["spec"]["syncPolicy"]["retry"]["backoff"]["maxDuration"]
@@ -412,8 +411,8 @@ class TestProductionStricterPolicies:
     @pytest.mark.parametrize("app", APPLICATIONS)
     def test_production_has_higher_revision_history(self, app):
         """Production should have higher revisionHistoryLimit for rollback safety."""
-        dev_data = load_yaml(get_env_app_path(app, "dev"))
-        prod_data = load_yaml(get_env_app_path(app, "production"))
+        dev_data = load_application(app, "dev")
+        prod_data = load_application(app, "production")
         assert dev_data is not None and prod_data is not None
 
         dev_limit = dev_data.get("spec", {}).get("revisionHistoryLimit", 5)
@@ -434,7 +433,7 @@ class TestEnvironmentSpecificConfigurations:
         """Property: ArgoCD Application source path must point to correct overlay."""
         app_name = combo["app"]
         env = combo["env"]
-        data = load_yaml(get_env_app_path(app_name, env))
+        data = load_application(app_name, env)
         if data is None:
             pytest.skip(f"Application {app_name}/{env} not loadable")
 
@@ -450,7 +449,7 @@ class TestEnvironmentSpecificConfigurations:
         """Property: ArgoCD Application must use correct targetRevision per environment."""
         app_name = combo["app"]
         env = combo["env"]
-        data = load_yaml(get_env_app_path(app_name, env))
+        data = load_application(app_name, env)
         if data is None:
             pytest.skip(f"Application {app_name}/{env} not loadable")
 
@@ -468,7 +467,7 @@ class TestEnvironmentSpecificConfigurations:
         """Property: Every ArgoCD Application must have environment label."""
         app_name = combo["app"]
         env = combo["env"]
-        data = load_yaml(get_env_app_path(app_name, env))
+        data = load_application(app_name, env)
         if data is None:
             pytest.skip(f"Application {app_name}/{env} not loadable")
 
@@ -484,7 +483,7 @@ class TestEnvironmentSpecificConfigurations:
         """Property: ArgoCD Application destination namespace must match app name."""
         app_name = combo["app"]
         env = combo["env"]
-        data = load_yaml(get_env_app_path(app_name, env))
+        data = load_application(app_name, env)
         if data is None:
             pytest.skip(f"Application {app_name}/{env} not loadable")
 
@@ -506,7 +505,7 @@ class TestNotificationAnnotations:
         """Property: Every ArgoCD Application must have at least one notification annotation."""
         app_name = combo["app"]
         env = combo["env"]
-        data = load_yaml(get_env_app_path(app_name, env))
+        data = load_application(app_name, env)
         if data is None:
             pytest.skip(f"Application {app_name}/{env} not loadable")
 
@@ -522,7 +521,7 @@ class TestNotificationAnnotations:
     @pytest.mark.parametrize("app", APPLICATIONS)
     def test_production_has_sync_succeeded_notification(self, app):
         """Production should notify on sync success for deployment tracking."""
-        data = load_yaml(get_env_app_path(app, "production"))
+        data = load_application(app, "production")
         assert data is not None
         annotations = data.get("metadata", {}).get("annotations", {})
         has_success = any(
@@ -884,47 +883,13 @@ class TestArgocdProjectConfiguration:
         assert len(destinations) > 0, "mlops-core project has no destinations"
 
 
-class TestEnvironmentKustomization:
-    """Verify environment-level kustomization files."""
-
-    @pytest.mark.unit
+class TestEnvironmentApplications:
     @pytest.mark.parametrize("env", ENVIRONMENTS)
-    def test_environment_kustomization_exists(self, env):
-        """Each environment must have a kustomization.yaml."""
-        path = ENVIRONMENTS_DIR / env / "kustomization.yaml"
-        assert path.exists(), f"Missing kustomization.yaml for {env}"
-
-    @pytest.mark.unit
-    @pytest.mark.parametrize("env", ENVIRONMENTS)
-    def test_environment_kustomization_references_all_apps(self, env):
-        """Environment kustomization must reference all application manifests."""
-        path = ENVIRONMENTS_DIR / env / "kustomization.yaml"
-        data = load_yaml(path)
-        assert data is not None
-
-        resources = data.get("resources", [])
-        expected_apps = {f"{app}-application.yaml" for app in APPLICATIONS}
-        actual_apps = {Path(r).name for r in resources}
-        missing = expected_apps - actual_apps
-        assert not missing, (
-            f"{env} kustomization.yaml missing applications: {missing}"
-        )
-
-    @pytest.mark.unit
-    @pytest.mark.parametrize("env", ENVIRONMENTS)
-    def test_environment_kustomization_has_environment_label(self, env):
-        """Environment kustomization must have environment label."""
-        path = ENVIRONMENTS_DIR / env / "kustomization.yaml"
-        data = load_yaml(path)
-        assert data is not None
-
-        labels_list = data.get("labels", [])
-        env_labels = {}
-        for entry in labels_list:
-            env_labels.update(entry.get("pairs", {}))
-        assert "environment" in env_labels, (
-            f"{env} kustomization missing environment label"
-        )
+    def test_generator_covers_environment(self, env):
+        applications = [a for a in generate_applications() if a["metadata"]["labels"]["environment"] == env]
+        names = {a["metadata"]["labels"]["app.kubernetes.io/name"] for a in applications}
+        assert set(APPLICATIONS) <= names
+        assert len({a["metadata"]["name"] for a in applications}) == len(applications)
 
 
 if __name__ == "__main__":

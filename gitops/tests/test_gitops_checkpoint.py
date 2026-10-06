@@ -18,6 +18,7 @@ Validates:
 """
 
 import pytest
+from .application_helpers import generate_applications, load_application
 import yaml
 from pathlib import Path
 from typing import Dict, List, Optional, Set
@@ -149,9 +150,9 @@ class TestApplicationDeploymentReadiness:
     def test_application_has_argocd_definition(self, app, env):
         """Each application/environment must have an ArgoCD Application."""
         app_path = APPLICATIONS_PATH / "environments" / env / f"{app}-application.yaml"
-        assert app_path.exists(), f"Missing ArgoCD Application: {app_path}"
+        assert load_application(app, env)["kind"] == "Application"
 
-        data = load_yaml(app_path)
+        data = load_application(app, env)
         assert data is not None, f"Invalid YAML: {app_path}"
         assert data.get("kind") == "Application"
         assert data.get("apiVersion") == "argoproj.io/v1alpha1"
@@ -162,7 +163,7 @@ class TestApplicationDeploymentReadiness:
     def test_application_source_path_exists(self, app, env):
         """ArgoCD Application source path must reference a valid overlay."""
         app_path = APPLICATIONS_PATH / "environments" / env / f"{app}-application.yaml"
-        data = load_yaml(app_path)
+        data = load_application(app, env)
         if data is None:
             pytest.skip(f"Application {app}/{env} not loadable")
 
@@ -186,7 +187,7 @@ class TestDriftDetectionConfiguration:
         """All ArgoCD Applications must have selfHeal enabled for drift detection."""
         for app in APPLICATIONS:
             app_path = APPLICATIONS_PATH / "environments" / env / f"{app}-application.yaml"
-            data = load_yaml(app_path)
+            data = load_application(app, env)
             if data is None:
                 pytest.skip(f"Application {app}/{env} not loadable")
 
@@ -234,7 +235,7 @@ class TestDriftDetectionConfiguration:
     def test_argocd_app_has_ignore_differences(self, app):
         """Production applications should have ignoreDifferences for known drift."""
         prod_path = APPLICATIONS_PATH / "environments" / "production" / f"{app}-application.yaml"
-        data = load_yaml(prod_path)
+        data = load_application(app, "production")
         if data is None:
             pytest.skip(f"Application {app}/production not loadable")
 

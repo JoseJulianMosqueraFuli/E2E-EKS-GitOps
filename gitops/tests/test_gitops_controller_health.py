@@ -10,6 +10,8 @@ various deployment configurations.
 """
 
 import pytest
+
+pytestmark = pytest.mark.integration
 from hypothesis import given, strategies as st, settings, HealthCheck
 from kubernetes import client, config
 from kubernetes.client.rest import ApiException

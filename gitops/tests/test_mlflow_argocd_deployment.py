@@ -13,6 +13,7 @@ Validates: Requirements 3.1
 
 import os
 import pytest
+from .application_helpers import generate_applications, load_application
 import yaml
 from pathlib import Path
 from typing import Dict, List, Optional
@@ -205,13 +206,12 @@ class TestArgocdApplicationHealthChecks:
     @pytest.mark.parametrize("env", ENVIRONMENTS)
     def test_application_exists(self, env):
         path = ENVIRONMENTS_DIR / env / "mlflow-application.yaml"
-        assert path.exists(), f"Missing ArgoCD Application for {env}"
+        assert load_application("mlflow", env)["kind"] == "Application"
 
     @pytest.mark.unit
     @pytest.mark.parametrize("env", ENVIRONMENTS)
     def test_application_is_valid_yaml(self, env):
-        path = ENVIRONMENTS_DIR / env / "mlflow-application.yaml"
-        data = load_yaml(path)
+        data = load_application("mlflow", env)
         assert data is not None, f"Invalid YAML in {env}/mlflow-application.yaml"
         assert data.get("kind") == "Application"
         assert data.get("apiVersion") == "argoproj.io/v1alpha1"
@@ -220,7 +220,7 @@ class TestArgocdApplicationHealthChecks:
     @pytest.mark.parametrize("env", ENVIRONMENTS)
     def test_application_has_tracking_method(self, env):
         """Each ArgoCD Application should have resource tracking annotation."""
-        data = load_yaml(ENVIRONMENTS_DIR / env / "mlflow-application.yaml")
+        data = load_application("mlflow", env)
         assert data is not None
         annotations = data.get("metadata", {}).get("annotations", {})
         assert "argocd.argoproj.io/tracking-method" in annotations, (
@@ -231,7 +231,7 @@ class TestArgocdApplicationHealthChecks:
     @pytest.mark.parametrize("env", ENVIRONMENTS)
     def test_application_has_sync_policy(self, env):
         """Each ArgoCD Application must have automated sync policy."""
-        data = load_yaml(ENVIRONMENTS_DIR / env / "mlflow-application.yaml")
+        data = load_application("mlflow", env)
         assert data is not None
         sync_policy = data.get("spec", {}).get("syncPolicy", {})
         assert "automated" in sync_policy, f"{env} missing automated sync policy"
@@ -241,7 +241,7 @@ class TestArgocdApplicationHealthChecks:
     @pytest.mark.parametrize("env", ENVIRONMENTS)
     def test_application_has_self_heal(self, env):
         """selfHeal should be enabled for drift reconciliation."""
-        data = load_yaml(ENVIRONMENTS_DIR / env / "mlflow-application.yaml")
+        data = load_application("mlflow", env)
         assert data is not None
         automated = data["spec"]["syncPolicy"]["automated"]
         assert automated.get("selfHeal") is True, f"{env} selfHeal not enabled"
@@ -250,7 +250,7 @@ class TestArgocdApplicationHealthChecks:
     @pytest.mark.parametrize("env", ENVIRONMENTS)
     def test_application_has_retry_backoff(self, env):
         """Retry policy must include backoff configuration."""
-        data = load_yaml(ENVIRONMENTS_DIR / env / "mlflow-application.yaml")
+        data = load_application("mlflow", env)
         assert data is not None
         retry = data["spec"]["syncPolicy"]["retry"]
         assert "backoff" in retry, f"{env} missing retry backoff"
@@ -262,7 +262,7 @@ class TestArgocdApplicationHealthChecks:
     @pytest.mark.parametrize("env", ENVIRONMENTS)
     def test_application_has_finalizer(self, env):
         """Applications should have resource finalizer for cleanup."""
-        data = load_yaml(ENVIRONMENTS_DIR / env / "mlflow-application.yaml")
+        data = load_application("mlflow", env)
         assert data is not None
         finalizers = data.get("metadata", {}).get("finalizers", [])
         assert "resources-finalizer.argocd.argoproj.io" in finalizers, (
@@ -273,7 +273,7 @@ class TestArgocdApplicationHealthChecks:
     @pytest.mark.parametrize("env", ENVIRONMENTS)
     def test_application_has_notification_annotations(self, env):
         """Each environment should have at least a sync-failed notification."""
-        data = load_yaml(ENVIRONMENTS_DIR / env / "mlflow-application.yaml")
+        data = load_application("mlflow", env)
         assert data is not None
         annotations = data.get("metadata", {}).get("annotations", {})
         has_notification = any(
@@ -284,7 +284,7 @@ class TestArgocdApplicationHealthChecks:
     @pytest.mark.unit
     def test_production_has_no_auto_prune(self):
         """Production should NOT auto-prune to prevent accidental deletions."""
-        data = load_yaml(ENVIRONMENTS_DIR / "production" / "mlflow-application.yaml")
+        data = load_application("mlflow", "production")
         assert data is not None
         automated = data["spec"]["syncPolicy"]["automated"]
         assert automated.get("prune") is False, "Production should not auto-prune"
@@ -292,7 +292,7 @@ class TestArgocdApplicationHealthChecks:
     @pytest.mark.unit
     def test_dev_has_auto_prune(self):
         """Dev should auto-prune for fast iteration."""
-        data = load_yaml(ENVIRONMENTS_DIR / "dev" / "mlflow-application.yaml")
+        data = load_application("mlflow", "dev")
         assert data is not None
         automated = data["spec"]["syncPolicy"]["automated"]
         assert automated.get("prune") is True, "Dev should auto-prune"
@@ -354,7 +354,7 @@ class TestEnvironmentSpecificValues:
 
     @pytest.mark.unit
     def test_dev_has_smallest_replicas(self):
-        """Dev should have 1 replica for MLflow server."""
+        """Dev must retain two MLflow replicas for chaos testing."""
         data = load_yaml(MLFLOW_OVERLAYS / "dev" / "kustomization.yaml")
         assert data is not None
         patches = data.get("patches", [])
@@ -363,7 +363,7 @@ class TestEnvironmentSpecificValues:
             if target.get("kind") == "Deployment" and target.get("name") == "mlflow-server":
                 patch_str = p.get("patch", "")
                 if "replicas" in patch_str:
-                    assert "1" in patch_str
+                    assert yaml.safe_load(patch_str)[0]["value"] == 2
                     return
         pytest.fail("Dev overlay missing replica patch for mlflow-server")
 
@@ -386,7 +386,7 @@ class TestEnvironmentSpecificValues:
     @pytest.mark.parametrize("env", ENVIRONMENTS)
     def test_argocd_app_points_to_correct_overlay(self, env):
         """ArgoCD Application source path must point to the correct overlay."""
-        data = load_yaml(ENVIRONMENTS_DIR / env / "mlflow-application.yaml")
+        data = load_application("mlflow", env)
         assert data is not None
         path = data["spec"]["source"]["path"]
         assert env in path, f"{env} application path does not contain '{env}': {path}"

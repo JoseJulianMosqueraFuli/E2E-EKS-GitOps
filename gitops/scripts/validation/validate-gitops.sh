@@ -16,9 +16,9 @@ PASS=0
 FAIL=0
 WARN=0
 
-log_pass() { echo -e "${GREEN}[PASS]${NC} $1"; ((PASS++)); }
-log_fail() { echo -e "${RED}[FAIL]${NC} $1"; ((FAIL++)); }
-log_warn() { echo -e "${YELLOW}[WARN]${NC} $1"; ((WARN++)); }
+log_pass() { echo -e "${GREEN}[PASS]${NC} $1"; ((PASS+=1)); }
+log_fail() { echo -e "${RED}[FAIL]${NC} $1"; ((FAIL+=1)); }
+log_warn() { echo -e "${YELLOW}[WARN]${NC} $1"; ((WARN+=1)); }
 log_info() { echo -e "[INFO] $1"; }
 
 echo "============================================="

@@ -75,7 +75,7 @@ class TestFeatureStoreWithDefinitions:
     """Tests using the project's actual feature definitions."""
 
     @pytest.fixture(scope="class")
-    def project_store(self):
+    def project_store(self, tmp_path_factory):
         """Initialize store pointing to the project's feature_repo and apply definitions."""
         current_dir = os.path.dirname(os.path.abspath(__file__))
         repo_path = os.path.join(current_dir, "..", "feature_repo")
@@ -84,7 +84,9 @@ class TestFeatureStoreWithDefinitions:
         if not os.path.exists(repo_path):
             pytest.skip("feature_repo directory not found")
 
-        store = MLOpsFeatureStore(repo_path=repo_path)
+        temporary_repo = tmp_path_factory.mktemp("feast") / "feature_repo"
+        shutil.copytree(repo_path, temporary_repo)
+        store = MLOpsFeatureStore(repo_path=str(temporary_repo))
 
         # Apply feature definitions to populate the registry
         from feature_repo import feature_definitions
