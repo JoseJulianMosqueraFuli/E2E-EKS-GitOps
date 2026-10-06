@@ -99,3 +99,4 @@ secrets/
 !*.key.example
 
 .kiro/
+gitops/charts/*/charts/

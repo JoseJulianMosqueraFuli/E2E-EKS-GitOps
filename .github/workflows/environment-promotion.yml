@@ -2,166 +2,100 @@ name: Environment Promotion
 
 on:
   push:
-    branches:
-      - develop
-      - staging
+    branches: [develop, staging]
   workflow_dispatch:
     inputs:
       source_env:
-        description: "Source environment"
+        description: Source environment
         required: true
         type: choice
-        options:
-          - dev
-          - staging
+        options: [dev, staging]
       target_env:
-        description: "Target environment"
+        description: Target environment
         required: true
         type: choice
-        options:
-          - staging
-          - production
-      approve:
-        description: "Approve production promotion"
-        required: false
-        type: boolean
-        default: false
+        options: [staging, production]
 
 permissions:
-  contents: write
+  contents: read
   pull-requests: write
 
+concurrency:
+  group: promotion-${{ github.event.inputs.target_env || github.ref }}
+  cancel-in-progress: false
+
 jobs:
-  validate:
-    name: Validate Source Environment
+  promote:
     runs-on: ubuntu-latest
-    outputs:
-      source_env: ${{ steps.set-env.outputs.source }}
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Set environment variables
-        id: set-env
+      - name: Resolve promotion path
+        id: promotion
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          REF_NAME: ${{ github.ref_name }}
+          SOURCE_INPUT: ${{ inputs.source_env }}
+          TARGET_INPUT: ${{ inputs.target_env }}
         run: |
-          if [[ "${{ github.ref }}" == "refs/heads/develop" ]]; then
-            echo "source=dev" >> $GITHUB_OUTPUT
-          elif [[ "${{ github.ref }}" == "refs/heads/staging" ]]; then
-            echo "source=staging" >> $GITHUB_OUTPUT
+          if [[ "$EVENT_NAME" == "workflow_dispatch" ]]; then
+            source="$SOURCE_INPUT"
+            target="$TARGET_INPUT"
+          elif [[ "$REF_NAME" == "develop" ]]; then
+            source=dev
+            target=staging
           else
-            echo "source=${{ github.event.inputs.source_env }}" >> $GITHUB_OUTPUT
+            source=staging
+            target=production
           fi
+          case "$source:$target" in
+            dev:staging) head=develop; base=staging ;;
+            staging:production) head=staging; base=main ;;
+            *) echo "Invalid promotion path: $source to $target"; exit 1 ;;
+          esac
+          echo "source=$source" >> "$GITHUB_OUTPUT"
+          echo "target=$target" >> "$GITHUB_OUTPUT"
+          echo "head=$head" >> "$GITHUB_OUTPUT"
+          echo "base=$base" >> "$GITHUB_OUTPUT"
 
-      - name: Setup Python
-        uses: actions/setup-python@v5
+      - uses: actions/checkout@v4
         with:
-          python-version: "3.11"
-          cache: "pip"
-          cache-dependency-path: gitops/tests/requirements.txt
+          ref: ${{ steps.promotion.outputs.head }}
+          fetch-depth: 0
 
-      - name: Install dependencies
-        run: |
-          cd gitops/tests
-          pip install pyyaml pytest hypothesis
-
-      - name: Run validation tests
-        run: |
-          cd gitops/tests
-          python -m pytest test_gitops_checkpoint.py test_application_deployment_consistency.py -v --tb=short
-
-      - name: Validate YAML syntax
-        run: |
-          python -c "
-          import yaml
-          from pathlib import Path
-          gitops = Path('gitops')
-          errors = []
-          for f in gitops.rglob('*.yaml'):
-              try:
-                  with open(f) as fh:
-                      list(yaml.safe_load_all(fh))
-              except yaml.YAMLError as e:
-                  errors.append(f'{f}: {e}')
-          if errors:
-              for e in errors:
-                  print(f'ERROR: {e}')
-              exit(1)
-          print('All YAML files valid')
-          "
-
-  promote-staging:
-    name: Promote to Staging
-    needs: validate
-    if: github.ref == 'refs/heads/develop' || (github.event_name == 'workflow_dispatch' && github.event.inputs.target_env == 'staging')
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
+          python-version: "3.12"
 
-      - name: Setup Python
-        uses: actions/setup-python@v5
+      - uses: imranismail/setup-kustomize@v2
         with:
-          python-version: "3.11"
+          kustomize-version: "5.3.0"
 
-      - name: Run promotion
+      - name: Install validation dependencies
+        run: pip install pyyaml pytest hypothesis
+
+      - name: Validate source and target configurations
+        env:
+          SOURCE_ENV: ${{ steps.promotion.outputs.source }}
+          TARGET_ENV: ${{ steps.promotion.outputs.target }}
         run: |
-          cd gitops/scripts/promotion
-          python promote.py dev staging --dry-run
+          python gitops/scripts/promotion/promote.py "$SOURCE_ENV" "$TARGET_ENV" --dry-run
+          python -m pytest gitops/tests/test_gitops_checkpoint.py gitops/tests/test_application_deployment_consistency.py gitops/tests/test_rendered_applications.py -q
 
-      - name: Create promotion pull request
+      - name: Create or reuse promotion pull request
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          HEAD_BRANCH: ${{ steps.promotion.outputs.head }}
+          BASE_BRANCH: ${{ steps.promotion.outputs.base }}
         run: |
-          gh pr create \
-            --base staging \
-            --head develop \
-            --title "Promote: dev → staging" \
-            --body "Automated promotion of the validated develop branch to staging.
-
-            Validation:
-            - Source environment validated
-            - YAML syntax verified
-            - ApplicationSet and Kustomize overlays validated"
-
-  promote-production:
-    name: Promote to Production
-    needs: validate
-    if: github.ref == 'refs/heads/staging' || (github.event_name == 'workflow_dispatch' && github.event.inputs.target_env == 'production')
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Setup Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.11"
-
-      - name: Run promotion (dry run)
-        run: |
-          cd gitops/scripts/promotion
-          python promote.py staging production --dry-run
-
-      - name: Create production promotion pull request
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          gh pr create \
-            --base main \
-            --head staging \
-            --title "Promote: staging → production" \
-            --label production \
-            --label requires-approval \
-            --body "Production promotion from the validated staging branch.
-
-            Manual approval is required through branch protection before merge.
-
-            Checklist:
-            - Staging tests passed
-            - No critical alerts in staging
-            - Rollback plan reviewed
-            - Stakeholders notified"
+          existing="$(gh pr list --base "$BASE_BRANCH" --head "$HEAD_BRANCH" --state open --json number --jq '.[0].number // empty')"
+          if [[ -n "$existing" ]]; then
+            echo "Promotion PR already exists: #$existing"
+            exit 0
+          fi
+          ahead="$(gh api "repos/$GITHUB_REPOSITORY/compare/$BASE_BRANCH...$HEAD_BRANCH" --jq '.ahead_by')"
+          if [[ "$ahead" == "0" ]]; then
+            echo "No commits to promote"
+            exit 0
+          fi
+          gh pr create --base "$BASE_BRANCH" --head "$HEAD_BRANCH" \
+            --title "Promote: $HEAD_BRANCH → $BASE_BRANCH" \
+            --body "Promotes the validated source branch. All application overlays were rendered and AppProject permissions checked. Production requires review and branch protection before merge."

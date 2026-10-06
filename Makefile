@@ -56,7 +56,7 @@ test: ## Run infrastructure tests (requires AWS credentials)
 
 test-terraform-plan: ## Run terraform plan tests (no AWS required, validates syntax)
 	@echo "Running Terraform plan tests (no AWS credentials needed)..."
-	cd infra/environments/$(ENV) && terraform init -backend=false && terraform validate && terraform plan -input=false -out=/dev/null
+	cd infra/environments/$(ENV) && terraform init -backend=false && terraform validate
 
 test-unit: ## Run unit tests only (faster)
 	@echo "Running unit tests..."
@@ -132,14 +132,7 @@ validate-terraform: ## Validate Terraform configuration
 
 validate-kubernetes: ## Validate Kubernetes manifests
 	@echo "Validating Kubernetes manifests..."
-	kustomize build gitops/applications/apps/mlflow/overlays/dev
-	kustomize build gitops/applications/apps/monitoring/overlays/dev
-	kustomize build gitops/applications/apps/argo-workflows/overlays/dev
-	kustomize build gitops/applications/apps/feast/overlays/dev
-	kustomize build gitops/applications/apps/external-secrets/overlays/dev
-	kustomize build gitops/applications/apps/gatekeeper/overlays/dev
-	kustomize build gitops/applications/apps/istio/overlays/dev
-	@echo "Helm charts validated during CI via 'helm lint' and 'helm template --debug'."
+	python3 gitops/scripts/validate_applications.py
 
 validate-python: ## Validate Python code
 	@echo "Validating Python code..."

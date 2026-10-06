@@ -2,9 +2,15 @@ name: CI Pipeline
 
 on:
   push:
-    branches: [main, develop]
+    branches: [main, develop, staging]
   pull_request:
-    branches: [main]
+    branches: [main, staging]
+  workflow_dispatch:
+    inputs:
+      run_aws_tests:
+        description: Run infrastructure tests against real AWS
+        type: boolean
+        default: false
 
 env:
   AWS_REGION: us-west-2
@@ -14,7 +20,6 @@ jobs:
   terraform-validate:
     name: Terraform Validate
     runs-on: ubuntu-latest
-    if: contains(github.event.head_commit.modified, 'infra/') || github.event_name == 'pull_request'
 
     steps:
       - name: Checkout code
@@ -42,8 +47,8 @@ jobs:
   # NOTE: These tests require AWS credentials to run properly
   terraform-test:
     name: Terraform Tests
+    if: github.event_name == 'workflow_dispatch' && inputs.run_aws_tests
     runs-on: ubuntu-latest
-    if: contains(github.event.head_commit.modified, 'infra/') || github.event_name == 'pull_request'
 
     steps:
       - name: Checkout code
@@ -71,7 +76,6 @@ jobs:
   k8s-validate:
     name: Kubernetes Validate
     runs-on: ubuntu-latest
-    if: contains(github.event.head_commit.modified, 'k8s/') || contains(github.event.head_commit.modified, 'gitops/') || github.event_name == 'pull_request'
 
     steps:
       - name: Checkout code
@@ -85,35 +89,23 @@ jobs:
         with:
           kustomize-version: "5.3.0"
 
-      - name: Validate raw Kubernetes manifests
-        run: |
-          # Exclude CRD files and kustomization.yaml - kubectl cannot validate CRDs without the API server
-          find k8s/ -name "*.yaml" -not -name "kustomization.yaml" -not -name "crds.yaml" -print0 | xargs -0 -r -I {} kubectl --dry-run=client apply -f {}
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
 
-      - name: Validate Kustomize overlays (GitOps source of truth)
-        run: |
-          echo "=== MLflow overlay ==="
-          kustomize build gitops/applications/apps/mlflow/overlays/dev/ | kubectl --dry-run=client apply -f -
-          echo "=== KServe overlay ==="
-          kustomize build gitops/applications/apps/kserve/overlays/dev/ | kubectl --dry-run=client apply -f -
-          echo "=== Monitoring overlay ==="
-          kustomize build gitops/applications/apps/monitoring/overlays/dev/ | kubectl --dry-run=client apply -f -
-          echo "=== Argo Workflows overlay ==="
-          kustomize build gitops/applications/apps/argo-workflows/overlays/dev/ | kubectl --dry-run=client apply -f -
-          echo "=== Feast overlay ==="
-          kustomize build gitops/applications/apps/feast/overlays/dev/ | kubectl --dry-run=client apply -f -
-          echo "=== External Secrets overlay ==="
-          kustomize build gitops/applications/apps/external-secrets/overlays/dev/ | kubectl --dry-run=client apply -f -
-          echo "=== Gatekeeper overlay ==="
-          kustomize build gitops/applications/apps/gatekeeper/overlays/dev/ | kubectl --dry-run=client apply -f -
-          echo "=== Istio overlay ==="
-          kustomize build gitops/applications/apps/istio/overlays/dev/ | kubectl --dry-run=client apply -f -
+      - name: Install validation dependencies
+        run: pip install -r gitops/tests/requirements.txt
+
+      - name: Validate all canonical application overlays
+        run: python gitops/scripts/validate_applications.py
+
+      - name: Run GitOps regression tests
+        run: python -m pytest gitops/tests/ -m "not integration" -q
 
   # ML Platform Tests
   ml-platform-test:
     name: ML Platform Tests
     runs-on: ubuntu-latest
-    if: contains(github.event.head_commit.modified, 'ml-platform/') || github.event_name == 'pull_request'
 
     steps:
       - name: Checkout code
@@ -176,7 +168,6 @@ jobs:
   helm-lint:
     name: Helm Lint
     runs-on: ubuntu-latest
-    if: contains(github.event.head_commit.modified, 'gitops/charts/') || github.event_name == 'pull_request'
 
     steps:
       - name: Checkout code
@@ -191,6 +182,7 @@ jobs:
         run: |
           for chart in gitops/charts/*/; do
             echo "=== Linting $(basename "$chart") ==="
+            helm dependency build "$chart"
             helm lint "$chart"
           done
 
@@ -205,7 +197,6 @@ jobs:
   mlops-validate:
     name: MLOps Stack Validation
     runs-on: ubuntu-latest
-    if: contains(github.event.head_commit.modified, 'scripts/') || github.event_name == 'pull_request'
 
     steps:
       - name: Checkout code
