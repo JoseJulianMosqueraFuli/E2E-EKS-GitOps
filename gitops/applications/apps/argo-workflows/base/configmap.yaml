@@ -18,12 +18,6 @@ data:
         region: us-west-2
         endpoint: s3.amazonaws.com
         insecure: false
-        accessKeySecret:
-          name: argo-artifacts-s3
-          key: accesskey
-        secretKeySecret:
-          name: argo-artifacts-s3
-          key: secretkey
         useSDKCreds: true
     
     # Executor configuration

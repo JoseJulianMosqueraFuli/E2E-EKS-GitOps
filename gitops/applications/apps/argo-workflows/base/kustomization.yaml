@@ -11,7 +11,6 @@ resources:
   - controller-deployment.yaml
   - server-deployment.yaml
   - service.yaml
-  - artifact-repository-secret.yaml
   - workflow-templates/data-validation-template.yaml
   - workflow-templates/model-training-template.yaml
   - workflow-templates/model-deployment-template.yaml

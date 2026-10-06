@@ -54,8 +54,6 @@ kubeconfig
 .kube/
 
 # Secrets (never commit)
-*secret*.yaml
-*-secret.yaml
 secrets/
 *.key
 *.pem

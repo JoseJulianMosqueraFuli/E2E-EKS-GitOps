@@ -12,15 +12,15 @@ spec:
   arguments:
     parameters:
     - name: model-name
-      value: "default-model"
+      value: default-model
     - name: model-version
-      value: "1"
+      value: '1'
     - name: deployment-namespace
-      value: "models"
+      value: models
     - name: mlflow-tracking-uri
-      value: "http://mlflow-server.mlflow:5000"
+      value: http://mlflow-server.mlflow:5000
     - name: ecr-repository
-      value: "123456789012.dkr.ecr.us-west-2.amazonaws.com/mlops"
+      value: 123456789012.dkr.ecr.us-west-2.amazonaws.com/mlops
   templates:
   - name: model-deployment
     dag:
@@ -30,36 +30,37 @@ spec:
         arguments:
           parameters:
           - name: model-name
-            value: "{{workflow.parameters.model-name}}"
+            value: '{{workflow.parameters.model-name}}'
           - name: model-version
-            value: "{{workflow.parameters.model-version}}"
+            value: '{{workflow.parameters.model-version}}'
           - name: mlflow-tracking-uri
-            value: "{{workflow.parameters.mlflow-tracking-uri}}"
+            value: '{{workflow.parameters.mlflow-tracking-uri}}'
           - name: ecr-repository
-            value: "{{workflow.parameters.ecr-repository}}"
+            value: '{{workflow.parameters.ecr-repository}}'
       - name: create-kserve-deployment
         template: create-kserve-deployment-step
-        dependencies: [build-inference-image]
+        dependencies:
+        - build-inference-image
         arguments:
           parameters:
           - name: model-name
-            value: "{{workflow.parameters.model-name}}"
+            value: '{{workflow.parameters.model-name}}'
           - name: model-version
-            value: "{{workflow.parameters.model-version}}"
+            value: '{{workflow.parameters.model-version}}'
           - name: deployment-namespace
-            value: "{{workflow.parameters.deployment-namespace}}"
+            value: '{{workflow.parameters.deployment-namespace}}'
           - name: inference-image
-            value: "{{tasks.build-inference-image.outputs.parameters.inference-image}}"
+            value: '{{tasks.build-inference-image.outputs.parameters.inference-image}}'
       - name: validate-deployment
         template: validate-deployment-step
-        dependencies: [create-kserve-deployment]
+        dependencies:
+        - create-kserve-deployment
         arguments:
           parameters:
           - name: model-name
-            value: "{{workflow.parameters.model-name}}"
+            value: '{{workflow.parameters.model-name}}'
           - name: deployment-namespace
-            value: "{{workflow.parameters.deployment-namespace}}"
-  
+            value: '{{workflow.parameters.deployment-namespace}}'
   - name: build-inference-image-step
     inputs:
       parameters:
@@ -71,57 +72,130 @@ spec:
       parameters:
       - name: inference-image
         valueFrom:
-          path: /tmp/inference-image.txt
-    container:
-      image: mlops/image-builder:latest
-      command: [python]
-      args: [
-        "/app/build_inference_image.py",
-        "--model-name", "{{inputs.parameters.model-name}}",
-        "--model-version", "{{inputs.parameters.model-version}}",
-        "--ecr-repository", "{{inputs.parameters.ecr-repository}}"
-      ]
+          path: /workspace/inference-image.txt
+    metadata:
+      annotations:
+        container.apparmor.security.beta.kubernetes.io/main: unconfined
+    podSpecPatch: '{"securityContext":{"runAsUser":1000,"runAsGroup":1000,"fsGroup":1000}}'
+    volumes:
+    - name: build-context
+      emptyDir: {}
+    - name: registry-config
+      emptyDir: {}
+    - name: buildkit-state
+      emptyDir: {}
+    initContainers:
+    - name: prepare-model
+      image: ghcr.io/mlflow/mlflow:v2.18.0
+      command:
+      - python
+      - -c
+      args:
+      - "import os\nimport re\nimport shutil\nfrom pathlib import Path\nimport mlflow.artifacts\n\nname = os.environ[\"MODEL_NAME\"]\nversion = os.environ[\"MODEL_VERSION\"]\nrepository = os.environ[\"ECR_REPOSITORY\"]\nif not re.fullmatch(r\"[a-z0-9][a-z0-9._-]*\", name):\n    raise ValueError(\"Model name must be a valid image repository component\")\nif not re.fullmatch(r\"[A-Za-z0-9_][A-Za-z0-9_.-]{0,127}\", version):\n    raise ValueError(\"Model version must be a valid image tag\")\nif not re.fullmatch(r\"[0-9]{12}\\.dkr\\.ecr\\.[a-z0-9-]+\\.amazonaws\\.com/[a-z0-9._/-]+\", repository):\n    raise ValueError(\"Expected a private ECR repository URL\")\nworkspace = Path(\"/workspace\")\nmodel = mlflow.artifacts.download_artifacts(artifact_uri=f\"models:/{name}/{version}\", dst_path=\"/tmp/model-download\")\nshutil.copytree(model, workspace / \"model\")\nrequirements = workspace / \"model\" / \"requirements.txt\"\nif not requirements.exists():\n    raise ValueError(\"The registered model\
+        \ must include requirements.txt\")\n(workspace / \"Dockerfile\").write_text(\n    \"FROM python:3.12.8-slim\\n\"\n    \"WORKDIR /opt/model\\n\"\n    \"COPY model/ /opt/model/\\n\"\n    \"RUN pip install --no-cache-dir -r requirements.txt\\n\"\n    \"EXPOSE 8080\\n\"\n    \"USER 1000:1000\\n\"\n    'CMD [\"mlflow\", \"models\", \"serve\", \"--model-uri\", \"/opt/model\", \"--host\", \"0.0.0.0\", \"--port\", \"8080\", \"--env-manager\", \"local\"]\\n'\n)\n(workspace / \"inference-image.txt\").write_text(f\"{repository}/{name}:{version}\")\n"
       env:
+      - name: MODEL_NAME
+        value: '{{inputs.parameters.model-name}}'
+      - name: MODEL_VERSION
+        value: '{{inputs.parameters.model-version}}'
       - name: MLFLOW_TRACKING_URI
-        value: "{{inputs.parameters.mlflow-tracking-uri}}"
-      - name: AWS_DEFAULT_REGION
-        value: "us-west-2"
+        value: '{{inputs.parameters.mlflow-tracking-uri}}'
+      - name: ECR_REPOSITORY
+        value: '{{inputs.parameters.ecr-repository}}'
+      - name: HOME
+        value: /tmp
+      volumeMounts:
+      - name: build-context
+        mountPath: /workspace
+      securityContext:
+        runAsNonRoot: true
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop:
+          - ALL
       resources:
         requests:
-          memory: "2Gi"
-          cpu: "1000m"
+          cpu: 250m
+          memory: 512Mi
         limits:
-          memory: "4Gi"
-          cpu: "2000m"
-      volumeMounts:
-        - name: docker-sock
-          mountPath: /var/run
-    sidecars:
-      - name: dind
-        image: docker:24-dind
-        env:
-          - name: DOCKER_TLS_CERTDIR
-            value: ""
-        securityContext:
-          privileged: true
-          allowPrivilegeEscalation: false
-          capabilities:
-            drop:
-              - ALL
-        volumeMounts:
-          - name: docker-sock
-            mountPath: /var/run
-        resources:
-          requests:
-            memory: "1Gi"
-            cpu: "500m"
-          limits:
-            memory: "2Gi"
-            cpu: "1000m"
-    volumes:
-      - name: docker-sock
-        emptyDir: {}
+          cpu: 1000m
+          memory: 2Gi
+    - name: registry-login
+      image: public.ecr.aws/aws-cli/aws-cli:2.17.49
+      command:
+      - /bin/sh
+      - -ec
+      args:
+      - 'registry="${ECR_REPOSITORY%%/*}"
 
+        token="$(aws ecr get-authorization-token --query ''authorizationData[0].authorizationToken'' --output text)"
+
+        umask 077
+
+        printf ''{"auths":{"%s":{"auth":"%s"}}}'' "$registry" "$token" > /registry/config.json
+
+        '
+      env:
+      - name: ECR_REPOSITORY
+        value: '{{inputs.parameters.ecr-repository}}'
+      - name: AWS_DEFAULT_REGION
+        value: us-west-2
+      - name: HOME
+        value: /tmp
+      volumeMounts:
+      - name: registry-config
+        mountPath: /registry
+      securityContext:
+        runAsNonRoot: true
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop:
+          - ALL
+      resources:
+        requests:
+          cpu: 100m
+          memory: 128Mi
+        limits:
+          cpu: 500m
+          memory: 512Mi
+    container:
+      image: moby/buildkit:v0.16.0-rootless
+      command:
+      - /bin/sh
+      - -ec
+      args:
+      - 'image="$(cat /workspace/inference-image.txt)"
+
+        buildctl-daemonless.sh build --frontend dockerfile.v0 --local context=/workspace --local dockerfile=/workspace --output "type=image,name=$image,push=true"
+
+        '
+      env:
+      - name: BUILDKITD_FLAGS
+        value: --oci-worker-no-process-sandbox --oci-worker-snapshotter=native
+      - name: DOCKER_CONFIG
+        value: /registry
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        privileged: false
+        seccompProfile:
+          type: Unconfined
+      volumeMounts:
+      - name: build-context
+        mountPath: /workspace
+      - name: registry-config
+        mountPath: /registry
+        readOnly: true
+      - name: buildkit-state
+        mountPath: /home/user/.local/share/buildkit
+      resources:
+        requests:
+          cpu: 1000m
+          memory: 2Gi
+        limits:
+          cpu: 2000m
+          memory: 4Gi
   - name: create-kserve-deployment-step
     inputs:
       parameters:
@@ -136,25 +210,28 @@ spec:
           path: /tmp/inference-service-name.txt
     container:
       image: mlops/kserve-deployer:latest
-      command: [python]
-      args: [
-        "/app/deploy_kserve.py",
-        "--model-name", "{{inputs.parameters.model-name}}",
-        "--model-version", "{{inputs.parameters.model-version}}",
-        "--namespace", "{{inputs.parameters.deployment-namespace}}",
-        "--inference-image", "{{inputs.parameters.inference-image}}"
-      ]
+      command:
+      - python
+      args:
+      - /app/deploy_kserve.py
+      - --model-name
+      - '{{inputs.parameters.model-name}}'
+      - --model-version
+      - '{{inputs.parameters.model-version}}'
+      - --namespace
+      - '{{inputs.parameters.deployment-namespace}}'
+      - --inference-image
+      - '{{inputs.parameters.inference-image}}'
       env:
       - name: AWS_DEFAULT_REGION
-        value: "us-west-2"
+        value: us-west-2
       resources:
         requests:
-          memory: "512Mi"
-          cpu: "250m"
+          memory: 512Mi
+          cpu: 250m
         limits:
-          memory: "1Gi"
-          cpu: "500m"
-  
+          memory: 1Gi
+          cpu: 500m
   - name: validate-deployment-step
     inputs:
       parameters:
@@ -162,19 +239,21 @@ spec:
       - name: deployment-namespace
     container:
       image: mlops/deployment-validator:latest
-      command: [python]
-      args: [
-        "/app/validate_deployment.py",
-        "--model-name", "{{inputs.parameters.model-name}}",
-        "--namespace", "{{inputs.parameters.deployment-namespace}}"
-      ]
+      command:
+      - python
+      args:
+      - /app/validate_deployment.py
+      - --model-name
+      - '{{inputs.parameters.model-name}}'
+      - --namespace
+      - '{{inputs.parameters.deployment-namespace}}'
       env:
       - name: AWS_DEFAULT_REGION
-        value: "us-west-2"
+        value: us-west-2
       resources:
         requests:
-          memory: "256Mi"
-          cpu: "100m"
+          memory: 256Mi
+          cpu: 100m
         limits:
-          memory: "512Mi"
-          cpu: "250m"
+          memory: 512Mi
+          cpu: 250m
