@@ -1,0 +1,91 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="1000" viewBox="0 0 1600 1000">
+<rect width="1600" height="1000" fill="white"/>
+<defs>
+<marker id="arrow7C3AED" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto" markerUnits="userSpaceOnUse"><path d="M0 0 L8 4 L0 8 Z" fill="#7C3AED"/></marker>
+<marker id="arrow2563EB" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto" markerUnits="userSpaceOnUse"><path d="M0 0 L8 4 L0 8 Z" fill="#2563EB"/></marker>
+<marker id="arrowEA580C" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto" markerUnits="userSpaceOnUse"><path d="M0 0 L8 4 L0 8 Z" fill="#EA580C"/></marker>
+</defs>
+<rect x="40" y="310" width="1080" height="570" rx="10" fill="#EFF6FF" stroke="#2563EB" stroke-width="1.3"/>
+<text x="54" y="340" text-anchor="start" font-family="Arial,Helvetica,sans-serif" font-size="19" font-weight="700" fill="#0F172A">Amazon EKS · vista de un ambiente</text>
+<text x="54" y="364" text-anchor="start" font-family="Arial,Helvetica,sans-serif" font-size="14" font-weight="400" fill="#0F172A">Nodos privados · CPU / GPU opcional · persistencia EBS</text>
+<rect x="1160" y="310" width="400" height="570" rx="10" fill="#FFF7ED" stroke="#EA580C" stroke-width="1.3"/>
+<text x="1174" y="340" text-anchor="start" font-family="Arial,Helvetica,sans-serif" font-size="19" font-weight="700" fill="#0F172A">Servicios AWS del ambiente</text>
+<text x="1174" y="364" text-anchor="start" font-family="Arial,Helvetica,sans-serif" font-size="14" font-weight="400" fill="#0F172A">Recursos definidos en infra/</text>
+<rect x="350" y="380" width="730" height="340" rx="10" fill="#ECFDF5" stroke="#059669" stroke-width="1.3"/>
+<text x="364" y="410" text-anchor="start" font-family="Arial,Helvetica,sans-serif" font-size="19" font-weight="700" fill="#0F172A">Workloads MLOps</text>
+<text x="364" y="434" text-anchor="start" font-family="Arial,Helvetica,sans-serif" font-size="14" font-weight="400" fill="#0F172A">Bases canónicas: gitops/applications/apps/</text>
+<polyline points="310,195.0 370,195.0" fill="none" stroke="#2563EB" stroke-width="2" marker-end="url(#arrow2563EB)"/>
+<polyline points="660,195.0 720,195.0" fill="none" stroke="#2563EB" stroke-width="2" marker-end="url(#arrow2563EB)"/>
+<polyline points="1350.0,240 1350,275 580,275 580.0,310" fill="none" stroke="#EA580C" stroke-width="2" marker-end="url(#arrowEA580C)"/>
+<polyline points="1350.0,240 1350,275 1360,275 1360.0,310" fill="none" stroke="#EA580C" stroke-width="2" marker-end="url(#arrowEA580C)"/>
+<polyline points="515.0,240 515,285 20,285 20,595 80,595.0" fill="none" stroke="#7C3AED" stroke-width="2" marker-end="url(#arrow7C3AED)"/>
+<polyline points="195.0,640 195.0,700" fill="none" stroke="#7C3AED" stroke-width="2" marker-end="url(#arrow7C3AED)"/>
+<polyline points="310,745.0 330,745 330,550 350,550.0" fill="none" stroke="#7C3AED" stroke-width="2" marker-end="url(#arrow7C3AED)"/>
+<text x="54" y="61.24" text-anchor="start" font-family="Arial,Helvetica,sans-serif" font-size="28" font-weight="700" fill="#0F172A">Plataforma MLOps sobre Amazon EKS</text>
+<text x="54" y="105.28" text-anchor="start" font-family="Arial,Helvetica,sans-serif" font-size="16" font-weight="400" fill="#475569">Infraestructura, control GitOps, servicios ML y dependencias de almacenamiento.</text>
+<text x="54" y="971.29" text-anchor="start" font-family="Arial,Helvetica,sans-serif" font-size="13" font-weight="400" fill="#64748B">E2E-EKS-GitOps  •  Arquitectura declarada en el repositorio  •  06 oct 2026</text>
+<rect x="40" y="150" width="270" height="90" rx="10" fill="#EFF6FF" stroke="#2563EB" stroke-width="1.3"/>
+<text x="175.0" y="188.61" text-anchor="middle" font-family="Arial,Helvetica,sans-serif" font-size="17" font-weight="700" fill="#0F172A">Equipo de desarrollo / datos</text>
+<text x="175.0" y="212.61" text-anchor="middle" font-family="Arial,Helvetica,sans-serif" font-size="14" font-weight="400" fill="#0F172A">Código, modelos y configuración</text>
+<rect x="370" y="150" width="290" height="90" rx="10" fill="#EFF6FF" stroke="#2563EB" stroke-width="1.3"/>
+<text x="515.0" y="188.61" text-anchor="middle" font-family="Arial,Helvetica,sans-serif" font-size="17" font-weight="700" fill="#0F172A">Repositorio GitHub</text>
+<text x="515.0" y="212.61" text-anchor="middle" font-family="Arial,Helvetica,sans-serif" font-size="14" font-weight="400" fill="#0F172A">Terraform · Python · manifiestos</text>
+<rect x="720" y="150" width="330" height="90" rx="10" fill="#EFF6FF" stroke="#2563EB" stroke-width="1.3"/>
+<text x="885.0" y="188.61" text-anchor="middle" font-family="Arial,Helvetica,sans-serif" font-size="17" font-weight="700" fill="#0F172A">GitHub Actions</text>
+<text x="885.0" y="212.61" text-anchor="middle" font-family="Arial,Helvetica,sans-serif" font-size="14" font-weight="400" fill="#0F172A">Tests · lint · Helm · K8s · seguridad</text>
+<rect x="1140" y="150" width="420" height="90" rx="10" fill="#FFF7ED" stroke="#EA580C" stroke-width="1.3"/>
+<text x="1350.0" y="188.61" text-anchor="middle" font-family="Arial,Helvetica,sans-serif" font-size="17" font-weight="700" fill="#0F172A">Terraform</text>
+<text x="1350.0" y="212.61" text-anchor="middle" font-family="Arial,Helvetica,sans-serif" font-size="14" font-weight="400" fill="#0F172A">VPC · EKS · S3 · ECR · Glue · KMS</text>
+<rect x="80" y="400" width="230" height="90" rx="10" fill="#EFF6FF" stroke="#2563EB" stroke-width="1.3"/>
+<text x="195.0" y="438.61" text-anchor="middle" font-family="Arial,Helvetica,sans-serif" font-size="17" font-weight="700" fill="#0F172A">Acceso a servicios</text>
+<text x="195.0" y="462.61" text-anchor="middle" font-family="Arial,Helvetica,sans-serif" font-size="14" font-weight="400" fill="#0F172A">Ingress / ALB · Istio</text>
+<rect x="80" y="550" width="230" height="90" rx="10" fill="#F5F3FF" stroke="#7C3AED" stroke-width="1.3"/>
+<text x="195.0" y="588.61" text-anchor="middle" font-family="Arial,Helvetica,sans-serif" font-size="17" font-weight="700" fill="#0F172A">Flux v2</text>
+<text x="195.0" y="612.61" text-anchor="middle" font-family="Arial,Helvetica,sans-serif" font-size="14" font-weight="400" fill="#0F172A">Infraestructura del clúster</text>
+<rect x="80" y="700" width="230" height="90" rx="10" fill="#F5F3FF" stroke="#7C3AED" stroke-width="1.3"/>
+<text x="195.0" y="738.61" text-anchor="middle" font-family="Arial,Helvetica,sans-serif" font-size="17" font-weight="700" fill="#0F172A">ArgoCD</text>
+<text x="195.0" y="762.61" text-anchor="middle" font-family="Arial,Helvetica,sans-serif" font-size="14" font-weight="400" fill="#0F172A">ApplicationSet · aplicaciones</text>
+<rect x="380" y="455" width="200" height="95" rx="10" fill="#ECFDF5" stroke="#059669" stroke-width="1.3"/>
+<text x="480.0" y="484.11" text-anchor="middle" font-family="Arial,Helvetica,sans-serif" font-size="17" font-weight="700" fill="#0F172A">MLflow</text>
+<text x="480.0" y="508.11" text-anchor="middle" font-family="Arial,Helvetica,sans-serif" font-size="14" font-weight="400" fill="#0F172A">Experimentos y registro</text>
+<text x="480.0" y="532.11" text-anchor="middle" font-family="Arial,Helvetica,sans-serif" font-size="14" font-weight="400" fill="#0F172A">PostgreSQL + MinIO</text>
+<rect x="620" y="455" width="200" height="95" rx="10" fill="#ECFDF5" stroke="#059669" stroke-width="1.3"/>
+<text x="720.0" y="496.11" text-anchor="middle" font-family="Arial,Helvetica,sans-serif" font-size="17" font-weight="700" fill="#0F172A">Kubeflow Pipelines</text>
+<text x="720.0" y="520.11" text-anchor="middle" font-family="Arial,Helvetica,sans-serif" font-size="14" font-weight="400" fill="#0F172A">API y orquestación ML</text>
+<rect x="860" y="455" width="200" height="95" rx="10" fill="#ECFDF5" stroke="#059669" stroke-width="1.3"/>
+<text x="960.0" y="496.11" text-anchor="middle" font-family="Arial,Helvetica,sans-serif" font-size="17" font-weight="700" fill="#0F172A">Argo Workflows</text>
+<text x="960.0" y="520.11" text-anchor="middle" font-family="Arial,Helvetica,sans-serif" font-size="14" font-weight="400" fill="#0F172A">Validar · entrenar · desplegar</text>
+<rect x="380" y="595" width="200" height="90" rx="10" fill="#ECFDF5" stroke="#059669" stroke-width="1.3"/>
+<text x="480.0" y="633.61" text-anchor="middle" font-family="Arial,Helvetica,sans-serif" font-size="17" font-weight="700" fill="#0F172A">KServe</text>
+<text x="480.0" y="657.61" text-anchor="middle" font-family="Arial,Helvetica,sans-serif" font-size="14" font-weight="400" fill="#0F172A">Serving de modelos</text>
+<rect x="620" y="595" width="200" height="90" rx="10" fill="#ECFDF5" stroke="#059669" stroke-width="1.3"/>
+<text x="720.0" y="633.61" text-anchor="middle" font-family="Arial,Helvetica,sans-serif" font-size="17" font-weight="700" fill="#0F172A">Feast</text>
+<text x="720.0" y="657.61" text-anchor="middle" font-family="Arial,Helvetica,sans-serif" font-size="14" font-weight="400" fill="#0F172A">Features · Redis / archivos</text>
+<rect x="860" y="595" width="200" height="90" rx="10" fill="#ECFDF5" stroke="#059669" stroke-width="1.3"/>
+<text x="960.0" y="621.61" text-anchor="middle" font-family="Arial,Helvetica,sans-serif" font-size="17" font-weight="700" fill="#0F172A">Observabilidad</text>
+<text x="960.0" y="645.61" text-anchor="middle" font-family="Arial,Helvetica,sans-serif" font-size="14" font-weight="400" fill="#0F172A">Evidently · Prometheus</text>
+<text x="960.0" y="669.61" text-anchor="middle" font-family="Arial,Helvetica,sans-serif" font-size="14" font-weight="400" fill="#0F172A">Grafana · Alertmanager</text>
+<rect x="350" y="770" width="730" height="70" rx="10" fill="#F8FAFC" stroke="#64748B" stroke-width="1.3"/>
+<text x="715.0" y="798.61" text-anchor="middle" font-family="Arial,Helvetica,sans-serif" font-size="17" font-weight="700" fill="#0F172A">Controles transversales</text>
+<text x="715.0" y="822.61" text-anchor="middle" font-family="Arial,Helvetica,sans-serif" font-size="14" font-weight="400" fill="#0F172A">Istio · Gatekeeper / OPA · External Secrets · IAM / IRSA · Litmus Chaos</text>
+<rect x="1190" y="400" width="340" height="85" rx="10" fill="#FFF7ED" stroke="#EA580C" stroke-width="1.3"/>
+<text x="1360.0" y="436.11" text-anchor="middle" font-family="Arial,Helvetica,sans-serif" font-size="17" font-weight="700" fill="#0F172A">Amazon S3</text>
+<text x="1360.0" y="460.11" text-anchor="middle" font-family="Arial,Helvetica,sans-serif" font-size="14" font-weight="400" fill="#0F172A">Datos raw / curated y artefactos</text>
+<rect x="1190" y="515" width="340" height="85" rx="10" fill="#FFF7ED" stroke="#EA580C" stroke-width="1.3"/>
+<text x="1360.0" y="551.11" text-anchor="middle" font-family="Arial,Helvetica,sans-serif" font-size="17" font-weight="700" fill="#0F172A">Amazon ECR</text>
+<text x="1360.0" y="575.11" text-anchor="middle" font-family="Arial,Helvetica,sans-serif" font-size="14" font-weight="400" fill="#0F172A">Imágenes de contenedor</text>
+<rect x="1190" y="630" width="340" height="85" rx="10" fill="#FFF7ED" stroke="#EA580C" stroke-width="1.3"/>
+<text x="1360.0" y="666.11" text-anchor="middle" font-family="Arial,Helvetica,sans-serif" font-size="17" font-weight="700" fill="#0F172A">AWS Glue</text>
+<text x="1360.0" y="690.11" text-anchor="middle" font-family="Arial,Helvetica,sans-serif" font-size="14" font-weight="400" fill="#0F172A">Catálogo · crawlers · ETL</text>
+<rect x="1190" y="745" width="340" height="85" rx="10" fill="#FFF7ED" stroke="#EA580C" stroke-width="1.3"/>
+<text x="1360.0" y="781.11" text-anchor="middle" font-family="Arial,Helvetica,sans-serif" font-size="17" font-weight="700" fill="#0F172A">KMS / Secrets Manager</text>
+<text x="1360.0" y="805.11" text-anchor="middle" font-family="Arial,Helvetica,sans-serif" font-size="14" font-weight="400" fill="#0F172A">Cifrado y secretos referenciados</text>
+<text x="54" y="917.95" text-anchor="start" font-family="Arial,Helvetica,sans-serif" font-size="15" font-weight="400" fill="#334155">Azul: cambios / validación    Violeta: control GitOps    Verde: servicios ML    Naranja: infraestructura AWS</text>
+<rect x="292.4" y="174" width="95.2" height="22" rx="3" fill="white"/><text x="340" y="189" text-anchor="middle" font-family="Arial,Helvetica,sans-serif" font-size="13" fill="#475569">commit / PR</text>
+<rect x="646.0" y="174" width="88.0" height="22" rx="3" fill="white"/><text x="690" y="189" text-anchor="middle" font-family="Arial,Helvetica,sans-serif" font-size="13" fill="#475569">validación</text>
+<rect x="912.4" y="259" width="95.2" height="22" rx="3" fill="white"/><text x="960" y="274" text-anchor="middle" font-family="Arial,Helvetica,sans-serif" font-size="13" fill="#475569">aprovisiona</text>
+<rect x="1408.8" y="264" width="102.4" height="22" rx="3" fill="white"/><text x="1460" y="279" text-anchor="middle" font-family="Arial,Helvetica,sans-serif" font-size="13" fill="#475569">recursos AWS</text>
+<rect x="201.6" y="274" width="116.8" height="22" rx="3" fill="white"/><text x="260" y="289" text-anchor="middle" font-family="Arial,Helvetica,sans-serif" font-size="13" fill="#475569">reconciliación</text>
+<rect x="140.2" y="659" width="109.60000000000001" height="22" rx="3" fill="white"/><text x="195" y="674" text-anchor="middle" font-family="Arial,Helvetica,sans-serif" font-size="13" fill="#475569">controladores</text>
+<rect x="286.0" y="724" width="88.0" height="22" rx="3" fill="white"/><text x="330" y="739" text-anchor="middle" font-family="Arial,Helvetica,sans-serif" font-size="13" fill="#475569">sincroniza</text>
+</svg>

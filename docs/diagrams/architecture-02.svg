@@ -1,0 +1,81 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="1000" viewBox="0 0 1600 1000">
+<rect width="1600" height="1000" fill="white"/>
+<defs>
+<marker id="arrow7C3AED" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto" markerUnits="userSpaceOnUse"><path d="M0 0 L8 4 L0 8 Z" fill="#7C3AED"/></marker>
+<marker id="arrow2563EB" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto" markerUnits="userSpaceOnUse"><path d="M0 0 L8 4 L0 8 Z" fill="#2563EB"/></marker>
+<marker id="arrowEA580C" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto" markerUnits="userSpaceOnUse"><path d="M0 0 L8 4 L0 8 Z" fill="#EA580C"/></marker>
+<marker id="arrow059669" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto" markerUnits="userSpaceOnUse"><path d="M0 0 L8 4 L0 8 Z" fill="#059669"/></marker>
+</defs>
+<polyline points="320,355.0 370,355.0" fill="none" stroke="#059669" stroke-width="2" marker-end="url(#arrow059669)"/>
+<polyline points="630,355.0 680,355.0" fill="none" stroke="#059669" stroke-width="2" marker-end="url(#arrow059669)"/>
+<polyline points="940,355.0 990,355.0" fill="none" stroke="#059669" stroke-width="2" marker-end="url(#arrow059669)"/>
+<polyline points="1120.0,410 1120.0,490" fill="none" stroke="#EA580C" stroke-width="2" marker-end="url(#arrowEA580C)"/>
+<polyline points="1250,355.0 1425,355 1425.0,490" fill="none" stroke="#2563EB" stroke-width="2" marker-end="url(#arrow2563EB)"/>
+<polyline points="1425.0,600 1425.0,700" fill="none" stroke="#2563EB" stroke-width="2" marker-end="url(#arrow2563EB)"/>
+<polyline points="1250,755.0 1290,755.0" fill="none" stroke="#2563EB" stroke-width="2" marker-end="url(#arrow2563EB)"/>
+<polyline points="1425.0,810 1425,865 765,865 765.0,810" fill="none" stroke="#EA580C" stroke-width="2" marker-end="url(#arrowEA580C)"/>
+<polyline points="620,755.0 540,755.0" fill="none" stroke="#7C3AED" stroke-width="2" marker-end="url(#arrow7C3AED)" stroke-dasharray="7 5"/>
+<polyline points="400.0,700 400,650 810,650 810.0,410" fill="none" stroke="#7C3AED" stroke-width="2" marker-end="url(#arrow7C3AED)" stroke-dasharray="7 5"/>
+<polyline points="190.0,490 190,455 810,455 810.0,410" fill="none" stroke="#059669" stroke-width="2" marker-end="url(#arrow059669)" stroke-dasharray="7 5"/>
+<text x="54" y="61.24" text-anchor="start" font-family="Arial,Helvetica,sans-serif" font-size="28" font-weight="700" fill="#0F172A">Del dato al modelo en producción</text>
+<text x="54" y="105.28" text-anchor="start" font-family="Arial,Helvetica,sans-serif" font-size="16" font-weight="400" fill="#475569">Flujo funcional de los templates de Argo y del código Python; ejecución sujeta a configuración del ambiente.</text>
+<text x="54" y="971.29" text-anchor="start" font-family="Arial,Helvetica,sans-serif" font-size="13" font-weight="400" fill="#64748B">E2E-EKS-GitOps  •  Arquitectura declarada en el repositorio  •  06 oct 2026</text>
+<rect x="40" y="140" width="1520" height="80" rx="10" fill="#F5F3FF" stroke="#7C3AED" stroke-width="1.3"/>
+<text x="800.0" y="173.61" text-anchor="middle" font-family="Arial,Helvetica,sans-serif" font-size="17" font-weight="700" fill="#0F172A">Orquestación</text>
+<text x="800.0" y="197.61" text-anchor="middle" font-family="Arial,Helvetica,sans-serif" font-size="14" font-weight="400" fill="#0F172A">Argo Workflows: DAGs de validación, entrenamiento, despliegue y reentrenamiento  |  Kubeflow: pipelines ML</text>
+<rect x="60" y="300" width="260" height="110" rx="10" fill="#ECFDF5" stroke="#059669" stroke-width="1.3"/>
+<text x="190.0" y="348.61" text-anchor="middle" font-family="Arial,Helvetica,sans-serif" font-size="17" font-weight="700" fill="#0F172A">01  Datos</text>
+<text x="190.0" y="372.61" text-anchor="middle" font-family="Arial,Helvetica,sans-serif" font-size="14" font-weight="400" fill="#0F172A">S3 / CSV / Parquet</text>
+<rect x="370" y="300" width="260" height="110" rx="10" fill="#ECFDF5" stroke="#059669" stroke-width="1.3"/>
+<text x="500.0" y="348.61" text-anchor="middle" font-family="Arial,Helvetica,sans-serif" font-size="17" font-weight="700" fill="#0F172A">02  Validación</text>
+<text x="500.0" y="372.61" text-anchor="middle" font-family="Arial,Helvetica,sans-serif" font-size="14" font-weight="400" fill="#0F172A">Great Expectations</text>
+<rect x="680" y="300" width="260" height="110" rx="10" fill="#ECFDF5" stroke="#059669" stroke-width="1.3"/>
+<text x="810.0" y="336.61" text-anchor="middle" font-family="Arial,Helvetica,sans-serif" font-size="17" font-weight="700" fill="#0F172A">03  Entrenamiento</text>
+<text x="810.0" y="360.61" text-anchor="middle" font-family="Arial,Helvetica,sans-serif" font-size="14" font-weight="400" fill="#0F172A">scikit-learn</text>
+<text x="810.0" y="384.61" text-anchor="middle" font-family="Arial,Helvetica,sans-serif" font-size="14" font-weight="400" fill="#0F172A">Split antes de fit</text>
+<rect x="990" y="300" width="260" height="110" rx="10" fill="#ECFDF5" stroke="#059669" stroke-width="1.3"/>
+<text x="1120.0" y="336.61" text-anchor="middle" font-family="Arial,Helvetica,sans-serif" font-size="17" font-weight="700" fill="#0F172A">04  Registro</text>
+<text x="1120.0" y="360.61" text-anchor="middle" font-family="Arial,Helvetica,sans-serif" font-size="14" font-weight="400" fill="#0F172A">MLflow</text>
+<text x="1120.0" y="384.61" text-anchor="middle" font-family="Arial,Helvetica,sans-serif" font-size="14" font-weight="400" fill="#0F172A">Métricas · modelo · versión</text>
+<rect x="990" y="490" width="260" height="110" rx="10" fill="#FFF7ED" stroke="#EA580C" stroke-width="1.3"/>
+<text x="1120.0" y="526.61" text-anchor="middle" font-family="Arial,Helvetica,sans-serif" font-size="17" font-weight="700" fill="#0F172A">Persistencia MLflow</text>
+<text x="1120.0" y="550.61" text-anchor="middle" font-family="Arial,Helvetica,sans-serif" font-size="14" font-weight="400" fill="#0F172A">PostgreSQL: metadata</text>
+<text x="1120.0" y="574.61" text-anchor="middle" font-family="Arial,Helvetica,sans-serif" font-size="14" font-weight="400" fill="#0F172A">MinIO: artefactos S3-compatible</text>
+<rect x="1290" y="490" width="270" height="110" rx="10" fill="#EFF6FF" stroke="#2563EB" stroke-width="1.3"/>
+<text x="1425.0" y="526.61" text-anchor="middle" font-family="Arial,Helvetica,sans-serif" font-size="17" font-weight="700" fill="#0F172A">05  Build y publicación</text>
+<text x="1425.0" y="550.61" text-anchor="middle" font-family="Arial,Helvetica,sans-serif" font-size="14" font-weight="400" fill="#0F172A">BuildKit rootless</text>
+<text x="1425.0" y="574.61" text-anchor="middle" font-family="Arial,Helvetica,sans-serif" font-size="14" font-weight="400" fill="#0F172A">Imagen del modelo → ECR</text>
+<rect x="1290" y="700" width="270" height="110" rx="10" fill="#EFF6FF" stroke="#2563EB" stroke-width="1.3"/>
+<text x="1425.0" y="736.61" text-anchor="middle" font-family="Arial,Helvetica,sans-serif" font-size="17" font-weight="700" fill="#0F172A">06  Despliegue</text>
+<text x="1425.0" y="760.61" text-anchor="middle" font-family="Arial,Helvetica,sans-serif" font-size="14" font-weight="400" fill="#0F172A">KServe · InferenceService</text>
+<text x="1425.0" y="784.61" text-anchor="middle" font-family="Arial,Helvetica,sans-serif" font-size="14" font-weight="400" fill="#0F172A">Canary / validación</text>
+<rect x="990" y="700" width="260" height="110" rx="10" fill="#EFF6FF" stroke="#2563EB" stroke-width="1.3"/>
+<text x="1120.0" y="736.61" text-anchor="middle" font-family="Arial,Helvetica,sans-serif" font-size="17" font-weight="700" fill="#0F172A">Consumidor del modelo</text>
+<text x="1120.0" y="760.61" text-anchor="middle" font-family="Arial,Helvetica,sans-serif" font-size="14" font-weight="400" fill="#0F172A">Cliente → inferencia</text>
+<text x="1120.0" y="784.61" text-anchor="middle" font-family="Arial,Helvetica,sans-serif" font-size="14" font-weight="400" fill="#0F172A">Ingress / Istio</text>
+<rect x="620" y="700" width="290" height="110" rx="10" fill="#FFF7ED" stroke="#EA580C" stroke-width="1.3"/>
+<text x="765.0" y="736.61" text-anchor="middle" font-family="Arial,Helvetica,sans-serif" font-size="17" font-weight="700" fill="#0F172A">07  Monitoreo</text>
+<text x="765.0" y="760.61" text-anchor="middle" font-family="Arial,Helvetica,sans-serif" font-size="14" font-weight="400" fill="#0F172A">Evidently: drift / performance</text>
+<text x="765.0" y="784.61" text-anchor="middle" font-family="Arial,Helvetica,sans-serif" font-size="14" font-weight="400" fill="#0F172A">Prometheus → Grafana / alertas</text>
+<rect x="260" y="700" width="280" height="110" rx="10" fill="#F5F3FF" stroke="#7C3AED" stroke-width="1.3"/>
+<text x="400.0" y="736.61" text-anchor="middle" font-family="Arial,Helvetica,sans-serif" font-size="17" font-weight="700" fill="#0F172A">08  Reentrenamiento</text>
+<text x="400.0" y="760.61" text-anchor="middle" font-family="Arial,Helvetica,sans-serif" font-size="14" font-weight="400" fill="#0F172A">Workflow de retraining</text>
+<text x="400.0" y="784.61" text-anchor="middle" font-family="Arial,Helvetica,sans-serif" font-size="14" font-weight="400" fill="#0F172A">Selección y validación de modelo</text>
+<rect x="60" y="490" width="260" height="110" rx="10" fill="#ECFDF5" stroke="#059669" stroke-width="1.3"/>
+<text x="190.0" y="526.61" text-anchor="middle" font-family="Arial,Helvetica,sans-serif" font-size="17" font-weight="700" fill="#0F172A">Feast · features</text>
+<text x="190.0" y="550.61" text-anchor="middle" font-family="Arial,Helvetica,sans-serif" font-size="14" font-weight="400" fill="#0F172A">Históricas: archivos</text>
+<text x="190.0" y="574.61" text-anchor="middle" font-family="Arial,Helvetica,sans-serif" font-size="14" font-weight="400" fill="#0F172A">Online en Kubernetes: Redis</text>
+<text x="74" y="909.825" text-anchor="start" font-family="Arial,Helvetica,sans-serif" font-size="15" font-weight="400" fill="#334155">Las líneas discontinuas representan integraciones configurables o disparadores de workflow.</text>
+<text x="74" y="930.075" text-anchor="start" font-family="Arial,Helvetica,sans-serif" font-size="15" font-weight="400" fill="#334155">El backend actual de artefactos MLflow es MinIO; no se asume una migración automática a Amazon S3.</text>
+<rect x="311.8" y="328.0" width="66.4" height="22" rx="3" fill="white"/><text x="345.0" y="343.0" text-anchor="middle" font-family="Arial,Helvetica,sans-serif" font-size="13" fill="#475569">dataset</text>
+<rect x="600.2" y="328.0" width="109.60000000000001" height="22" rx="3" fill="white"/><text x="655.0" y="343.0" text-anchor="middle" font-family="Arial,Helvetica,sans-serif" font-size="13" fill="#475569">datos válidos</text>
+<rect x="913.8" y="328.0" width="102.4" height="22" rx="3" fill="white"/><text x="965.0" y="343.0" text-anchor="middle" font-family="Arial,Helvetica,sans-serif" font-size="13" fill="#475569">run / modelo</text>
+<rect x="1036.4" y="442" width="167.20000000000002" height="22" rx="3" fill="white"/><text x="1120" y="457" text-anchor="middle" font-family="Arial,Helvetica,sans-serif" font-size="13" fill="#475569">metadata / artefactos</text>
+<rect x="1363.0" y="414" width="124.0" height="22" rx="3" fill="white"/><text x="1425" y="429" text-anchor="middle" font-family="Arial,Helvetica,sans-serif" font-size="13" fill="#475569">modelo aprobado</text>
+<rect x="1370.2" y="639" width="109.60000000000001" height="22" rx="3" fill="white"/><text x="1425" y="654" text-anchor="middle" font-family="Arial,Helvetica,sans-serif" font-size="13" fill="#475569">imagen en ECR</text>
+<rect x="1226.0" y="731" width="88.0" height="22" rx="3" fill="white"/><text x="1270" y="746" text-anchor="middle" font-family="Arial,Helvetica,sans-serif" font-size="13" fill="#475569">predicción</text>
+<rect x="1036.4" y="854" width="167.20000000000002" height="22" rx="3" fill="white"/><text x="1120" y="869" text-anchor="middle" font-family="Arial,Helvetica,sans-serif" font-size="13" fill="#475569">métricas / resultados</text>
+<rect x="503.6" y="727" width="152.8" height="22" rx="3" fill="white"/><text x="580" y="742" text-anchor="middle" font-family="Arial,Helvetica,sans-serif" font-size="13" fill="#475569">drift / degradación</text>
+<rect x="762.4" y="619" width="95.2" height="22" rx="3" fill="white"/><text x="810" y="634" text-anchor="middle" font-family="Arial,Helvetica,sans-serif" font-size="13" fill="#475569">nuevo ciclo</text>
+<rect x="463.2" y="444" width="73.6" height="22" rx="3" fill="white"/><text x="500" y="459" text-anchor="middle" font-family="Arial,Helvetica,sans-serif" font-size="13" fill="#475569">features</text>
+</svg>
