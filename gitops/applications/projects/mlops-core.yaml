@@ -4,123 +4,217 @@ metadata:
   name: mlops-core
   namespace: argocd
   finalizers:
-    - resources-finalizer.argocd.argoproj.io
+  - resources-finalizer.argocd.argoproj.io
 spec:
   description: Core MLOps platform applications
-
   sourceRepos:
-    - "https://github.com/JoseJulianMosqueraFuli/E2E-EKS-GitOps.git"
-
+  - https://github.com/JoseJulianMosqueraFuli/E2E-EKS-GitOps.git
   destinations:
-    - namespace: mlflow
-      server: https://kubernetes.default.svc
-    - namespace: kubeflow
-      server: https://kubernetes.default.svc
-    - namespace: kserve
-      server: https://kubernetes.default.svc
-    - namespace: monitoring
-      server: https://kubernetes.default.svc
-    - namespace: argocd
-      server: https://kubernetes.default.svc
-    - namespace: argo-workflows
-      server: https://kubernetes.default.svc
-    - namespace: feast
-      server: https://kubernetes.default.svc
-    - namespace: external-secrets
-      server: https://kubernetes.default.svc
-    - namespace: gatekeeper-system
-      server: https://kubernetes.default.svc
-    - namespace: istio-system
-      server: https://kubernetes.default.svc
-    - namespace: litmus
-      server: https://kubernetes.default.svc
-
+  - name: mlops-dev-cluster
+    namespace: argo-workflows
+  - name: mlops-dev-cluster
+    namespace: argocd
+  - name: mlops-dev-cluster
+    namespace: external-secrets
+  - name: mlops-dev-cluster
+    namespace: feast
+  - name: mlops-dev-cluster
+    namespace: gatekeeper-system
+  - name: mlops-dev-cluster
+    namespace: istio-system
+  - name: mlops-dev-cluster
+    namespace: kserve
+  - name: mlops-dev-cluster
+    namespace: kserve-system
+  - name: mlops-dev-cluster
+    namespace: kube-system
+  - name: mlops-dev-cluster
+    namespace: kubeflow
+  - name: mlops-dev-cluster
+    namespace: litmus
+  - name: mlops-dev-cluster
+    namespace: ml-monitoring
+  - name: mlops-dev-cluster
+    namespace: mlflow
+  - name: mlops-dev-cluster
+    namespace: models
+  - name: mlops-dev-cluster
+    namespace: monitoring
+  - name: mlops-staging-cluster
+    namespace: argo-workflows
+  - name: mlops-staging-cluster
+    namespace: argocd
+  - name: mlops-staging-cluster
+    namespace: external-secrets
+  - name: mlops-staging-cluster
+    namespace: feast
+  - name: mlops-staging-cluster
+    namespace: gatekeeper-system
+  - name: mlops-staging-cluster
+    namespace: istio-system
+  - name: mlops-staging-cluster
+    namespace: kserve
+  - name: mlops-staging-cluster
+    namespace: kserve-system
+  - name: mlops-staging-cluster
+    namespace: kube-system
+  - name: mlops-staging-cluster
+    namespace: kubeflow
+  - name: mlops-staging-cluster
+    namespace: litmus
+  - name: mlops-staging-cluster
+    namespace: ml-monitoring
+  - name: mlops-staging-cluster
+    namespace: mlflow
+  - name: mlops-staging-cluster
+    namespace: models
+  - name: mlops-staging-cluster
+    namespace: monitoring
+  - name: mlops-prod-cluster
+    namespace: argo-workflows
+  - name: mlops-prod-cluster
+    namespace: argocd
+  - name: mlops-prod-cluster
+    namespace: external-secrets
+  - name: mlops-prod-cluster
+    namespace: feast
+  - name: mlops-prod-cluster
+    namespace: gatekeeper-system
+  - name: mlops-prod-cluster
+    namespace: istio-system
+  - name: mlops-prod-cluster
+    namespace: kserve
+  - name: mlops-prod-cluster
+    namespace: kserve-system
+  - name: mlops-prod-cluster
+    namespace: kube-system
+  - name: mlops-prod-cluster
+    namespace: kubeflow
+  - name: mlops-prod-cluster
+    namespace: litmus
+  - name: mlops-prod-cluster
+    namespace: ml-monitoring
+  - name: mlops-prod-cluster
+    namespace: mlflow
+  - name: mlops-prod-cluster
+    namespace: models
+  - name: mlops-prod-cluster
+    namespace: monitoring
   clusterResourceWhitelist:
-    - group: ""
-      kind: Namespace
-    - group: rbac.authorization.k8s.io
-      kind: ClusterRole
-    - group: rbac.authorization.k8s.io
-      kind: ClusterRoleBinding
-    - group: networking.k8s.io
-      kind: IngressClass
-    - group: admissionregistration.k8s.io
-      kind: ValidatingWebhookConfiguration
-    - group: apiextensions.k8s.io
-      kind: CustomResourceDefinition
-
+  - group: ''
+    kind: Namespace
+  - group: rbac.authorization.k8s.io
+    kind: ClusterRole
+  - group: rbac.authorization.k8s.io
+    kind: ClusterRoleBinding
+  - group: networking.k8s.io
+    kind: IngressClass
+  - group: admissionregistration.k8s.io
+    kind: ValidatingWebhookConfiguration
+  - group: apiextensions.k8s.io
+    kind: CustomResourceDefinition
+  - group: external-secrets.io
+    kind: ClusterSecretStore
+  - group: templates.gatekeeper.sh
+    kind: ConstraintTemplate
+  - group: admissionregistration.k8s.io
+    kind: MutatingWebhookConfiguration
+  - group: scheduling.k8s.io
+    kind: PriorityClass
+  - group: serving.kserve.io
+    kind: ClusterServingRuntime
   namespaceResourceWhitelist:
-    - group: ""
-      kind: ConfigMap
-    - group: ""
-      kind: Service
-    - group: ""
-      kind: ServiceAccount
-    - group: ""
-      kind: Secret
-    - group: ""
-      kind: PersistentVolumeClaim
-    - group: ""
-      kind: Namespace
-    - group: rbac.authorization.k8s.io
-      kind: Role
-    - group: rbac.authorization.k8s.io
-      kind: RoleBinding
-    - group: apps
-      kind: Deployment
-    - group: apps
-      kind: StatefulSet
-    - group: apps
-      kind: DaemonSet
-    - group: batch
-      kind: CronJob
-    - group: batch
-      kind: Job
-    - group: networking.k8s.io
-      kind: NetworkPolicy
-    - group: networking.k8s.io
-      kind: Ingress
-    - group: policy
-      kind: PodDisruptionBudget
-    - group: autoscaling
-      kind: HorizontalPodAutoscaler
-    - group: monitoring.coreos.com
-      kind: PodMonitor
-    - group: monitoring.coreos.com
-      kind: PrometheusRule
-    - group: argoproj.io
-      kind: WorkflowTemplate
-    - group: argoproj.io
-      kind: CronWorkflow
-    - group: kserve.io
-      kind: InferenceService
-    - group: external-secrets.io
-      kind: ExternalSecret
-    - group: networking.istio.io
-      kind: Gateway
-    - group: networking.istio.io
-      kind: VirtualService
-    - group: networking.istio.io
-      kind: DestinationRule
-    - group: security.istio.io
-      kind: AuthorizationPolicy
-    - group: security.istio.io
-      kind: PeerAuthentication
-    - group: constraints.gatekeeper.sh
-      kind: "*"
-
+  - group: ''
+    kind: ConfigMap
+  - group: ''
+    kind: Service
+  - group: ''
+    kind: ServiceAccount
+  - group: ''
+    kind: Secret
+  - group: ''
+    kind: PersistentVolumeClaim
+  - group: ''
+    kind: Namespace
+  - group: rbac.authorization.k8s.io
+    kind: Role
+  - group: rbac.authorization.k8s.io
+    kind: RoleBinding
+  - group: apps
+    kind: Deployment
+  - group: apps
+    kind: StatefulSet
+  - group: apps
+    kind: DaemonSet
+  - group: batch
+    kind: CronJob
+  - group: batch
+    kind: Job
+  - group: networking.k8s.io
+    kind: NetworkPolicy
+  - group: networking.k8s.io
+    kind: Ingress
+  - group: policy
+    kind: PodDisruptionBudget
+  - group: autoscaling
+    kind: HorizontalPodAutoscaler
+  - group: monitoring.coreos.com
+    kind: PodMonitor
+  - group: monitoring.coreos.com
+    kind: PrometheusRule
+  - group: argoproj.io
+    kind: WorkflowTemplate
+  - group: argoproj.io
+    kind: CronWorkflow
+  - group: kserve.io
+    kind: InferenceService
+  - group: external-secrets.io
+    kind: ExternalSecret
+  - group: networking.istio.io
+    kind: Gateway
+  - group: networking.istio.io
+    kind: VirtualService
+  - group: networking.istio.io
+    kind: DestinationRule
+  - group: security.istio.io
+    kind: AuthorizationPolicy
+  - group: security.istio.io
+    kind: PeerAuthentication
+  - group: constraints.gatekeeper.sh
+    kind: '*'
+  - group: external-secrets.io
+    kind: SecretStore
+  - group: source.toolkit.fluxcd.io
+    kind: HelmRepository
+  - group: helm.toolkit.fluxcd.io
+    kind: HelmRelease
+  - group: monitoring.coreos.com
+    kind: ServiceMonitor
+  - group: serving.kserve.io
+    kind: ServingRuntime
+  - group: ''
+    kind: ResourceQuota
+  - group: ''
+    kind: LimitRange
+  - group: cert-manager.io
+    kind: Certificate
+  - group: cert-manager.io
+    kind: Issuer
+  - group: networking.istio.io
+    kind: ServiceEntry
+  - group: serving.kserve.io
+    kind: InferenceService
   roles:
-    - name: mlops-admin
-      description: Admin role for MLOps applications
-      policies:
-        - p, proj:mlops-core:mlops-admin, applications, *, mlops-core/*, allow
-      groups:
-        - mlops-admins
-
-    - name: mlops-developer
-      description: Developer role for MLOps applications
-      policies:
-        - p, proj:mlops-core:mlops-developer, applications, get, mlops-core/*, allow
-        - p, proj:mlops-core:mlops-developer, applications, sync, mlops-core/*, allow
-      groups:
-        - mlops-developers
+  - name: mlops-admin
+    description: Admin role for MLOps applications
+    policies:
+    - p, proj:mlops-core:mlops-admin, applications, *, mlops-core/*, allow
+    groups:
+    - mlops-admins
+  - name: mlops-developer
+    description: Developer role for MLOps applications
+    policies:
+    - p, proj:mlops-core:mlops-developer, applications, get, mlops-core/*, allow
+    - p, proj:mlops-core:mlops-developer, applications, sync, mlops-core/*, allow
+    groups:
+    - mlops-developers

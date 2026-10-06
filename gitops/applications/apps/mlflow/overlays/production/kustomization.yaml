@@ -121,3 +121,11 @@ patches:
     target:
       kind: ExternalSecret
       name: mlflow-minio-secrets
+
+  - patch: |
+      - op: replace
+        path: /spec/target/template/data/backend_store_uri
+        value: "postgresql://{{ .username | urlquery }}:{{ .password | urlquery }}@prod-mlflow-postgresql:5432/{{ .database | urlquery }}"
+    target:
+      kind: ExternalSecret
+      name: mlflow-secrets

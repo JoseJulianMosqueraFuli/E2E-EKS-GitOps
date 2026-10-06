@@ -5,91 +5,288 @@ metadata:
   namespace: argocd
 spec:
   generators:
-    - matrix:
-        generators:
-          - list:
-              elements:
-                - app: mlflow
-                  namespace: mlflow
-                  component: tracking-server
-                - app: kubeflow
-                  namespace: kubeflow
-                  component: pipelines
-                - app: kserve
-                  namespace: kserve
-                  component: model-serving
-                - app: monitoring
-                  namespace: monitoring
-                  component: observability
-                - app: argo-workflows
-                  namespace: argo-workflows
-                  component: workflow-engine
-                - app: feast
-                  namespace: feast
-                  component: feature-store
-                - app: external-secrets
-                  namespace: external-secrets
-                  component: secret-management
-                - app: gatekeeper
-                  namespace: gatekeeper-system
-                  component: policy-enforcement
-                - app: istio
-                  namespace: istio-system
-                  component: service-mesh
-                - app: chaos
-                  namespace: litmus
-                  component: chaos-engineering
-          - list:
-              elements:
-                - environment: dev
-                  branch: develop
-                  autoSync: "true"
-                  prune: "true"
-                  revisionHistoryLimit: "5"
-                - environment: staging
-                  branch: staging
-                  autoSync: "true"
-                  prune: "true"
-                  revisionHistoryLimit: "10"
-                - environment: production
-                  branch: main
-                  autoSync: "true"
-                  prune: "false"
-                  revisionHistoryLimit: "15"
+  - matrix:
+      generators:
+      - list:
+          elements:
+          - app: mlflow
+            namespace: mlflow
+            component: tracking-server
+          - app: kubeflow
+            namespace: kubeflow
+            component: pipelines
+          - app: kserve
+            namespace: kserve
+            component: model-serving
+          - app: monitoring
+            namespace: monitoring
+            component: observability
+          - app: argo-workflows
+            namespace: argo-workflows
+            component: workflow-engine
+          - app: feast
+            namespace: feast
+            component: feature-store
+          - app: external-secrets
+            namespace: external-secrets
+            component: secret-management
+          - app: gatekeeper
+            namespace: gatekeeper-system
+            component: policy-enforcement
+          - app: istio
+            namespace: istio-system
+            component: service-mesh
+          - app: chaos
+            namespace: litmus
+            component: chaos-engineering
+      - list:
+          elements:
+          - environment: dev
+            branch: develop
+            clusterName: mlops-dev-cluster
+      template:
+        metadata:
+          name: '{{app}}-{{environment}}'
+          namespace: argocd
+          labels:
+            app.kubernetes.io/name: '{{app}}'
+            app.kubernetes.io/component: '{{component}}'
+            app.kubernetes.io/part-of: mlops-platform
+            environment: '{{environment}}'
+          finalizers:
+          - resources-finalizer.argocd.argoproj.io
+          annotations:
+            notifications.argoproj.io/subscribe.on-sync-failed.slack: mlops-alerts-{{environment}}
+            notifications.argoproj.io/subscribe.on-health-degraded.slack: mlops-alerts-{{environment}}
+            notifications.argoproj.io/subscribe.on-sync-succeeded.slack: mlops-deployments-{{environment}}
+            argocd.argoproj.io/tracking-method: annotation
+        spec:
+          project: mlops-core
+          source:
+            repoURL: https://github.com/JoseJulianMosqueraFuli/E2E-EKS-GitOps.git
+            targetRevision: '{{branch}}'
+            path: gitops/applications/apps/{{app}}/overlays/{{environment}}
+          destination:
+            name: '{{clusterName}}'
+            namespace: '{{namespace}}'
+          syncPolicy:
+            automated:
+              prune: true
+              selfHeal: true
+              allowEmpty: false
+            syncOptions:
+            - CreateNamespace=true
+            - PrunePropagationPolicy=foreground
+            - PruneLast=true
+            - ApplyOutOfSyncOnly=true
+            retry:
+              limit: 5
+              backoff:
+                duration: 5s
+                factor: 2
+                maxDuration: 3m
+          revisionHistoryLimit: 5
+  - matrix:
+      generators:
+      - list:
+          elements:
+          - app: mlflow
+            namespace: mlflow
+            component: tracking-server
+          - app: kubeflow
+            namespace: kubeflow
+            component: pipelines
+          - app: kserve
+            namespace: kserve
+            component: model-serving
+          - app: monitoring
+            namespace: monitoring
+            component: observability
+          - app: argo-workflows
+            namespace: argo-workflows
+            component: workflow-engine
+          - app: feast
+            namespace: feast
+            component: feature-store
+          - app: external-secrets
+            namespace: external-secrets
+            component: secret-management
+          - app: gatekeeper
+            namespace: gatekeeper-system
+            component: policy-enforcement
+          - app: istio
+            namespace: istio-system
+            component: service-mesh
+          - app: chaos
+            namespace: litmus
+            component: chaos-engineering
+      - list:
+          elements:
+          - environment: staging
+            branch: staging
+            clusterName: mlops-staging-cluster
+      template:
+        metadata:
+          name: '{{app}}-{{environment}}'
+          namespace: argocd
+          labels:
+            app.kubernetes.io/name: '{{app}}'
+            app.kubernetes.io/component: '{{component}}'
+            app.kubernetes.io/part-of: mlops-platform
+            environment: '{{environment}}'
+          finalizers:
+          - resources-finalizer.argocd.argoproj.io
+          annotations:
+            notifications.argoproj.io/subscribe.on-sync-failed.slack: mlops-alerts-{{environment}}
+            notifications.argoproj.io/subscribe.on-health-degraded.slack: mlops-alerts-{{environment}}
+            notifications.argoproj.io/subscribe.on-sync-succeeded.slack: mlops-deployments-{{environment}}
+            argocd.argoproj.io/tracking-method: annotation
+        spec:
+          project: mlops-core
+          source:
+            repoURL: https://github.com/JoseJulianMosqueraFuli/E2E-EKS-GitOps.git
+            targetRevision: '{{branch}}'
+            path: gitops/applications/apps/{{app}}/overlays/{{environment}}
+          destination:
+            name: '{{clusterName}}'
+            namespace: '{{namespace}}'
+          syncPolicy:
+            automated:
+              prune: true
+              selfHeal: true
+              allowEmpty: false
+            syncOptions:
+            - CreateNamespace=true
+            - PrunePropagationPolicy=foreground
+            - PruneLast=true
+            - ApplyOutOfSyncOnly=true
+            retry:
+              limit: 5
+              backoff:
+                duration: 5s
+                factor: 2
+                maxDuration: 3m
+          revisionHistoryLimit: 10
+  - matrix:
+      generators:
+      - list:
+          elements:
+          - app: mlflow
+            namespace: mlflow
+            component: tracking-server
+          - app: kubeflow
+            namespace: kubeflow
+            component: pipelines
+          - app: kserve
+            namespace: kserve
+            component: model-serving
+          - app: monitoring
+            namespace: monitoring
+            component: observability
+          - app: argo-workflows
+            namespace: argo-workflows
+            component: workflow-engine
+          - app: feast
+            namespace: feast
+            component: feature-store
+          - app: external-secrets
+            namespace: external-secrets
+            component: secret-management
+          - app: gatekeeper
+            namespace: gatekeeper-system
+            component: policy-enforcement
+          - app: istio
+            namespace: istio-system
+            component: service-mesh
+          - app: chaos
+            namespace: litmus
+            component: chaos-engineering
+      - list:
+          elements:
+          - environment: production
+            branch: main
+            clusterName: mlops-prod-cluster
+      template:
+        metadata:
+          name: '{{app}}-{{environment}}'
+          namespace: argocd
+          labels:
+            app.kubernetes.io/name: '{{app}}'
+            app.kubernetes.io/component: '{{component}}'
+            app.kubernetes.io/part-of: mlops-platform
+            environment: '{{environment}}'
+          finalizers:
+          - resources-finalizer.argocd.argoproj.io
+          annotations:
+            notifications.argoproj.io/subscribe.on-sync-failed.slack: mlops-alerts-{{environment}}
+            notifications.argoproj.io/subscribe.on-health-degraded.slack: mlops-alerts-{{environment}}
+            notifications.argoproj.io/subscribe.on-sync-succeeded.slack: mlops-deployments-{{environment}}
+            argocd.argoproj.io/tracking-method: annotation
+        spec:
+          project: mlops-core
+          source:
+            repoURL: https://github.com/JoseJulianMosqueraFuli/E2E-EKS-GitOps.git
+            targetRevision: '{{branch}}'
+            path: gitops/applications/apps/{{app}}/overlays/{{environment}}
+          destination:
+            name: '{{clusterName}}'
+            namespace: '{{namespace}}'
+          syncPolicy:
+            automated:
+              prune: false
+              selfHeal: true
+              allowEmpty: false
+            syncOptions:
+            - CreateNamespace=true
+            - PrunePropagationPolicy=foreground
+            - PruneLast=true
+            - ApplyOutOfSyncOnly=true
+            retry:
+              limit: 5
+              backoff:
+                duration: 5s
+                factor: 2
+                maxDuration: 3m
+          revisionHistoryLimit: 15
   template:
     metadata:
-      name: "{{app}}-{{environment}}"
+      name: '{{app}}-{{environment}}'
       namespace: argocd
       labels:
-        app.kubernetes.io/name: "{{app}}"
-        app.kubernetes.io/component: "{{component}}"
+        app.kubernetes.io/name: '{{app}}'
+        app.kubernetes.io/component: '{{component}}'
         app.kubernetes.io/part-of: mlops-platform
-        environment: "{{environment}}"
+        environment: '{{environment}}'
       finalizers:
-        - resources-finalizer.argocd.argoproj.io
+      - resources-finalizer.argocd.argoproj.io
+      annotations:
+        notifications.argoproj.io/subscribe.on-sync-failed.slack: mlops-alerts-{{environment}}
+        notifications.argoproj.io/subscribe.on-health-degraded.slack: mlops-alerts-{{environment}}
+        notifications.argoproj.io/subscribe.on-sync-succeeded.slack: mlops-deployments-{{environment}}
+        argocd.argoproj.io/tracking-method: annotation
     spec:
       project: mlops-core
       source:
         repoURL: https://github.com/JoseJulianMosqueraFuli/E2E-EKS-GitOps.git
-        targetRevision: "{{branch}}"
-        path: "gitops/applications/apps/{{app}}/overlays/{{environment}}"
+        targetRevision: '{{branch}}'
+        path: gitops/applications/apps/{{app}}/overlays/{{environment}}
       destination:
-        server: https://kubernetes.default.svc
-        namespace: "{{namespace}}"
+        name: '{{clusterName}}'
+        namespace: '{{namespace}}'
       syncPolicy:
         automated:
-          prune: "{{prune}}"
+          prune: false
           selfHeal: true
           allowEmpty: false
         syncOptions:
-          - CreateNamespace=true
-          - PrunePropagationPolicy=foreground
-          - PruneLast=true
-          - ApplyOutOfSyncOnly=true
+        - CreateNamespace=true
+        - PrunePropagationPolicy=foreground
+        - PruneLast=true
+        - ApplyOutOfSyncOnly=true
         retry:
           limit: 5
           backoff:
             duration: 5s
             factor: 2
             maxDuration: 3m
-      revisionHistoryLimit: "{{revisionHistoryLimit}}"
+      revisionHistoryLimit: 15

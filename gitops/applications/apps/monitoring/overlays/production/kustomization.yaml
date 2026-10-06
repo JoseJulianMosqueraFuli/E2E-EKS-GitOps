@@ -17,7 +17,7 @@ patches:
         path: /spec/replicas
         value: 2
     target:
-      kind: Deployment
+      kind: StatefulSet
       name: prometheus
   - patch: |
       - op: replace
@@ -40,5 +40,5 @@ patches:
         path: /spec/template/spec/containers/0/resources/limits/memory
         value: 4Gi
     target:
-      kind: Deployment
+      kind: StatefulSet
       name: prometheus
