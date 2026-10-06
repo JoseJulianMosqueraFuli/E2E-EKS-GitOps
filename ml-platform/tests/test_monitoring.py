@@ -339,14 +339,11 @@ class TestMetricsExporter:
             )
             metrics = exporter.get_metrics().decode("utf-8")
             # Check that the gauge has the expected value
-            lines = [l for l in metrics.split("\n") if "ml_model_health_status{" in l]
-            # The value should appear in a line like: ml_model_health_status{...} 1.0
             value_lines = [
-                l
-                for l in metrics.split("\n")
-                if line.startswith("ml_model_health_status{")
+                line for line in metrics.split("\n") if line.startswith("ml_model_health_status{")
             ]
-            assert len(value_lines) > 0
+            assert len(value_lines) == 1
+            assert float(value_lines[0].rsplit(" ", 1)[1]) == expected
 
 
 if __name__ == "__main__":
