@@ -28,8 +28,8 @@ _Last updated: 2026-06-25_
 | Document                                    | Description                                                                            |
 | ------------------------------------------- | -------------------------------------------------------------------------------------- |
 | [`implementation.md`](../implementation.md) | **Canonical architecture overview** — stack, repo layout, components, security, CI/CD. |
-| [`architecture.drawio`](architecture.drawio) | Diagrama editable: arquitectura general, ciclo ML, GitOps por ambiente y componentes Python. |
-| [Vista previa SVG](diagrams/architecture-01.svg) | Arquitectura general; vistas [ML](diagrams/architecture-02.svg), [GitOps](diagrams/architecture-03.svg) y [Python](diagrams/architecture-04.svg). |
+| [`architecture.drawio`](architecture.drawio) | Diagrama editable con íconos oficiales AWS y Kubernetes: arquitectura AWS, plataforma en EKS, ciclo ML, GitOps por ambiente y componentes Python. |
+| [Vista previa SVG](diagrams/architecture-01.svg) | Arquitectura AWS; vistas [EKS](diagrams/architecture-02.svg), [ML](diagrams/architecture-03.svg), [GitOps](diagrams/architecture-04.svg) y [Python](diagrams/architecture-05.svg). |
 | [`../README.md`](../README.md)              | Project landing page (English).                                                        |
 | [`../README.es.md`](../README.es.md)        | Project landing page (Español).                                                        |
 
