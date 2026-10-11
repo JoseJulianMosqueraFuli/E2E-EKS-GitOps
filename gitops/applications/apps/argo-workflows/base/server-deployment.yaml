@@ -21,7 +21,7 @@ spec:
       serviceAccountName: argo-server
       containers:
       - name: argo-server
-        image: quay.io/argoproj/argocli:v3.5.2
+        image: quay.io/argoproj/argocli:v4.0.13
         command:
         - argo
         args:
@@ -40,7 +40,7 @@ spec:
             fieldRef:
               apiVersion: v1
               fieldPath: metadata.namespace
-        - name: BASE_HREF
+        - name: ARGO_BASE_HREF
           value: /
         resources:
           requests:
@@ -63,5 +63,11 @@ spec:
             scheme: HTTPS
           initialDelaySeconds: 10
           periodSeconds: 20
+        volumeMounts:
+        - name: tmp
+          mountPath: /tmp
+      volumes:
+      - name: tmp
+        emptyDir: {}
       nodeSelector:
         kubernetes.io/os: linux

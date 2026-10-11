@@ -446,6 +446,7 @@ spec:
           - name: accuracy
             valueFrom:
               path: /tmp/new-accuracy.txt
+              default: "N/A"
           - name: model-uri
             valueFrom:
               path: /tmp/model-uri.txt
@@ -624,6 +625,7 @@ spec:
           - name: new-model-better
             valueFrom:
               path: /tmp/new-model-better.txt
+              default: "false"
           - name: improvement
             valueFrom:
               path: /tmp/improvement.txt

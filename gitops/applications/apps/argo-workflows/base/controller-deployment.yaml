@@ -21,18 +21,31 @@ spec:
       serviceAccountName: argo-workflow-controller
       containers:
       - name: workflow-controller
-        image: quay.io/argoproj/workflow-controller:v3.5.2
+        image: quay.io/argoproj/workflow-controller:v4.0.13
         command:
         - workflow-controller
         args:
         - --configmap=workflow-controller-configmap
-        - --executor-image=quay.io/argoproj/argoexec:v3.5.2
+        - --executor-image=quay.io/argoproj/argoexec:v4.0.13
         env:
-        - name: LEADER_ELECTION_NAMESPACE
+        - name: LEADER_ELECTION_IDENTITY
           valueFrom:
             fieldRef:
               apiVersion: v1
-              fieldPath: metadata.namespace
+              fieldPath: metadata.name
+        ports:
+        - name: metrics
+          containerPort: 9090
+        - name: healthz
+          containerPort: 6060
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: 6060
+          failureThreshold: 3
+          initialDelaySeconds: 90
+          periodSeconds: 60
+          timeoutSeconds: 30
         resources:
           requests:
             cpu: 100m
