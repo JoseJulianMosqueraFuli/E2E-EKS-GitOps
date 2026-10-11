@@ -94,7 +94,7 @@ n8n-workflow-test:
         - .gitlab-ci.yml
     - if: '$CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_BRANCH != null && !$CI_OPEN_MERGE_REQUESTS'
       changes:
-        compare_to: refs/heads/main
+        compare_to: refs/heads/$CI_DEFAULT_BRANCH
         paths:
           - n8n/**/*
           - Makefile

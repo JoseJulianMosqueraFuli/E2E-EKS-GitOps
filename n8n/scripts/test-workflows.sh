@@ -60,6 +60,7 @@ for workflow in "${workflows[@]}"; do
   log_file="$failure_dir/workflow-$index-$workflow_slug.log"
   container_name="n8n-ci-$$-$index"
   if ! docker create \
+    --interactive \
     --name "$container_name" \
     --network none \
     --read-only \
@@ -73,10 +74,9 @@ for workflow in "${workflows[@]}"; do
     --env N8N_DIAGNOSTICS_ENABLED=false \
     --env N8N_ENFORCE_SETTINGS_FILE_PERMISSIONS=true \
     --env EXECUTIONS_TIMEOUT=240 \
-    --volume "$(realpath "$workflow"):/home/node/workflow.json:ro" \
     --entrypoint /bin/sh \
     "$image" \
-    -c 'n8n import:workflow --input=/home/node/workflow.json && n8n execute --id="$1"' \
+    -c 'cat > /tmp/workflow.json && n8n import:workflow --input=/tmp/workflow.json && n8n execute --id="$1"' \
     n8n-test "$workflow_id" \
     >"$log_file" 2>&1; then
     printf '| `%s` | FAIL (container creation or image pull) |\n' "$(basename "$workflow")" >> "$report"
@@ -86,7 +86,7 @@ for workflow in "${workflows[@]}"; do
   fi
 
   active_container="$container_name"
-  if timeout --signal=TERM --kill-after=30s "$workflow_timeout" docker start --attach "$container_name" >>"$log_file" 2>&1; then
+  if timeout --signal=TERM --kill-after=30s "$workflow_timeout" docker start --attach --interactive "$container_name" <"$workflow" >>"$log_file" 2>&1; then
     start_status=0
   else
     start_status=$?

@@ -10,6 +10,9 @@ executors:
   python:
     docker:
       - image: cimg/python:3.11
+  n8n:
+    docker:
+      - image: cimg/base:2025.02@sha256:c4b738db95b65caeb66429913ce5ef53e203ee30bcf050896c9a6694a335b942
   kubectl:
     docker:
       - image: cimg/go:1.21
@@ -86,14 +89,14 @@ jobs:
             black --check src/ tests/
 
   n8n-workflow-test:
-    executor: python
+    executor: n8n
     steps:
       - checkout
       - run:
           name: Install n8n test dependencies
           command: |
             sudo apt-get update
-            sudo apt-get install -y docker.io jq make
+            sudo apt-get install -y jq make
       - setup_remote_docker:
           version: 27.5.1
       - run:
