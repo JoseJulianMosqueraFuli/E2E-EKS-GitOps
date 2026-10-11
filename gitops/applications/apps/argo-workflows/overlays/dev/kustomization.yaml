@@ -83,3 +83,8 @@ replacements:
           kind: WorkflowTemplate
         fieldPaths:
           - spec.templates.*.container.env.[name=AWS_DEFAULT_REGION].value
+      - select:
+          kind: WorkflowTemplate
+          name: model-deployment-template
+        fieldPaths:
+          - spec.templates.[name=build-inference-image-step].initContainers.[name=registry-login].env.[name=AWS_DEFAULT_REGION].value
