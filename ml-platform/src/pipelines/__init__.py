@@ -6,6 +6,13 @@ and deployment of machine learning models.
 """
 
 from .inference_pipeline import InferencePipeline
-from .training_pipeline import TrainingPipeline
 
 __all__ = ["TrainingPipeline", "InferencePipeline"]
+
+
+def __getattr__(name):
+    if name == "TrainingPipeline":
+        from .training_pipeline import TrainingPipeline
+
+        return TrainingPipeline
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
