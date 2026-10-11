@@ -26,6 +26,10 @@ Para detalles técnicos de issues CRÍTICOS y ALTOS (CVSS, fix concreto), ver: [
 - [x] KServe Gateway con HTTPS redirect automatico `(2026-07-13)`
 - [x] `LabelEncoder` incompatible reemplazado por `OrdinalEncoder` en `categorical_strategy='label'` `(2026-07-13)`
 - [x] Argo Workflows v3.5.2 -> v4.0.13 (CRDs, RBAC, config, server) y Kubeflow Pipelines 2.0.x -> 2.17.2 (imagenes `ghcr.io/kubeflow`). Pendiente validar en cluster `(2026-10-10)`
+- [x] Imagen unica `mlops-platform` (ml-platform/Dockerfile) + subcomandos `step split|train|evaluate|register`; plantilla de entrenamiento migrada; gate contra el modelo `@champion` `(2026-10-10)`
+- [x] MLflow: imagen propia con psycopg2/boto3 (la oficial no los trae), init containers usaban hosts sin prefijo de entorno, NetworkPolicy con selectores inexistentes y sin puerto 9000 `(2026-10-10)`
+- [x] Region migrada a us-east-1; imagenes mapeadas a ECR de la cuenta 231629457413 por overlay; bootstrap de backend compatible con us-east-1 `(2026-10-10)`
+- [x] Smoke test E2E en kind (GitHub Actions): Argo + MLflow + entrenamiento + gate de promocion `(2026-10-10)` - pendiente primer run verde
 
 ---
 
@@ -201,7 +205,7 @@ Para detalles técnicos de issues CRÍTICOS y ALTOS (CVSS, fix concreto), ver: [
 | 12 | KServe examples: `custom-nlp-server:latest` y `feature-transformer:latest` | `k8s/mlops-stack/kserve/examples/` |
 | 13 | MLflow chart: `readOnlyRootFilesystem: false` | `gitops/charts/mlflow/values.yaml` |
 | 14 | Pre-commit hooks: versiones antiguas | `.pre-commit-config.yaml` |
-| 15 | AWS Account ID placeholder `123456789012` en workflow | `argo-workflows/workflow-templates/model-deployment-template.yaml` |
+| 15 | AWS Account ID placeholder `123456789012` en workflow | `argo-workflows/workflow-templates/model-deployment-template.yaml` | ✅ Cuenta real y repos ECR por entorno (2026-10-10) |
 | 16 | Nombres de buckets S3 hardcodeados en manifests | Varios en `k8s/` |
 | 17 | `__main__` en `training_pipeline.py` ejecuta ejemplo con side effects | `ml-platform/src/pipelines/training_pipeline.py` |
 | 18 | `import numpy as np` redundante en `feature_store_client.py` | `ml-platform/src/features/feature_store_client.py` |
