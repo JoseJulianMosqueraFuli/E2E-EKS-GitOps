@@ -64,6 +64,10 @@ make dev-lint                            # + mypy
 make dev-format                          # black + isort (writes)
 ```
 
+## Agent rules (always apply)
+
+Best practices for engineering, architecture, security, ML architecture, Terraform, Kubernetes/GitOps, Python, ML engineering, CI/CD and docs live in `.agents/rules/`. Follow them for every change. MCP servers are read-only by policy.
+
 ## Conventions
 
 - **Python**: `black` (line-length 100), `isort` (profile=black), `flake8`, `mypy`. pytest config in `pyproject.toml`.
@@ -103,6 +107,7 @@ make dev-format                          # black + isort (writes)
 - `.pre-commit-config.yaml` — pre-commit hooks (detect-secrets, etc.). Run `make dev-setup` once.
 - `.secrets.baseline` — baseline for detect-secrets.
 - `Makefile` — single entry point for most operations.
-- `.agents/` and `.kiro/` — existing AI agent task/spec scratch directories.
+- `.agents/` — source of truth for AI agent rules (`rules/`) and MCP servers (`mcp/servers.json`). See `.agents/README.md`.
+- `.kiro/steering/`, `.kiro/settings/mcp.json`, `.github/instructions/`, `.vscode/mcp.json`, `.claude/rules/`, `.mcp.json` — **generated** by `make agents-sync`; do not edit by hand.
 
 *Last updated: July 2026*
