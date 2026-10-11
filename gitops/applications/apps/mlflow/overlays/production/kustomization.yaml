@@ -3,6 +3,7 @@ kind: Kustomization
 
 resources:
   - ../../base
+  - ../../../../../platform
 
 namePrefix: prod-
 
@@ -43,7 +44,7 @@ patches:
         value: s3://mlflow-artifacts-production
       - op: replace
         path: /data/s3_endpoint_url
-        value: https://s3.us-east-1.amazonaws.com
+        value: https://s3.AWS_REGION.amazonaws.com
     target:
       kind: ConfigMap
       name: mlflow-config
@@ -132,4 +133,55 @@ patches:
 
 images:
   - name: mlflow-server
-    newName: 231629457413.dkr.ecr.us-east-1.amazonaws.com/mlops-prod-mlflow-server
+    newName: AWS_ACCOUNT_ID.dkr.ecr.AWS_REGION.amazonaws.com/mlops-prod-mlflow-server
+
+replacements:
+  - source:
+      kind: ConfigMap
+      name: platform-config
+      fieldPath: data.AWS_ACCOUNT_ID
+    targets:
+      - select:
+          kind: Deployment
+          name: mlflow-server
+        fieldPaths:
+          - spec.template.spec.containers.[name=mlflow].image
+        options:
+          delimiter: "."
+          index: 0
+      - select:
+          kind: ServiceAccount
+        fieldPaths:
+          - metadata.annotations.[eks.amazonaws.com/role-arn]
+        options:
+          delimiter: ":"
+          index: 4
+  - source:
+      kind: ConfigMap
+      name: platform-config
+      fieldPath: data.AWS_REGION
+    targets:
+      - select:
+          kind: Deployment
+          name: mlflow-server
+        fieldPaths:
+          - spec.template.spec.containers.[name=mlflow].image
+        options:
+          delimiter: "."
+          index: 3
+      - select:
+          kind: SecretStore
+        fieldPaths:
+          - spec.provider.aws.region
+      - select:
+          kind: CronJob
+        fieldPaths:
+          - spec.jobTemplate.spec.template.spec.containers.[name=postgres-backup].env.[name=AWS_DEFAULT_REGION].value
+      - select:
+          kind: ConfigMap
+          name: mlflow-config
+        fieldPaths:
+          - data.s3_endpoint_url
+        options:
+          delimiter: "."
+          index: 1
