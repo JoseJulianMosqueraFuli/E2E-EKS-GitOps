@@ -89,7 +89,7 @@ _Last updated: 2026-10-10_
 | Chaos engineering proposal | [`chaos-engineering-proposal.md`](chaos-engineering-proposal.md)                 |
 | AWS cost estimation        | [`cost-estimation.md`](cost-estimation.md)                                       |
 | AI agent rules             | [`../.agents/rules/`](../.agents/rules/) (generated copies are not edited)       |
-| Region / account           | `us-east-1`, account `231629457413` (Terraform variables + overlay image mappings) |
+| AWS account / region       | [`../gitops/platform/README.md`](../gitops/platform/README.md) (`aws.env`, not in git) + Terraform variables |
 
 ---
 

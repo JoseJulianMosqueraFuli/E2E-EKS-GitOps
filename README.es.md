@@ -126,7 +126,8 @@ poetry run python -m src.cli inference data/sample.csv \
 
 ### Opción B: Despliegue Completo en AWS
 
-Cuenta `231629457413`, región `us-east-1`. Antes del primer `apply`:
+La cuenta y la región salen de `gitops/platform/aws.env` (fuera de git; se copia desde `aws.env.example`, ver
+[`gitops/platform/README.md`](gitops/platform/README.md)). Región por defecto: `us-east-1`. Antes del primer `apply`:
 
 1. Inicializar el backend de Terraform una vez por ambiente: `./scripts/bootstrap-terraform-backend.sh dev us-east-1`
    (ver HIGH-001 en [`critical.md`](critical.md)).
