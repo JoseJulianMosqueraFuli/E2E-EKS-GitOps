@@ -70,7 +70,7 @@ test-integration: ## Run integration tests
 	@echo "Integration tests require AWS/EKS cluster. Skipping in local mode."
 
 test-n8n: ## Test n8n workflows in isolated, disposable containers
-	N8N_IMAGE="$(N8N_IMAGE)" N8N_WORKFLOW_TIMEOUT="$(N8N_WORKFLOW_TIMEOUT)" ./n8n/scripts/test-workflows.sh
+	N8N_IMAGE="$(N8N_IMAGE)" N8N_WORKFLOW_TIMEOUT="$(N8N_WORKFLOW_TIMEOUT)" bash ./n8n/scripts/test-workflows.sh
 
 clean: ## Clean temporary files
 	find . -name "*.tfplan" -delete

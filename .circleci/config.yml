@@ -93,7 +93,7 @@ jobs:
           name: Install n8n test dependencies
           command: |
             sudo apt-get update
-            sudo apt-get install -y jq make
+            sudo apt-get install -y docker.io jq make
       - setup_remote_docker:
           version: 27.5.1
       - run:
