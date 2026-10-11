@@ -102,8 +102,10 @@ for workflow in "${workflows[@]}"; do
     fi
     if [[ "$oom_killed" == "true" ]]; then
       printf '| `%s` | FAIL (container exceeded its memory limit) |\n' "$(basename "$workflow")" >> "$report"
-    else
+    elif [[ "$start_status" == "124" ]]; then
       printf '| `%s` | FAIL (execution exceeded %s timeout) |\n' "$(basename "$workflow")" "$workflow_timeout" >> "$report"
+    else
+      printf '| `%s` | FAIL (execution was killed with status %s) |\n' "$(basename "$workflow")" "$start_status" >> "$report"
     fi
     tail -n 40 "$log_file"
     failed=$((failed + 1))

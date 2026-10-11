@@ -53,9 +53,9 @@ pipeline {
                         if (env.BRANCH_NAME != 'main') {
                             sh 'git fetch --no-tags origin +refs/heads/main:refs/remotes/origin/main'
                         }
-                        def baseRef = env.BRANCH_NAME == 'main' ? 'HEAD^' : 'origin/main'
+                        def diffRange = env.BRANCH_NAME == 'main' ? 'HEAD^ HEAD' : 'origin/main...HEAD'
                         def changedFiles = sh(
-                            script: "git diff --name-only ${baseRef} HEAD -- n8n Makefile ci-cd/providers/jenkins/Jenkinsfile",
+                            script: "git diff --name-only ${diffRange} -- n8n Makefile ci-cd/providers/jenkins/Jenkinsfile",
                             returnStdout: true
                         ).trim()
                         return !changedFiles.isEmpty()

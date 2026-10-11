@@ -102,14 +102,18 @@ jobs:
       - run:
           name: Run n8n tests only for related changes
           command: |
-            base_ref=""
+            has_changes=true
             if [ "$CIRCLE_BRANCH" = "main" ]; then
-              base_ref="HEAD^"
+              if git diff --quiet HEAD^ HEAD -- n8n Makefile .circleci/config.yml; then
+                has_changes=false
+              fi
             elif git fetch --no-tags origin +refs/heads/main:refs/remotes/origin/main; then
-              base_ref="origin/main"
+              if git diff --quiet origin/main...HEAD -- n8n Makefile .circleci/config.yml; then
+                has_changes=false
+              fi
             fi
 
-            if [ -n "$base_ref" ] && git diff --quiet "$base_ref" HEAD -- n8n Makefile .circleci/config.yml; then
+            if [ "$has_changes" = false ]; then
               mkdir -p n8n-test-artifacts
               printf '# n8n workflow test report\n\nSkipped: no n8n-related files changed.\n' > n8n-test-artifacts/n8n-test-report.md
               status=0
