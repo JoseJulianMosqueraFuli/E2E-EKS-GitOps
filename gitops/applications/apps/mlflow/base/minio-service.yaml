@@ -16,9 +16,5 @@ spec:
       targetPort: api
       protocol: TCP
       name: api
-    - port: 9001
-      targetPort: console
-      protocol: TCP
-      name: console
   selector:
     app: mlflow-minio

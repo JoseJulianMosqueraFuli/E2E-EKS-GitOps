@@ -39,12 +39,12 @@ Para detalles técnicos de issues CRÍTICOS y ALTOS (CVSS, fix concreto), ver: [
 |------|----------|------|--------|-----|-------|
 | Seguridad | 1 | 3 | 9 | 2 | 15 |
 | Infra (Terraform) | 0 | 2 | 7 | 2 | 11 |
-| GitOps / K8s | 0 | 2 | 11 | 3 | 16 |
+| GitOps / K8s | 0 | 2 | 12 | 3 | 17 |
 | Plataforma ML (Python) | 0 | 0 | 4 | 2 | 6 |
 | Monitoreo | 0 | 2 | 5 | 2 | 9 |
 | CI/CD | 0 | 1 | 7 | 2 | 10 |
 | Arquitectura / Extras | 0 | 0 | 0 | 7 | 7 |
-| **TOTAL** | **1** | **10** | **43** | **20** | **74** |
+| **TOTAL** | **1** | **10** | **44** | **20** | **75** |
 
 > **4 HIGH + 1 MEDIUM resueltos el 2026-07-13**: HIGH-003 (egress), HIGH-004 (CIDR prod), HIGH-008 (KServe redirect), MEDIUM #29 (LabelEncoder), MEDIUM #30-33 (dead code/dependencies). Total anterior: 74 items.
 
@@ -96,7 +96,7 @@ Para detalles técnicos de issues CRÍTICOS y ALTOS (CVSS, fix concreto), ver: [
 
 ---
 
-## MEDIUM (43 pendientes, 7 resueltos)
+## MEDIUM (44 pendientes, 7 resueltos)
 
 ### Istio / Service Mesh (5)
 
@@ -117,7 +117,7 @@ Para detalles técnicos de issues CRÍTICOS y ALTOS (CVSS, fix concreto), ver: [
 | 8 | PodSecurity template no verifica initContainers, runAsUser, seccompProfile a nivel pod | `k8s/security/gatekeeper/templates/pod-security.yaml` |
 | 9 | IngressHosts permite `*.example.com` | `k8s/security/gatekeeper/constraints/ingress-hosts.yaml` |
 
-### GitOps / ArgoCD (6)
+### GitOps / ArgoCD (7)
 
 | # | Issue | Archivo(s) |
 |---|-------|------------|
@@ -126,6 +126,7 @@ Para detalles técnicos de issues CRÍTICOS y ALTOS (CVSS, fix concreto), ver: [
 | 48 | ArgoCD no puede leer `gitops/platform/aws.env` (esta en `.gitignore`): inyectar cuenta/region al renderizar (anotaciones del cluster en el ApplicationSet + `kustomize.patches` sobre `platform-config`, o un Config Management Plugin) | `gitops/applications/projects/mlops-applicationset.yaml`, `gitops/platform/` |
 | 49 | Migrar kserve, monitoring, kubeflow y external-secrets al mecanismo `gitops/platform` (aun tienen region literal o placeholders `ACCOUNT_ID`) | `gitops/applications/apps/{kserve,monitoring,kubeflow,external-secrets}/` |
 | 50 | Roles IRSA referenciados (`mlflow-irsa-role`, `mlops-backup-role`) no se crean en Terraform; la SA `argo-workflow` no tiene anotacion IRSA, asi que en EKS los pasos no tendrian acceso a S3 | `infra/`, `gitops/applications/apps/argo-workflows/base/rbac.yaml` |
+| 57 | MinIO dejo de publicar imagenes (Docker Hub y quay.io responden 401; repo archivado): reemplazado por Versity Gateway `versity/versitygw:v1.8.0` (S3 compatible, Apache-2). Quedan los nombres `mlflow-minio*` (Service, Secret, PVC) y menciones en docs/diagramas; renombrar a `mlflow-s3` y evaluar S3 real en dev | `gitops/applications/apps/mlflow/base/minio-*.yaml`, `docs/` |
 | 47 | argo-server usa `--auth-mode=sso` pero el ConfigMap no define bloque `sso` (issuer, clientId, clientSecret): el server entra en CrashLoopBackOff con `Error: issuer empty` (confirmado en kind 2026-10-10) | `gitops/applications/apps/argo-workflows/base/server-deployment.yaml` | ✅ Cambiado a `--auth-mode=client` (token de Kubernetes + RBAC) 2026-10-10. SSO/OIDC pendiente de proveedor |
 | 10 | `monitoring` en `k8s/` no apunta a `gitops/applications/apps/monitoring/` | `k8s/mlops-stack/monitoring/kustomization.yaml` | ✅ Corregido 2026-06-26 |
 | 11 | `argo-workflows` en `k8s/` no apunta a gitops | `k8s/mlops-stack/argo-workflows/kustomization.yaml` | ✅ Corregido 2026-06-26 |

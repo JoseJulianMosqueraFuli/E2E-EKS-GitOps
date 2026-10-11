@@ -68,8 +68,8 @@ spec:
               case "$MLFLOW_S3_ENDPOINT_URL" in
                 *amazonaws.com*) exit 0 ;;
               esac
-              until wget -q --spider "$MLFLOW_S3_ENDPOINT_URL/minio/health/ready"; do
-                echo "Waiting for MinIO to be ready..."
+              until wget -q --spider "$MLFLOW_S3_ENDPOINT_URL/health"; do
+                echo "Waiting for the S3 gateway to be ready..."
                 sleep 2
               done
           securityContext:
