@@ -3,8 +3,8 @@
 > **Project**: End-to-End MLOps Platform on Amazon EKS  
 > **Author**: Jose Julian Mosquera  
 > **License**: MIT  
-> **Status**: Active development (Phase 2)
-> **Last updated**: 2026-06-26
+> **Status**: Active development (Phase 2) — training path validated on kind in CI; first AWS deployment (`us-east-1`) pending
+> **Last updated**: 2026-10-10
 
 ---
 
@@ -46,13 +46,15 @@ Train Model → Register in MLflow → Deploy to KServe → Monitor with Evident
 
 | Component           | Technology                  | Purpose                        |
 | ------------------- | --------------------------- | ------------------------------ |
-| Experiment Tracking | MLflow (>=2.18)             | Model registry & experiments   |
-| Orchestration       | Kubeflow Pipelines          | ML workflow orchestration      |
-| Model Serving       | KServe                      | Model serving with autoscaling |
-| Monitoring          | Prometheus + Grafana        | Metrics & dashboards           |
-| Drift Detection     | Evidently (>=0.4)           | Data drift detection           |
-| Data Validation     | Great Expectations (>=0.17) | Data quality validation        |
-| ML Framework        | scikit-learn (>=1.3)        | Model training                 |
+| Experiment Tracking | MLflow 2.22 (client = server)           | Model registry (aliases) & experiments |
+| Orchestration       | Argo Workflows v4.0.13                  | Training pipeline (split → train → evaluate → register) |
+| Pipelines UI/SDK    | Kubeflow Pipelines 2.17.2 (optional)    | Notebook-style pipelines        |
+| Model Serving       | KServe                                  | Model serving with autoscaling  |
+| Monitoring          | Prometheus + Grafana                    | Metrics & dashboards            |
+| Drift Detection     | Evidently 0.7 (`monitoring` extra)      | Data drift detection            |
+| Data Validation     | Great Expectations 1.x (`validation` extra) | Data quality validation     |
+| ML Framework        | scikit-learn (>=1.3)                    | Model training                  |
+| Container image     | `mlops-platform` (one image, all steps) | Runs every pipeline step        |
 
 ### GitOps & Security
 
@@ -191,7 +193,7 @@ E2E-EKS-GitOps/
 - **VPC**: Public/private subnets, NAT gateway, route tables
 - **EKS**: Control plane, managed node groups, OIDC provider, IRSA roles
 - **S3**: Raw data, curated data, model artifacts buckets with lifecycle policies (IA → Glacier)
-- **ECR**: Trainer, inference, feature-transformer repos with vulnerability scanning
+- **ECR**: Trainer (`mlops-platform` image), inference, feature-transformer and mlflow-server repos with vulnerability scanning (tags immutable in prod)
 - **Glue**: Data catalogs, crawlers (scheduled daily), data quality rulesets
 
 **Environments**:
@@ -234,6 +236,23 @@ E2E-EKS-GitOps/
 - `ClassificationModel`: Binary/multiclass classification
 - `RegressionModel`: Regression with cross-validation support
 
+**Pipeline steps** (`python -m src.cli step ...`, `src/pipelines/steps.py`): what each Argo task runs.
+
+| Step | Does | Argo outputs |
+| ---- | ---- | ------------ |
+| `split` | Train/test split of raw data before any fitting (no leakage) | `features-path`, `test-data-path` |
+| `train` | Preprocessing + model as one sklearn `Pipeline`, logged to MLflow with signature | `model-uri`, `run-id` |
+| `evaluate` | Held-out metrics; approves only if `>= min-score` and beats `@champion` by `min-improvement` | `model-approved`, `evaluation-metrics` |
+| `register` | Registers the version and moves the `@champion` alias | `model-version` |
+
+Data is read and written through URIs (local or `s3://`), so the same code runs locally, on kind with MinIO
+and on EKS with IRSA. ROC AUC is computed from probabilities (one-vs-rest for multiclass).
+
+**Container image** (`ml-platform/Dockerfile`): `builder` installs only the core dependencies from
+`poetry.lock`; `test` adds all extras and runs pytest; `runtime` is non-root (UID 8737) and works with a
+read-only root filesystem. Optional dependencies are extras (`validation`, `monitoring`, `features`; `dev`
+installs all of them plus tooling) and heavy modules are imported lazily.
+
 **Data Layer**:
 
 - `DataLoader`: CSV/Parquet/JSON loading, S3 integration, synthetic data generation
@@ -244,11 +263,11 @@ E2E-EKS-GitOps/
 
 **Namespaces**:
 
-- `mlflow`: MLflow tracking server + PostgreSQL + MinIO (S3-compatible artifacts)
+- `mlflow`: MLflow tracking server + PostgreSQL + MinIO (S3-compatible artifacts). Runs the project's own `mlflow-server` image (MLflow 2.22.5 + psycopg2 + boto3; the official image has neither driver); init containers derive hosts from the backend URI / S3 endpoint, so they work with any overlay prefix
 - `kubeflow`: Kubeflow Pipelines UI (deployed via manifests in `gitops/applications/apps/kubeflow/`)
 - `kserve`: KServe inference controller (manifests ready in `gitops/applications/apps/kserve/`, deploy via `MLOPS_TOOLS=kserve make mlops-install`)
 - `monitoring`: Prometheus + Grafana + Alertmanager + ArgoCD Notifications + Evidently drift detection
-- `argo-workflows`: ML workflow engine and A/B testing framework
+- `argo-workflows`: Argo Workflows v4.0.13 (`--auth-mode=client`, emissary executor, CRDs applied server-side); training template on the `mlops-platform` image; per-environment step settings via optional `ml-step-env` ConfigMap / `ml-step-credentials` Secret
 - `feast`: Feature store server with Redis online store
 - `external-secrets`: External Secrets Operator for AWS Secrets Manager
 - `istio-system`: Istio service mesh (mTLS policies in `gitops/applications/apps/istio/`)
@@ -263,10 +282,11 @@ E2E-EKS-GitOps/
 - External Secrets Operator for AWS Secrets Manager integration (deployed via `gitops/applications/apps/external-secrets/`)
 - IRSA roles for least-privilege pod access to AWS services
 
-**IRSA Roles** (created by `setup-mlops-stack.sh`):
+**IRSA Roles** (created by `setup-mlops-stack.sh`; Terraform-managed roles pending, backlog #50):
 
 - `mlops-{env}-mlflow-role`: S3 access for MLflow artifacts
 - `mlops-{env}-kserve-role`: S3 read access for model serving
+- The `argo-workflow` service account has no IRSA annotation yet, so pipeline steps have no S3 access on EKS until #50 is done
 
 ### 4.4 GitOps Architecture
 
@@ -286,6 +306,13 @@ E2E-EKS-GitOps/
 - Notifications to Slack (`mlops-deployments`, `mlops-alerts` channels)
 
 The legacy per-environment Application YAMLs were removed; the ApplicationSet is the canonical way to generate applications.
+
+**Platform configuration** (`gitops/platform/`): the AWS account and region are never written in manifests.
+Overlays use the placeholders `AWS_ACCOUNT_ID` / `AWS_REGION` and resolve them with Kustomize `replacements`
+from a `platform-config` ConfigMap generated from `gitops/platform/aws.env` (gitignored; `aws.env.example` is
+committed; the ConfigMap is `local-config` and never deployed). Base manifests reference neutral image names
+(`mlops-platform`, `mlflow-server`) that each overlay maps to ECR `mlops-<env>-<repo>`. Migrated: argo-workflows,
+mlflow. ArgoCD still needs a way to receive `aws.env` at render time (backlog #48).
 
 **Environment Promotion**:
 
@@ -362,6 +389,21 @@ Triggered on push to `main`/`develop` and PRs to `main`:
 | `helm-lint`          | `gitops/charts/` changes    | `helm lint` + `helm template --debug`       |
 | `mlops-validate`     | `scripts/` changes          | Bash script validation                      |
 
+`k8s-validate` also runs `make validate-platform-config` (no unresolved account/region placeholders).
+
+### ML Platform Image (`ml-platform-image.yml`)
+
+- Runs the Dockerfile `test` stage (full pytest suite inside the image) on PRs touching `ml-platform/`
+- On `main` / `ml-platform-v*` tags publishes the `runtime` stage to GHCR, `linux/amd64` only, `sha-` tags
+
+### E2E on kind (`e2e-kind.yml`, GitHub Actions only)
+
+- Builds `mlops-platform` and `mlflow-server`, creates kind, loads the images under their ECR names
+- `scripts/e2e/kind-smoke.sh`: deploys Argo + MLflow (PostgreSQL, MinIO), seeds data, runs the training
+  template twice and asserts that the first model is registered as `@champion` and that a candidate that
+  does not beat it is blocked
+- GitHub-hosted runners are free for public repositories
+
 ### Environment Promotion (`environment-promotion.yml`)
 
 - Validates YAML syntax and GitOps checkpoints
@@ -421,6 +463,12 @@ make port-forward-kubeflow  # http://localhost:8080
 - **Integration tests**: Full pipeline execution (require AWS/EKS)
 - **Property-based tests**: Hypothesis for GitOps controller health
 
+- **Container tests**: the Dockerfile `test` stage runs the whole suite in the production image environment; `tests/test_steps.py` also passes with core dependencies only
+
+### End-to-end (kind)
+
+- `e2e-kind.yml`: Argo Workflows + MLflow + training pipeline with promotion gate, on every PR touching the ML path
+
 ### GitOps Tests (8 test files)
 
 - Controller health & replica readiness
@@ -465,6 +513,11 @@ mlflow:
   tracking_uri: "http://mlflow-server:5000"
   experiment_name: "production_models"
 ```
+
+### Platform Configuration (`gitops/platform/aws.env`)
+
+- `AWS_ACCOUNT_ID`, `AWS_REGION`; created from `aws.env.example` with `make platform-config`, checked with
+  `make validate-platform-config`. See `gitops/platform/README.md`.
 
 ### Makefile Variables
 
@@ -558,7 +611,10 @@ A focused security audit was performed across Terraform, Kubernetes manifests, G
 
 **High Priority:**
 
+- **First green run of `e2e-kind.yml`** — MLflow had never been executed before; expect adjustments
+- **Before the first AWS deployment** — ArgoCD injection of `aws.env` (#48), IRSA roles for Argo/MLflow (#50), globally unique S3 bucket names (#51), ECR publishing via GitHub OIDC (#55)
 - **End-to-end AWS test** — Full flow: Terraform apply → EKS deploy → ArgoCD sync → MLflow → KServe inference
+- **Missing images** — `mlops/data-validator`, `kserve-deployer`, `deployment-validator`, `notifier` (#52) and broken `Dockerfile.monitoring` (#53)
 
 **Medium Priority:**
 
@@ -589,7 +645,11 @@ A focused security audit was performed across Terraform, Kubernetes manifests, G
 5. **Joblib over pickle**: Model serialization uses joblib for better numpy/scipy object handling.
 6. **Poetry for Python**: Dependency management uses Poetry (with pip fallback support via `pyproject.toml` setuptools backend).
 7. **Multi-CI support**: Configurations for GitHub Actions, GitLab CI, CircleCI, and Jenkins are all maintained.
+8. **One image for all pipeline steps**: steps share dependencies and code; one image avoids version skew between training and evaluation and keeps CI to one build (`linux/amd64`, EKS nodes are x86).
+9. **Preprocessing travels with the model**: training logs a single sklearn `Pipeline`, so serving receives raw features and there is no training/serving skew.
+10. **Promotion through the registry**: the `@champion` alias is the contract between training and serving; a candidate must beat it on the same held-out data.
+11. **No account/region in manifests**: placeholders + Kustomize `replacements` from `gitops/platform/aws.env` (gitignored).
 
 ---
 
-_This implementation overview was generated from repository analysis. Last updated: 2026-07-13. For the latest state, always refer to the actual source code and `backlog.md`._
+_This implementation overview was generated from repository analysis. Last updated: 2026-10-10. For the latest state, always refer to the actual source code and `backlog.md`._

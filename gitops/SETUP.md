@@ -21,6 +21,8 @@ Before starting, ensure you have:
 3. **helm**: Version 3.0 or higher
 4. **Git**: For repository management
 5. **AWS CLI**: Configured with appropriate credentials
+6. **Platform config**: `make platform-config`, then set `AWS_ACCOUNT_ID` / `AWS_REGION` in `gitops/platform/aws.env`
+   (gitignored; overlays fail to render without it — see `gitops/platform/README.md`)
 
 ```bash
 # Verify prerequisites

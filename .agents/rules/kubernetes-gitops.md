@@ -17,6 +17,8 @@ globs: k8s/**, gitops/applications/**, gitops/charts/**, gitops/infrastructure/*
 - Always set: resource `requests` and `limits` (memory limit = request for critical workloads), `readinessProbe` and `livenessProbe` (plus `startupProbe` for slow starters), `securityContext` per the security rule.
 - Standard labels: `app.kubernetes.io/name`, `app.kubernetes.io/instance`, `app.kubernetes.io/version`, `app.kubernetes.io/component`, `app.kubernetes.io/part-of: mlops-platform`, `app.kubernetes.io/managed-by`.
 - Images pinned by semver or digest. `:latest` is rejected by Gatekeeper in prod (HIGH-006, HIGH-007 still open).
+- Never hardcode the AWS account ID or region. Use the `AWS_ACCOUNT_ID` / `AWS_REGION` placeholders and resolve them per overlay with `replacements` from `gitops/platform/` (`aws.env` is gitignored). Run `make validate-platform-config`.
+- ECR images: base manifests use neutral names (`mlops-platform`, `mlflow-server`); overlays map them to `AWS_ACCOUNT_ID.dkr.ecr.AWS_REGION.amazonaws.com/mlops-<env>-<repo>`.
 - Prod: `replicas >= 2`, PodDisruptionBudget, topology spread across zones, HPA where load varies.
 - One namespace per platform component; every namespace gets a default-deny NetworkPolicy and Istio sidecar injection label where mTLS is required.
 - ServiceAccounts per workload with IRSA annotation; `automountServiceAccountToken: false` when the pod does not call the API.

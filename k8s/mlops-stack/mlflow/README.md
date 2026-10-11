@@ -44,7 +44,9 @@ MLflow provides:
 ## Components
 
 ### Core Components
-- **MLflow Server**: Web UI and REST API for experiment tracking and model registry
+- **MLflow Server**: Web UI and REST API for experiment tracking and model registry. Image built from
+  `ml-platform/Dockerfile.mlflow-server` (MLflow 2.22.5 + psycopg2 + boto3; the official image has no PostgreSQL
+  or S3 driver), mapped to ECR `mlops-<env>-mlflow-server` per overlay
 - **PostgreSQL**: Metadata store for experiments, runs, and model registry
 - **S3 Integration**: Artifact storage with IRSA-based authentication
 
@@ -65,6 +67,7 @@ MLflow provides:
    - MLflow S3 access role
    - Backup S3 access role
 4. **Storage Class**: `gp3` storage class for PostgreSQL persistence
+5. **Platform config**: `gitops/platform/aws.env` (account/region for image and IRSA references; see `gitops/platform/README.md`)
 
 ## Installation
 
@@ -320,8 +323,8 @@ kubectl exec -it mlflow-server-POD -n mlflow -- curl -v postgres:5432
 ## Maintenance
 
 ### Updating MLflow Version
-1. Update image tag in `k8s/mlops-stack/mlflow/kustomization.yaml` (overlay) or in
-   `gitops/applications/apps/mlflow/base/deployment.yaml` (base)
+1. Bump `mlflow` in `ml-platform/Dockerfile.mlflow-server` and the image tag in
+   `gitops/applications/apps/mlflow/base/deployment.yaml`; keep it equal to the client version in `ml-platform/poetry.lock`
 2. Test in development environment
 3. Apply rolling update: `kubectl apply -k k8s/mlops-stack/mlflow/`
 

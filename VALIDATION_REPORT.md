@@ -1,6 +1,11 @@
 # 🔍 Reporte de Validación del Proyecto MLOps
 
 **Fecha**: 20 de Mayo, 2026  
+
+> **Snapshot histórico, no se mantiene.** Esta validación fue estática. La primera validación funcional
+> (2026-10-10, Argo Workflows y MLflow ejecutados en kind) encontró fallos que impedían el arranque, por lo que
+> la conclusión "lista para despliegue en AWS" ya no aplica. Estado actual: [`backlog.md`](backlog.md) y
+> [`critical.md`](critical.md).
 **Proyecto**: E2E MLOps Platform on EKS
 
 ---

@@ -15,22 +15,25 @@ End-to-end MLOps platform on Amazon EKS: Terraform infra → EKS cluster → Git
 | `k8s/mlops-stack/` | Operational K8s overlays (MLflow, KServe, monitoring, argo-workflows, feast) |
 | `k8s/security/` | Istio mTLS, Gatekeeper/OPA policies |
 | `gitops/applications/apps/<app>/base/` | **GitOps source of truth** — ArgoCD apps (base + overlays) |
-| `gitops/applications/environments/` | Per-env application overlays |
 | `gitops/applications/projects/` | ArgoCD AppProjects + ApplicationSet |
 | `gitops/charts/` | Helm charts (mlflow, kserve, kubeflow-pipelines, monitoring-stack) |
 | `gitops/infrastructure/` | Flux-managed cluster infra (addons, controllers, networking, security) |
+| `gitops/platform/` | AWS account/region for the overlays (`aws.env` is gitignored; `aws.env.example` is committed) |
 | `gitops/scripts/` & `gitops/tests/` | GitOps automation + Hypothesis property tests |
 | `ml-platform/src/` | Python ML code (models, data, pipelines, cli, monitoring, features) |
 | `ml-platform/tests/` | Unit + integration tests (pytest) |
 | `ml-platform/feature_repo/` | Feast feature repo (local backend) |
+| `ml-platform/Dockerfile`, `Dockerfile.mlflow-server` | `mlops-platform` image (pipeline steps) and MLflow server image |
 | `ci-cd/providers/jenkins/` | Jenkinsfile |
 | `scripts/` | Top-level automation (`setup-mlops-stack.sh`, `bootstrap-terraform-backend.sh`) |
+| `scripts/e2e/` | kind smoke test (CI only) |
+| `.github/workflows/` | `ci.yml`, `ml-platform-image.yml`, `e2e-kind.yml`, `environment-promotion.yml` |
 | `docs/` | Project documentation (`docs/README.md` is the hub) |
 
 ## Canonical sources of truth
 
 - **Backlog & priorities**: `backlog.md` (canonical), `critical.md` (CRITICAL/HIGH details).
-- **GitOps manifests**: `gitops/applications/apps/<app>/base/` is canonical. `k8s/mlops-stack/<app>/kustomization.yaml` should point to it (ref-bound, not duplicated).
+- **GitOps manifests**: `gitops/applications/apps/<app>/base/` is canonical. `k8s/mlops-stack/<app>/kustomization.yaml` should point to it (ref-bound, not duplicated; argo-workflows and mlflow point to the `dev` overlay so the AWS placeholders are resolved).
 - **Documentation hub**: `docs/README.md`.
 - **Image tags**: pin to semantic versions or SHAs. Gatekeeper enforces no `:latest` in production namespaces.
 
@@ -47,11 +50,16 @@ make mlops-core ENV=dev                   # MLflow + Monitoring
 make mlops-full ENV=dev                   # + Kubeflow + KServe
 make mlops-status
 
-# Python ML platform (uses Poetry)
+# Python ML platform (uses Poetry). Extras: validation, monitoring, features; dev = all + tooling
 cd ml-platform && poetry install -E dev
 poetry run python -m src.cli create-sample data/sample.csv --n-samples 1000
 poetry run python -m src.cli train data/sample.csv
+poetry run python -m src.cli step --help   # split / train / evaluate / register (what Argo runs)
 poetry run pytest tests/ -v
+
+# AWS account/region for the GitOps overlays
+make platform-config                     # creates gitops/platform/aws.env from the example
+make validate-platform-config            # fails if AWS_ACCOUNT_ID/AWS_REGION placeholders are unresolved
 
 # GitOps Python tooling & tests (uses Poetry)
 cd gitops && poetry install --with test,dev
@@ -86,24 +94,28 @@ Best practices for engineering, architecture, security, ML architecture, Terrafo
 - **Terraform state**: backend blocks are commented out by design. Uncomment only after running `scripts/bootstrap-terraform-backend.sh` (needs AWS account).
 - **Argo Workflows** (`k8s/mlops-stack/argo-workflows/`): already hardened (TLS + `--auth-mode=client` + emissary executor; SSO pending an OIDC provider). Don't reintroduce `docker.sock` mounts or `containerRuntimeExecutor: docker`.
 - **Gatekeeper**: `no-latest-tag` constraint is active for production namespaces. Pin image tags.
+- **AWS account / region**: never write them literally in manifests or docs. Use the `AWS_ACCOUNT_ID` / `AWS_REGION` placeholders and resolve them with Kustomize `replacements` from `gitops/platform/` (see its README). `gitops/platform/aws.env` is gitignored.
+- **Images**: pipeline steps run on the single `mlops-platform` image (`ml-platform/Dockerfile`); add a `step` subcommand instead of a new image. CI builds only `linux/amd64` (EKS nodes are x86).
 - **AWS costs**: `make test` and `make apply` hit real AWS. Prefer `test-terraform-plan` for CI/local validation.
 
 ## Known open work (see `critical.md` / `backlog.md`)
 
 - CRIT-004: ArgoCD `mlops-core` AppProject is permissive (`sourceRepos: "*"`, `destinations: namespace: "*"`) — restrict.
-- HIGH-006 / HIGH-007: pin `:latest` in Evidently image and Argo workflow templates.
-- HIGH-001: Terraform S3 backend activation (blocked on AWS account).
+- HIGH-006 / HIGH-007: `:latest` in the Evidently image and in the non-training Argo templates (training template already pinned).
+- HIGH-001: Terraform S3 backend activation (account available; run `scripts/bootstrap-terraform-backend.sh <env> us-east-1`).
 - HIGH-013: CI hides failures (intentional, do not touch unless asked).
+- Before the first AWS deployment (`backlog.md`): ArgoCD injection of `aws.env` (#48), IRSA roles for Argo/MLflow (#50), globally unique S3 bucket names (#51), images still missing in templates (#52), ECR publishing via OIDC (#55), first green `e2e-kind.yml` run (#56).
 - Many MEDIUM/LOW items in `backlog.md` (Istio mTLS gaps, Gatekeeper coverage, Helm chart hardening, ML platform debt).
 
 ## When adding a new MLOps app
 
 1. Create base manifests under `gitops/applications/apps/<app>/base/`.
 2. Add per-env overlays under `gitops/applications/apps/<app>/overlays/{dev,staging,prod}/`.
-3. Register the app in `gitops/applications/environments/` and the ApplicationSet (`gitops/applications/projects/mlops-applicationset.yaml`).
+3. Register the app in the ApplicationSet (`gitops/applications/projects/mlops-applicationset.yaml`).
 4. If the app has an ArgoCD AppProject, restrict `sourceRepos`, `destinations`, and resource whitelists (don't repeat CRIT-004).
 5. Add the app to `Makefile` `validate-kubernetes` target's `kustomize build` list.
-6. Update `backlog.md` / `critical.md` if security-relevant.
+6. If it needs the AWS account or region, use the placeholders + `replacements` (see `gitops/platform/README.md`) and add the app to `validate-platform-config`.
+7. Update `backlog.md` / `critical.md` if security-relevant.
 
 ## Misc env files
 
@@ -113,4 +125,4 @@ Best practices for engineering, architecture, security, ML architecture, Terrafo
 - `.agents/` — source of truth for AI agent rules (`rules/`) and MCP servers (`mcp/servers.json`). See `.agents/README.md`.
 - `.kiro/steering/`, `.kiro/settings/mcp.json`, `.github/instructions/`, `.vscode/mcp.json`, `.claude/rules/`, `.mcp.json` — **generated** by `make agents-sync`; do not edit by hand.
 
-*Last updated: July 2026*
+*Last updated: 2026-10-10*
