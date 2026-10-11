@@ -150,6 +150,7 @@ spec:
           path: /tmp/test-data-path.txt
     container:
       image: mlops-platform:0.1.0
+      command: [python, -m, src.cli]
       args:
       - step
       - split
@@ -200,6 +201,7 @@ spec:
           path: /tmp/run-id.txt
     container:
       image: mlops-platform:0.1.0
+      command: [python, -m, src.cli]
       args:
       - step
       - train
@@ -258,6 +260,7 @@ spec:
           path: /tmp/evaluation-metrics.json
     container:
       image: mlops-platform:0.1.0
+      command: [python, -m, src.cli]
       args:
       - step
       - evaluate
@@ -309,6 +312,7 @@ spec:
           default: ""
     container:
       image: mlops-platform:0.1.0
+      command: [python, -m, src.cli]
       args:
       - step
       - register
