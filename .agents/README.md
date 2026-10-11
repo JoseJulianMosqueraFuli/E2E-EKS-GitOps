@@ -1,6 +1,6 @@
 # .agents — AI agent configuration (source of truth)
 
-Single source for the rules and MCP servers used by every AI assistant on this repo (Kiro, VS Code / GitHub Copilot, Claude Code). Edit here, then generate the tool-specific copies:
+Single source for the rules and MCP servers used by every AI assistant on this repo (Kiro, VS Code / GitHub Copilot, Claude Code). Edit here, then generate the tool-specific bridge files (frontmatter + a reference back to `.agents/rules/`, no copied content):
 
 ```bash
 make agents-sync    # regenerate
@@ -38,7 +38,9 @@ globs: comma, separated, globs   # empty = always loaded
 ---
 ```
 
-## Generated files (do not edit)
+## Generated bridge files (do not edit)
+
+Each tool references the canonical rule with its own include syntax: Kiro `#[[file:...]]`, Claude Code `@...`, Copilot a Markdown link.
 
 | Tool | Rules | MCP |
 |------|-------|-----|
