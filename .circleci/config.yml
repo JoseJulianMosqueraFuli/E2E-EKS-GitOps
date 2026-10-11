@@ -104,7 +104,7 @@ jobs:
             status=$?
             echo "$status" > /tmp/n8n-workflow-test-status
             exit 0
-          no_output_timeout: 10m
+          no_output_timeout: 30m
       - store_artifacts:
           path: n8n-test-artifacts
           destination: n8n-test-artifacts

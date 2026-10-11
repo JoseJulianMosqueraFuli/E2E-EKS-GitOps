@@ -23,6 +23,7 @@ failed=0
 cleanup_container() {
   local name="$1"
   local retries=5
+  docker stop --time 10 "$name" >/dev/null 2>&1 || true
   while (( retries > 0 )); do
     if docker rm -f "$name" >/dev/null 2>&1; then
       return 0
@@ -108,12 +109,17 @@ for workflow in "${workflows[@]}"; do
       failed=$((failed + 1))
     fi
   else
+    execution_status=$?
     if cleanup_container "$active_container"; then
       active_container=""
     else
       printf 'Failed to remove container %s after failure.\n' "$active_container" >> "$log_file"
     fi
-    printf '| `%s` | FAIL (execution or %s timeout) |\n' "$(basename "$workflow")" "$workflow_timeout" >> "$report"
+    if [[ "$execution_status" == "124" || "$execution_status" == "137" ]]; then
+      printf '| `%s` | FAIL (execution exceeded %s timeout) |\n' "$(basename "$workflow")" "$workflow_timeout" >> "$report"
+    else
+      printf '| `%s` | FAIL (execution exited with status %s) |\n' "$(basename "$workflow")" "$execution_status" >> "$report"
+    fi
     tail -n 40 "$log_file"
     failed=$((failed + 1))
   fi

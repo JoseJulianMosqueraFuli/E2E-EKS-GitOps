@@ -18,6 +18,8 @@ adjust it with
 provider-level timeout. The runner needs GNU `timeout`, `jq`, `make`, and access
 to a Docker daemon. GitLab's Docker-in-Docker runner must allow privileged
 services; CircleCI uses remote Docker, and Jenkins agents must provide Docker.
+In Jenkins, set `RUN_N8N_TESTS` to run the suite manually when no n8n-related
+files changed.
 
 The standalone [GitHub Actions workflow](../.github/workflows/n8n.yml) runs when
 files under `n8n/`, `Makefile`, or that workflow change, and can also be started

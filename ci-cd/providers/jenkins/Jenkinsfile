@@ -50,7 +50,6 @@ pipeline {
                     changeset 'Makefile'
                     changeset 'ci-cd/providers/jenkins/Jenkinsfile'
                     expression { params.RUN_N8N_TESTS }
-                    expression { currentBuild.previousBuild == null }
                 }
             }
             steps {
