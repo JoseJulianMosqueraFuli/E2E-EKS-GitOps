@@ -11,8 +11,9 @@ the ML training and deployment pipelines.
 ## CI workflow tests
 
 Run the tests locally with `make test-n8n`. GitHub Actions, GitLab CI, CircleCI,
-and Jenkins use this same Makefile target and shared test script. Every workflow
-gets a 5-minute wall-clock limit by default; adjust it with
+and Jenkins use this same Makefile target and shared test script. Each
+workflow's import and execution gets a 5-minute wall-clock limit by default;
+adjust it with
 `N8N_WORKFLOW_TIMEOUT=<duration>`. The test job is also bounded by a 30-minute
 provider-level timeout. The runner needs GNU `timeout`, `jq`, `make`, and access
 to a Docker daemon. GitLab's Docker-in-Docker runner must allow privileged
@@ -27,6 +28,13 @@ Each workflow is imported into a fresh instance and executed with the CLI. CI
 publishes a Markdown summary and uploads the report and failure logs as an
 artifact. Successful per-workflow logs are deleted before artifact collection;
 only failure logs are retained.
+
+The container runs with `--network none` so test workflows cannot call external
+services; mock or avoid integrations in CI rather than weakening network
+isolation. Its root filesystem is read-only, with only the n8n data directory
+and `/tmp` mounted as disposable tmpfs. All Linux capabilities are dropped and
+privilege escalation is disabled. Memory, CPU, process count, and workflow
+runtime are bounded to keep a test from consuming unbounded runner resources.
 
 Add exported workflow JSON files to `n8n/workflows/` to include them in CI.
 Keep workflow IDs, but do not commit credentials or production data. Workflows

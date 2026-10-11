@@ -82,10 +82,23 @@ n8n-workflow-test:
     DOCKER_HOST: tcp://docker:2375
     DOCKER_TLS_CERTDIR: ""
   rules:
-    - changes:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+      changes:
         - n8n/**/*
         - Makefile
         - .gitlab-ci.yml
+    - if: '$CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
+      changes:
+        - n8n/**/*
+        - Makefile
+        - .gitlab-ci.yml
+    - if: '$CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_BRANCH != null'
+      changes:
+        compare_to: refs/heads/main
+        paths:
+          - n8n/**/*
+          - Makefile
+          - .gitlab-ci.yml
   before_script:
     - apk add --no-cache bash coreutils jq make
   script:

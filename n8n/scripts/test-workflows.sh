@@ -21,20 +21,28 @@ fi
 passed=0
 failed=0
 cleanup_container() {
-  for attempt in 1 2 3 4 5; do
-    if docker rm -f "$container_name" >/dev/null 2>&1; then
+  local name="$1"
+  local retries=5
+  while (( retries > 0 )); do
+    if docker rm -f "$name" >/dev/null 2>&1; then
       return 0
     fi
-    if ! docker inspect "$container_name" >/dev/null 2>&1; then
-      sleep 1
-      if ! docker inspect "$container_name" >/dev/null 2>&1; then
-        return 0
-      fi
+    if ! docker inspect "$name" >/dev/null 2>&1; then
+      return 0
     fi
+    retries=$((retries - 1))
     sleep 1
   done
   return 1
 }
+
+active_container=""
+cleanup_on_exit() {
+  if [ -n "$active_container" ]; then
+    cleanup_container "$active_container" || true
+  fi
+}
+trap cleanup_on_exit EXIT
 
 for workflow in "${workflows[@]}"; do
   workflow_id=$(jq -er '.id | select(type == "string" and length > 0)' "$workflow" 2>/dev/null || true)
@@ -50,7 +58,7 @@ for workflow in "${workflows[@]}"; do
   workflow_slug="${workflow_slug%-}"
   log_file="$failure_dir/workflow-$index-$workflow_slug.log"
   container_name="n8n-ci-$$-$index"
-  if timeout --signal=TERM --kill-after=30s "$workflow_timeout" docker run \
+  if ! docker create \
     --name "$container_name" \
     --network none \
     --read-only \
@@ -70,18 +78,32 @@ for workflow in "${workflows[@]}"; do
     -c 'n8n import:workflow --input=/home/node/workflow.json && n8n execute --id="$1"' \
     n8n-test "$workflow_id" \
     >"$log_file" 2>&1; then
-    if cleanup_container; then
+    printf '| `%s` | FAIL (container creation or image pull) |\n' "$(basename "$workflow")" >> "$report"
+    tail -n 40 "$log_file"
+    failed=$((failed + 1))
+    continue
+  fi
+
+  active_container="$container_name"
+  if timeout --signal=TERM --kill-after=30s "$workflow_timeout" docker start --attach "$container_name" >>"$log_file" 2>&1; then
+    exit_code=$(docker inspect --format '{{.State.ExitCode}}' "$container_name" 2>>"$log_file" || printf unknown)
+    if [[ "$exit_code" == "0" ]] && cleanup_container "$active_container"; then
+      active_container=""
       rm -f "$log_file"
       printf '| `%s` | PASS |\n' "$(basename "$workflow")" >> "$report"
       passed=$((passed + 1))
     else
-      printf 'Failed to remove container %s after execution.\n' "$container_name" >> "$log_file"
+      printf 'Failed to remove container %s after execution.\n' "$active_container" >> "$log_file"
       printf '| `%s` | FAIL (container cleanup failed) |\n' "$(basename "$workflow")" >> "$report"
       failed=$((failed + 1))
     fi
   else
-    cleanup_container || printf 'Failed to remove container %s after failure.\n' "$container_name" >> "$log_file"
-    printf '| `%s` | FAIL (import, execution, or %s timeout) |\n' "$(basename "$workflow")" "$workflow_timeout" >> "$report"
+    if cleanup_container "$active_container"; then
+      active_container=""
+    else
+      printf 'Failed to remove container %s after failure.\n' "$active_container" >> "$log_file"
+    fi
+    printf '| `%s` | FAIL (execution or %s timeout) |\n' "$(basename "$workflow")" "$workflow_timeout" >> "$report"
     tail -n 40 "$log_file"
     failed=$((failed + 1))
   fi
