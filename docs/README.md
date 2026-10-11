@@ -4,7 +4,7 @@
 > Start here and follow the links. Each topic below names its **canonical source**
 > so there is one place to update and no drift between documents.
 
-_Last updated: 2026-06-25_
+_Last updated: 2026-10-10_
 
 ---
 
@@ -15,6 +15,9 @@ _Last updated: 2026-06-25_
 | Understand the whole architecture      | [`implementation.md`](../implementation.md)                |
 | Get the project running in 5 minutes   | [`quick-start-guide.md`](quick-start-guide.md)             |
 | Work on the ML code locally            | [`ml-platform-guide.md`](ml-platform-guide.md)             |
+| Run / extend the training pipeline     | [`../k8s/mlops-stack/argo-workflows/README.md`](../k8s/mlops-stack/argo-workflows/README.md) |
+| Understand the E2E smoke test (CI)     | [`../scripts/e2e/kind-smoke.sh`](../scripts/e2e/kind-smoke.sh) + [`.github/workflows/e2e-kind.yml`](../.github/workflows/e2e-kind.yml) |
+| Configure AI agents (rules, MCP)       | [`../.agents/README.md`](../.agents/README.md)             |
 | Set up GitOps (ArgoCD + Flux)          | [`../gitops/SETUP.md`](../gitops/SETUP.md)                 |
 | Configure monitoring & drift detection | [`model-monitoring-guide.md`](model-monitoring-guide.md)   |
 | Review security posture & hardening    | [`security-best-practices.md`](security-best-practices.md) |
@@ -51,8 +54,11 @@ _Last updated: 2026-06-25_
 | [`security-best-practices.md`](security-best-practices.md)                   | mTLS, Gatekeeper, IRSA, Pod Security guidance. |
 | [`mlops-enterprise-recommendations.md`](mlops-enterprise-recommendations.md) | Production-grade recommendations.              |
 | [`PHASE2_IMPLEMENTATION_GUIDE.md`](PHASE2_IMPLEMENTATION_GUIDE.md)           | Phase 2 implementation roadmap.                |
-| [`../infra/README.md`](../infra/README.md)                                   | Terraform infrastructure reference.            |
+| [`chaos-engineering-proposal.md`](chaos-engineering-proposal.md)             | Chaos engineering proposal (Litmus).           |
+| [`../propuestafutura.md`](../propuestafutura.md)                             | Resilience & recovery proposal (reference run + failure experiments). |
+| [`cost-estimation.md`](cost-estimation.md)                                   | AWS cost estimation (`us-east-1`).             |
 | [`../gitops/tests/README.md`](../gitops/tests/README.md)                     | GitOps property-based test suite.              |
+| [`../.agents/README.md`](../.agents/README.md)                               | AI agent rules + read-only MCP servers (Kiro, VS Code, Claude Code). |
 
 ## 4. Project Status & Backlog
 
@@ -64,6 +70,7 @@ _Last updated: 2026-06-25_
 | [`../backlog.md`](../backlog.md)                                           | **Canonical backlog** — the full map of pending work (CRITICAL → LOW + roadmap). |
 | [`../critical.md`](../critical.md)                                         | Detailed CRITICAL/HIGH findings (CVSS, fix, owner). Sub-view of the backlog.     |
 | [`../VALIDATION_REPORT.md`](../VALIDATION_REPORT.md)                       | Point-in-time validation report (snapshot, not continuously updated).            |
+| [`repository-audit-report.md`](repository-audit-report.md)                 | Repository audit (snapshot, 2026-10-01).                                         |
 | [`../gitops/IMPLEMENTATION_STATUS.md`](../gitops/IMPLEMENTATION_STATUS.md) | GitOps-specific implementation status.                                           |
 | [`../gitops/TASK_1_SUMMARY.md`](../gitops/TASK_1_SUMMARY.md)               | GitOps Task 1 completion summary (historical record).                            |
 
@@ -81,6 +88,8 @@ _Last updated: 2026-06-25_
 | GitOps install             | [`../gitops/SETUP.md`](../gitops/SETUP.md)                                       |
 | Chaos engineering proposal | [`chaos-engineering-proposal.md`](chaos-engineering-proposal.md)                 |
 | AWS cost estimation        | [`cost-estimation.md`](cost-estimation.md)                                       |
+| AI agent rules             | [`../.agents/rules/`](../.agents/rules/) (generated copies are not edited)       |
+| Region / account           | `us-east-1`, account `231629457413` (Terraform variables + overlay image mappings) |
 
 ---
 

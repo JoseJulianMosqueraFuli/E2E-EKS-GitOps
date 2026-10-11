@@ -1,6 +1,8 @@
 # E2E MLOps Platform on EKS
 
 [![CI Pipeline](https://github.com/JoseJulianMosqueraFuli/E2E-EKS-GitOps/actions/workflows/ci.yml/badge.svg)](https://github.com/JoseJulianMosqueraFuli/E2E-EKS-GitOps/actions/workflows/ci.yml)
+[![E2E (kind)](https://github.com/JoseJulianMosqueraFuli/E2E-EKS-GitOps/actions/workflows/e2e-kind.yml/badge.svg)](https://github.com/JoseJulianMosqueraFuli/E2E-EKS-GitOps/actions/workflows/e2e-kind.yml)
+[![ML Platform Image](https://github.com/JoseJulianMosqueraFuli/E2E-EKS-GitOps/actions/workflows/ml-platform-image.yml/badge.svg)](https://github.com/JoseJulianMosqueraFuli/E2E-EKS-GitOps/actions/workflows/ml-platform-image.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Terraform](https://img.shields.io/badge/Terraform-%3E%3D1.0-blue)](https://www.terraform.io/)
 [![Kubernetes](https://img.shields.io/badge/Kubernetes-%3E%3D1.32-blue)](https://kubernetes.io/)
@@ -10,7 +12,10 @@ English | [Español](README.es.md)
 
 End-to-end MLOps platform on Amazon EKS. From training to production with monitoring included.
 
-> **Note**: GitOps with ArgoCD and Flux is fully implemented. See the `gitops/` directory.
+> **Status (October 2026)**: GitOps manifests are complete and validated statically. The training path
+> (Argo Workflows → MLflow → model registry with a promotion gate) is exercised end to end on kind in CI
+> (`.github/workflows/e2e-kind.yml`). The first full deployment on AWS (`us-east-1`) is the next milestone.
+> Pending work lives in [`backlog.md`](backlog.md).
 
 ## What is this?
 
@@ -25,8 +30,8 @@ A complete setup to run ML workloads on Kubernetes:
 │        │                  │                    │                │    │
 │        ▼                  ▼                    ▼                ▼    │
 │   ┌─────────┐      ┌───────────┐       ┌───────────┐    ┌─────────┐  │
-│   │Kubeflow │      │  MLflow   │       │  KServe   │    │ Grafana │  │
-│   │Pipelines│      │  Registry │       │  Serving  │    │Evidently│  │
+│   │  Argo   │      │  MLflow   │       │  KServe   │    │ Grafana │  │
+│   │Workflows│      │  Registry │       │  Serving  │    │Evidently│  │
 │   └─────────┘      └───────────┘       └───────────┘    └─────────┘  │
 │                                                                      │
 ├──────────────────────────────────────────────────────────────────────┤
@@ -41,8 +46,10 @@ A complete setup to run ML workloads on Kubernetes:
 | ------------------------ | ---------------------------------------------------- |
 | **Terraform modules**    | VPC, EKS, S3, ECR, Glue - reusable and tested        |
 | **ML Platform**          | Ready-to-use models, training pipelines, CLI         |
-| **MLflow**               | Track experiments, register models                   |
-| **Kubeflow**             | Orchestrate ML workflows                             |
+| **`mlops-platform` image** | One container image for every pipeline step (`step split/train/evaluate/register`) |
+| **Argo Workflows v4**    | Training pipeline with a promotion gate against the `@champion` model |
+| **MLflow 2.22**          | Track experiments, model registry with aliases (own server image with PostgreSQL + S3 drivers) |
+| **Kubeflow Pipelines**   | Optional pipeline UI/SDK (KFP 2.17.2)                |
 | **KServe**               | Serve models with autoscaling                        |
 | **Prometheus + Grafana** | Metrics, dashboards, and cost monitoring             |
 | **Evidently**            | Detect data drift automatically                      |
@@ -51,6 +58,8 @@ A complete setup to run ML workloads on Kubernetes:
 | **Gatekeeper/OPA**       | Enforce Pod Security Standards via admission control |
 | **Multi-environment**    | Dev, staging, prod configs                           |
 | **CI/CD templates**      | GitHub Actions, GitLab, CircleCI, Jenkins            |
+| **E2E smoke test**       | Argo + MLflow + training on kind, in GitHub Actions only |
+| **AI agent rules**       | Shared rules + read-only MCP servers for Kiro, VS Code and Claude Code (`.agents/`) |
 
 ## Table of Contents
 
@@ -80,15 +89,19 @@ aws configure
 
 ## Key Dependencies
 
-| Package            | Version | Notes                                |
-| ------------------ | ------- | ------------------------------------ |
-| MLflow             | >= 2.18 | Experiment tracking & model registry |
-| Great Expectations | >= 0.17 | Data validation (1.x fluent API)     |
-| Evidently          | >= 0.4  | Data drift detection                 |
-| scikit-learn       | >= 1.3  | Model training                       |
-| Kubernetes         | >= 27.2 | Cluster management                   |
+| Package            | Version  | Notes                                                    |
+| ------------------ | -------- | -------------------------------------------------------- |
+| MLflow             | 2.22.x   | Same version in the client (`poetry.lock`) and the server image |
+| scikit-learn       | >= 1.3   | Model training (preprocessing + model saved as one pipeline) |
+| pandas / pyarrow   | 2.x / >= 14 | CSV and Parquet, local paths or `s3://`               |
+| Great Expectations | 1.x      | Optional extra `validation`                              |
+| Evidently          | 0.7.x    | Optional extra `monitoring`                              |
+| Feast              | 0.40.x   | Optional extra `features`                                |
+| Argo Workflows     | v4.0.13  | Pipeline orchestration                                   |
+| Kubeflow Pipelines | 2.17.2   | Optional                                                 |
 
-> Full dependency list and optional extras in `ml-platform/pyproject.toml`. Install with Poetry.
+> Full dependency list and extras in `ml-platform/pyproject.toml`. `poetry install -E dev` installs
+> everything needed for the test suite; the container image installs only the core dependencies.
 
 ## Quick Start
 
@@ -113,6 +126,14 @@ poetry run python -m src.cli inference data/sample.csv \
 ```
 
 ### Option B: Full AWS Deployment
+
+Target account `231629457413`, region `us-east-1`. Before the first `apply`:
+
+1. Bootstrap the Terraform backend once per environment: `./scripts/bootstrap-terraform-backend.sh dev us-east-1`
+   (see HIGH-001 in [`critical.md`](critical.md)).
+2. S3 bucket names are global: confirm the names used by Terraform and the manifests are free in S3.
+3. Container images are referenced from ECR (`mlops-<env>-trainer`, `mlops-<env>-mlflow-server`);
+   publishing to ECR from CI needs an OIDC role (pending, see [`backlog.md`](backlog.md)).
 
 ```bash
 git clone https://github.com/JoseJulianMosqueraFuli/E2E-EKS-GitOps.git
@@ -162,11 +183,16 @@ make port-forward-grafana  # http://localhost:3000
 │   ├── scripts/              # Automation (install, promote, validate)
 │   └── tests/                # Property-based tests (Hypothesis)
 ├── ml-platform/              # ML code and pipelines
-│   ├── src/                  # Models, data processing, CLI
+│   ├── src/                  # Models, data processing, CLI (incl. `step` commands)
 │   ├── tests/                # Unit and integration tests
+│   ├── Dockerfile            # `mlops-platform` image (builder / test / runtime stages)
+│   ├── Dockerfile.mlflow-server  # MLflow server with PostgreSQL + S3 drivers
 │   └── pyproject.toml        # Python packaging with optional extras
 ├── ci-cd/                    # CI/CD configurations (Jenkins)
 ├── scripts/                  # Automation scripts
+│   └── e2e/                  # kind smoke test (runs in GitHub Actions)
+├── .github/workflows/        # CI, image build, E2E on kind, environment promotion
+├── .agents/                  # AI agent rules and MCP servers (source of truth)
 └── docs/                     # Documentation
 ```
 
@@ -199,9 +225,29 @@ poetry run python -m src.cli train data/dataset.csv
 # Inference
 poetry run python -m src.cli inference data/input.csv --model-path artifacts/model.joblib
 
-# Validate data
+# Validate data (needs the `validation` extra)
 poetry run python -m src.cli validate data/production.csv --create-suite
+
+# Pipeline steps (what each Argo task runs inside the `mlops-platform` image)
+poetry run python -m src.cli step split    --input data/sample.csv --output data/run --outputs-dir out
+poetry run python -m src.cli step train    --features data/run/train.parquet --model-name clf --experiment-name dev --outputs-dir out
+poetry run python -m src.cli step evaluate --model-uri "$(cat out/model-uri.txt)" --test-data data/run/test.parquet --model-name clf --outputs-dir out
+poetry run python -m src.cli step register --model-uri "$(cat out/model-uri.txt)" --model-name clf --outputs-dir out
 ```
+
+`step evaluate` approves a candidate only if it reaches `--min-score` and beats the model holding the
+`@champion` alias by `--min-improvement`; `step register` assigns that alias to the new version.
+
+### CI workflows
+
+| Workflow                       | What it does                                                          |
+| ------------------------------ | --------------------------------------------------------------------- |
+| `ci.yml`                       | Terraform, Kubernetes, Python and Helm validation + security scan     |
+| `ml-platform-image.yml`        | Tests inside the image; publishes `mlops-platform` to GHCR (amd64, `sha-` tags) |
+| `e2e-kind.yml`                 | Builds both images, creates kind and runs `scripts/e2e/kind-smoke.sh` |
+| `environment-promotion.yml`    | Promotes changes between environments                                 |
+
+GitHub-hosted runners are free for public repositories, so these workflows have no cost.
 
 ### Access Services
 
@@ -229,13 +275,14 @@ Running the full E2E test on AWS incurs real costs. Here is what to expect:
 
 ### AWS Costs (estimated for a single E2E run)
 
-| Resource                | Cost/Hour   |
-| ----------------------- | ----------- |
-| EKS Control Plane       | $0.10       |
-| NAT Gateway             | $0.045      |
-| EC2 m5.large (x2 nodes) | $0.192 each |
+| Resource                         | Cost/Hour      |
+| -------------------------------- | -------------- |
+| EKS Control Plane                | $0.10          |
+| NAT Gateway                      | $0.045 + data  |
+| EC2 t3.medium (x2 nodes, dev default) | $0.0416 each |
 
-**Total for a 3-hour E2E test: ~$2.50 - $4.00 USD**
+**Total for a 3-hour E2E test in `us-east-1`: ~$1 - $2 USD** (plus EBS, load balancers and data
+transfer). On-demand prices; check current AWS pricing before running.
 
 > Tip: Always run `make destroy ENV=dev` immediately after testing to avoid ongoing charges.
 
@@ -299,4 +346,4 @@ This project is licensed under the MIT License - see [LICENSE](LICENSE) for deta
 
 Built by [Jose Julian Mosquera](https://github.com/JoseJulianMosqueraFuli)
 
-_Last updated: July 2026_
+_Last updated: 2026-10-10_
