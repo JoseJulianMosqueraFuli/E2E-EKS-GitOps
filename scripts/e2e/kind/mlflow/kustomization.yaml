@@ -4,10 +4,6 @@ kind: Kustomization
 resources:
   - ../../../../gitops/applications/apps/mlflow/overlays/dev
 
-images:
-  - name: 231629457413.dkr.ecr.us-east-1.amazonaws.com/mlops-dev-mlflow-server
-    newName: mlflow-server
-
 patches:
   - target:
       group: external-secrets.io

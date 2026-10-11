@@ -99,6 +99,9 @@ jobs:
       - name: Validate all canonical application overlays
         run: python gitops/scripts/validate_applications.py
 
+      - name: Check AWS account/region placeholders are resolved
+        run: make validate-platform-config
+
       - name: Run GitOps regression tests
         run: python -m pytest gitops/tests/ -m "not integration" -q
 

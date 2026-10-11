@@ -3,4 +3,4 @@ kind: Kustomization
 
 # Single source of truth is in gitops/applications/apps/argo-workflows/base/
 resources:
-  - ../../../gitops/applications/apps/argo-workflows/base
+  - ../../../gitops/applications/apps/argo-workflows/overlays/dev

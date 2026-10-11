@@ -8,6 +8,7 @@ on:
       - "gitops/applications/apps/argo-workflows/**"
       - "gitops/applications/apps/mlflow/**"
       - "scripts/e2e/**"
+      - "gitops/platform/**"
       - ".github/workflows/e2e-kind.yml"
   pull_request:
     branches: [main, staging]
@@ -16,6 +17,7 @@ on:
       - "gitops/applications/apps/argo-workflows/**"
       - "gitops/applications/apps/mlflow/**"
       - "scripts/e2e/**"
+      - "gitops/platform/**"
       - ".github/workflows/e2e-kind.yml"
   workflow_dispatch:
 
@@ -65,8 +67,13 @@ jobs:
         with:
           cluster_name: mlops-e2e
 
-      - name: Load images into kind
-        run: kind load docker-image mlops-platform:0.1.0 mlflow-server:2.22.5 --name mlops-e2e
+      - name: Load images into kind under their ECR names
+        run: |
+          source gitops/platform/aws.env
+          registry="${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com"
+          docker tag mlops-platform:0.1.0 "${registry}/mlops-dev-trainer:0.1.0"
+          docker tag mlflow-server:2.22.5 "${registry}/mlops-dev-mlflow-server:2.22.5"
+          kind load docker-image "${registry}/mlops-dev-trainer:0.1.0" "${registry}/mlops-dev-mlflow-server:2.22.5" --name mlops-e2e
 
       - name: Run end-to-end smoke test
         env:

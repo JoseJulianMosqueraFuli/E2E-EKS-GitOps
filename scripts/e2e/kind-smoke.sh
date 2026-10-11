@@ -3,8 +3,10 @@ set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 KIND_DIR="${ROOT}/scripts/e2e/kind"
+source "${ROOT}/gitops/platform/aws.env"
+ECR_REGISTRY="${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com"
 CONTEXT="${KUBE_CONTEXT:-kind-mlops-e2e}"
-ML_IMAGE="${ML_IMAGE:-mlops-platform:0.1.0}"
+ML_IMAGE="${ML_IMAGE:-${ECR_REGISTRY}/mlops-dev-trainer:0.1.0}"
 WORKFLOW_TIMEOUT="${WORKFLOW_TIMEOUT:-900}"
 MODEL_NAME="e2e-model"
 
@@ -43,9 +45,10 @@ volumeBindingMode: WaitForFirstConsumer
 EOF
 
 log "Argo Workflows"
-kc apply --server-side -k "${KIND_DIR}/argo-workflows" >/dev/null 2>&1 || true
+ARGO_OVERLAY="${ROOT}/gitops/applications/apps/argo-workflows/overlays/dev"
+kc apply --server-side -k "${ARGO_OVERLAY}" >/dev/null 2>&1 || true
 kc wait --for=condition=Established crd --all --timeout=120s
-kc apply --server-side -k "${KIND_DIR}/argo-workflows"
+kc apply --server-side -k "${ARGO_OVERLAY}"
 kc -n argo-workflows rollout status deployment/workflow-controller --timeout=180s
 kc -n argo-workflows rollout status deployment/argo-server --timeout=180s
 
@@ -116,7 +119,7 @@ spec:
           print("seeded", df.shape)
       env:
         - name: AWS_DEFAULT_REGION
-          value: us-east-1
+          value: ${AWS_REGION}
       envFrom:
         - configMapRef:
             name: ml-step-env
