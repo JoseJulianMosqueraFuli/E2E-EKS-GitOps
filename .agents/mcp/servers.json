@@ -1,0 +1,55 @@
+{
+  "servers": {
+    "terraform": {
+      "description": "Terraform Registry docs (providers, modules, resources). No cloud access.",
+      "command": "docker",
+      "args": ["run", "-i", "--rm", "hashicorp/terraform-mcp-server"],
+      "env": {},
+      "optional": false
+    },
+    "aws-docs": {
+      "description": "AWS documentation search and Well-Architected guidance. No cloud access.",
+      "command": "uvx",
+      "args": ["awslabs.aws-documentation-mcp-server@latest"],
+      "env": {
+        "FASTMCP_LOG_LEVEL": "ERROR",
+        "AWS_DOCUMENTATION_PARTITION": "aws"
+      },
+      "optional": false
+    },
+    "github": {
+      "description": "GitHub issues, PRs and Actions in read-only mode.",
+      "command": "docker",
+      "args": [
+        "run", "-i", "--rm",
+        "-e", "GITHUB_PERSONAL_ACCESS_TOKEN",
+        "-e", "GITHUB_READ_ONLY",
+        "ghcr.io/github/github-mcp-server"
+      ],
+      "env": {
+        "GITHUB_PERSONAL_ACCESS_TOKEN": "{env:GITHUB_PERSONAL_ACCESS_TOKEN}",
+        "GITHUB_READ_ONLY": "1"
+      },
+      "optional": false
+    },
+    "eks": {
+      "description": "Amazon EKS read-only inspection (no --allow-write, no --allow-sensitive-data-access). Needs AWS credentials.",
+      "command": "uvx",
+      "args": ["awslabs.eks-mcp-server@latest"],
+      "env": {
+        "AWS_REGION": "us-west-2",
+        "FASTMCP_LOG_LEVEL": "ERROR"
+      },
+      "optional": true
+    },
+    "kubernetes": {
+      "description": "Kubernetes read-only tools against the current kubeconfig context.",
+      "command": "npx",
+      "args": ["-y", "mcp-server-kubernetes"],
+      "env": {
+        "ALLOW_ONLY_READONLY_TOOLS": "true"
+      },
+      "optional": true
+    }
+  }
+}

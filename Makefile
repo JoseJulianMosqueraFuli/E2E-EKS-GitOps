@@ -4,7 +4,7 @@
         mlops-install mlops-uninstall mlops-status mlops-mlflow-only mlops-monitoring-only mlops-core mlops-full \
         setup-github setup-gitlab setup-circleci setup-jenkins \
         validate-terraform validate-kubernetes validate-python validate-all \
-        dev-setup dev-format dev-lint \
+        dev-setup dev-format dev-lint agents-sync agents-check \
         quickstart-dev quickstart-prod \
         logs-mlflow logs-kserve logs-kubeflow \
         port-forward-mlflow port-forward-grafana port-forward-kubeflow \
@@ -161,6 +161,12 @@ dev-format: ## Format code
 dev-lint: ## Lint code
 	cd ml-platform && python -m flake8 src/ tests/
 	cd ml-platform && python -m mypy src/
+
+agents-sync: ## Generate Kiro/VS Code/Claude rules and MCP config from .agents/
+	python3 scripts/sync-agent-config.py
+
+agents-check: ## Check generated agent config is up to date
+	python3 scripts/sync-agent-config.py --check
 
 # Quick Start Targets
 quickstart-dev: ## Quick start for development environment
