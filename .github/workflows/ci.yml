@@ -246,12 +246,13 @@ jobs:
           failed=0
           for workflow in "${workflows[@]}"; do
             workflow_id=$(jq -er '.id | select(type == "string" and length > 0)' "$workflow" 2>/dev/null || true)
-            if [ -z "$workflow_id" ]; then
+            if [[ ! "$workflow_id" =~ ^[A-Za-z0-9_-]+$ ]]; then
               printf '| `%s` | FAIL (missing workflow ID) |\n' "$(basename "$workflow")" >> "$report"
               failed=$((failed + 1))
               continue
             fi
 
+            log_file="$RUNNER_TEMP/n8n-workflow-$((passed + failed + 1)).log"
             if docker run --rm \
               --env N8N_ENCRYPTION_KEY=ci-only-not-for-production \
               --env N8N_DIAGNOSTICS_ENABLED=false \
@@ -259,12 +260,14 @@ jobs:
               --volume "$(realpath "$workflow"):/tmp/workflow.json:ro" \
               --entrypoint /bin/sh \
               "$N8N_IMAGE" \
-              -c "n8n import:workflow --input=/tmp/workflow.json && n8n execute --id='$workflow_id'" \
-              >/dev/null 2>&1; then
+              -c 'n8n import:workflow --input=/tmp/workflow.json && n8n execute --id="$1"' \
+              n8n-test "$workflow_id" \
+              >"$log_file" 2>&1; then
               printf '| `%s` | PASS |\n' "$(basename "$workflow")" >> "$report"
               passed=$((passed + 1))
             else
               printf '| `%s` | FAIL (import or execution returned a non-zero exit code) |\n' "$(basename "$workflow")" >> "$report"
+              tail -n 40 "$log_file"
               failed=$((failed + 1))
             fi
           done
