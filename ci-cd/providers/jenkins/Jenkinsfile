@@ -37,6 +37,14 @@ pipeline {
                 checkout scm
             }
         }
+
+        stage('n8n Workflow Tests') {
+            steps {
+                timeout(time: 30, unit: 'MINUTES') {
+                    sh 'make test-n8n'
+                }
+            }
+        }
         
         stage('Infrastructure Tests') {
             when {
@@ -129,7 +137,7 @@ pipeline {
     post {
         always {
             // Archive artifacts
-            archiveArtifacts artifacts: 'infra/**/*.tfplan', allowEmptyArchive: true
+            archiveArtifacts artifacts: 'infra/**/*.tfplan,n8n-test-artifacts/**', allowEmptyArchive: true
             
             // Publish test results
             publishTestResults testResultsPattern: 'test-results/*.xml'

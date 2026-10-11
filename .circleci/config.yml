@@ -85,6 +85,33 @@ jobs:
             flake8 src/ tests/
             black --check src/ tests/
 
+  n8n-workflow-test:
+    executor: python
+    steps:
+      - checkout
+      - run:
+          name: Install n8n test dependencies
+          command: |
+            sudo apt-get update
+            sudo apt-get install -y jq make
+      - setup_remote_docker:
+          docker_layer_caching: true
+      - run:
+          name: Run n8n workflow tests
+          command: |
+            set +e
+            timeout --signal=TERM --kill-after=30s 30m make test-n8n
+            status=$?
+            echo "$status" > /tmp/n8n-workflow-test-status
+            exit 0
+          no_output_timeout: 10m
+      - store_artifacts:
+          path: n8n-test-artifacts
+          destination: n8n-test-artifacts
+      - run:
+          name: Return n8n workflow test status
+          command: test "$(cat /tmp/n8n-workflow-test-status)" -eq 0
+
   security-scan:
     executor: python
     steps:
@@ -102,4 +129,5 @@ workflows:
       - k8s-validate
       - helm-lint
       - ml-platform-test
+      - n8n-workflow-test
       - security-scan
