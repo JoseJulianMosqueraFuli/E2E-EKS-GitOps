@@ -1,0 +1,10 @@
+*
+!pyproject.toml
+!poetry.lock
+!src
+!tests
+**/__pycache__
+**/*.pyc
+**/*.egg-info
+**/mlflow.db
+**/mlruns

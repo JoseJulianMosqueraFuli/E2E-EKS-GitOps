@@ -5,12 +5,14 @@ Click-based CLI for the MLOps Platform.
 Provides commands for training, inference, validation, and sample data generation.
 """
 
+import json
 import os
 
 import click
 
 from src.data.data_loader import DataLoader
 from src.data.data_validator import DataValidator
+from src.pipelines import steps
 from src.pipelines.inference_pipeline import InferencePipeline
 from src.pipelines.training_pipeline import TrainingPipeline
 from src.utils.config_manager import ConfigManager
@@ -147,6 +149,121 @@ def create_sample_cmd(output_path, n_samples, n_features, task_type):
 
     click.echo(f"Created sample data: {data.shape}")
     click.echo(f"Saved to: {output_path}")
+
+
+TASK_TYPE_OPTION = click.option(
+    "--task-type",
+    type=click.Choice(list(steps.TASK_TYPES)),
+    default="classification",
+    help="Task type",
+)
+TARGET_OPTION = click.option("--target", default="target", help="Target column")
+OUTPUTS_DIR_OPTION = click.option(
+    "--outputs-dir", default="/tmp", help="Directory for Argo output parameter files"
+)
+
+
+@main.group("step")
+def step():
+    """Single pipeline steps, one per container (used by Argo Workflows)."""
+
+
+@step.command("split")
+@click.option("--input", "input_uri", required=True, help="Raw data URI (.csv/.parquet)")
+@click.option("--output", "output_prefix", required=True, help="Output prefix URI")
+@TARGET_OPTION
+@TASK_TYPE_OPTION
+@click.option("--test-size", default=0.2, type=float, help="Test fraction")
+@OUTPUTS_DIR_OPTION
+def step_split_cmd(input_uri, output_prefix, target, task_type, test_size, outputs_dir):
+    """Split raw data into train and test sets."""
+    train_uri, test_uri = steps.split_dataset(
+        input_uri, output_prefix, target, task_type, test_size=test_size
+    )
+    steps.write_outputs(
+        outputs_dir, {"features-path.txt": train_uri, "test-data-path.txt": test_uri}
+    )
+    click.echo(f"train={train_uri} test={test_uri}")
+
+
+@step.command("train")
+@click.option("--features", "train_uri", required=True, help="Training data URI")
+@click.option("--model-name", required=True, help="Registered model name")
+@click.option("--experiment-name", required=True, help="MLflow experiment name")
+@TARGET_OPTION
+@TASK_TYPE_OPTION
+@click.option("--algorithm", default="random_forest", help="Algorithm name")
+@click.option("--params", default="{}", help="Hyperparameters as JSON")
+@OUTPUTS_DIR_OPTION
+def step_train_cmd(
+    train_uri, model_name, experiment_name, target, task_type, algorithm, params, outputs_dir
+):
+    """Train a model pipeline and log it to MLflow."""
+    model_uri, run_id = steps.train(
+        train_uri,
+        model_name,
+        experiment_name,
+        target,
+        task_type,
+        algorithm=algorithm,
+        params=json.loads(params),
+    )
+    steps.write_outputs(outputs_dir, {"model-uri.txt": model_uri, "run-id.txt": run_id})
+    click.echo(f"model_uri={model_uri}")
+
+
+@step.command("evaluate")
+@click.option("--model-uri", required=True, help="Candidate model URI")
+@click.option("--test-data", "test_uri", required=True, help="Test data URI")
+@click.option("--model-name", required=True, help="Registered model name")
+@TARGET_OPTION
+@TASK_TYPE_OPTION
+@click.option("--min-score", default=0.0, type=float, help="Minimum primary metric")
+@click.option("--min-improvement", default=0.0, type=float, help="Required gain over champion")
+@click.option("--alias", default="champion", help="Alias of the model to beat")
+@OUTPUTS_DIR_OPTION
+def step_evaluate_cmd(
+    model_uri,
+    test_uri,
+    model_name,
+    target,
+    task_type,
+    min_score,
+    min_improvement,
+    alias,
+    outputs_dir,
+):
+    """Evaluate a candidate and decide whether it can be promoted."""
+    report = steps.evaluate(
+        model_uri,
+        test_uri,
+        model_name,
+        target,
+        task_type,
+        min_score=min_score,
+        min_improvement=min_improvement,
+        alias=alias,
+    )
+    steps.write_outputs(
+        outputs_dir,
+        {
+            "model-approved.txt": str(report["approved"]).lower(),
+            "evaluation-metrics.json": json.dumps(report),
+        },
+    )
+    click.echo(f"approved={report['approved']} reasons={report['reasons']}")
+
+
+@step.command("register")
+@click.option("--model-uri", required=True, help="Approved model URI")
+@click.option("--model-name", required=True, help="Registered model name")
+@click.option("--alias", default="champion", help="Alias to assign")
+@OUTPUTS_DIR_OPTION
+def step_register_cmd(model_uri, model_name, alias, outputs_dir):
+    """Register an approved model and assign an alias."""
+    version = steps.register(model_uri, model_name, alias=alias)
+    steps.write_outputs(outputs_dir, {"model-version.txt": version})
+    click.echo(f"version={version}")
 
 
 if __name__ == "__main__":
