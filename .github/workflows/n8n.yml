@@ -5,11 +5,13 @@ on:
     branches: [main]
     paths:
       - "n8n/**"
+      - "Makefile"
       - ".github/workflows/n8n.yml"
   pull_request:
     branches: [main]
     paths:
       - "n8n/**"
+      - "Makefile"
       - ".github/workflows/n8n.yml"
   workflow_dispatch:
 

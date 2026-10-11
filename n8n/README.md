@@ -19,7 +19,8 @@ to a Docker daemon. GitLab's Docker-in-Docker runner must allow privileged
 services; CircleCI uses remote Docker, and Jenkins agents must provide Docker.
 
 The standalone [GitHub Actions workflow](../.github/workflows/n8n.yml) runs when
-files under `n8n/` or that workflow change, and can also be started manually.
+files under `n8n/`, `Makefile`, or that workflow change, and can also be started
+manually.
 It executes the JSON workflows in `n8n/workflows/` in a temporary,
 network-isolated n8n container pinned to version 2.42.6 and its image digest.
 Each workflow is imported into a fresh instance and executed with the CLI. CI

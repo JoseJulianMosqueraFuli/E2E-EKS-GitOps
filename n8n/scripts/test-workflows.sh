@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-set -u
+set -euo pipefail
 
 image="${N8N_IMAGE:?Run this script through make test-n8n to supply the pinned image}"
 workflow_timeout="${N8N_WORKFLOW_TIMEOUT:-5m}"
