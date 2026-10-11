@@ -87,7 +87,16 @@ for workflow in "${workflows[@]}"; do
   active_container="$container_name"
   if timeout --signal=TERM --kill-after=30s "$workflow_timeout" docker start --attach "$container_name" >>"$log_file" 2>&1; then
     exit_code=$(docker inspect --format '{{.State.ExitCode}}' "$container_name" 2>>"$log_file" || printf unknown)
-    if [[ "$exit_code" == "0" ]] && cleanup_container "$active_container"; then
+    if [[ "$exit_code" != "0" ]]; then
+      if cleanup_container "$active_container"; then
+        active_container=""
+      else
+        printf 'Failed to remove container %s after execution failure.\n' "$active_container" >> "$log_file"
+      fi
+      printf '| `%s` | FAIL (workflow exited with status %s) |\n' "$(basename "$workflow")" "$exit_code" >> "$report"
+      tail -n 40 "$log_file"
+      failed=$((failed + 1))
+    elif cleanup_container "$active_container"; then
       active_container=""
       rm -f "$log_file"
       printf '| `%s` | PASS |\n' "$(basename "$workflow")" >> "$report"
@@ -95,6 +104,7 @@ for workflow in "${workflows[@]}"; do
     else
       printf 'Failed to remove container %s after execution.\n' "$active_container" >> "$log_file"
       printf '| `%s` | FAIL (container cleanup failed) |\n' "$(basename "$workflow")" >> "$report"
+      tail -n 40 "$log_file"
       failed=$((failed + 1))
     fi
   else
