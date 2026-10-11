@@ -183,11 +183,11 @@ argo logs -n argo-workflows <workflow-name>
 
 ### Prometheus Metrics
 
-Argo Workflows exposes metrics at `/metrics` endpoint:
+Argo Workflows (v4) exposes metrics at the `/metrics` endpoint over HTTPS (`metricsConfig.secure: true`), so Prometheus must scrape with `scheme: https` (self-signed cert):
 
-- `argo_workflows_count` - Total workflow count by status
-- `argo_workflows_pods_count` - Pod count by phase
-- `argo_workflow_operation_duration_seconds` - Operation latency
+- `argo_workflows_gauge` - Workflow count by status
+- `argo_workflows_pods_gauge` - Pod count by phase
+- `argo_workflows_operation_duration_seconds` - Operation latency
 
 ## Troubleshooting
 

@@ -30,9 +30,7 @@ data:
         limits:
           cpu: 500m
           memory: 512Mi
-    
-    # Container runtime executor (recommended for security)
-    containerRuntimeExecutor: emissary
+
     
     # Workflow defaults
     workflowDefaults:
@@ -42,15 +40,6 @@ data:
           runAsNonRoot: true
           runAsUser: 8737
     
-    # Persistence configuration
-    persistence:
-      connectionPool:
-        maxIdleConns: 100
-        maxOpenConns: 0
-        connMaxLifetime: 0s
-      nodeStatusOffLoad: true
-      archive: true
-      
     # Links for external systems
     links:
       - name: "MLflow Experiments"
@@ -65,6 +54,7 @@ data:
       enabled: true
       path: /metrics
       port: 9090
+      secure: true
     
     # Telemetry (disable for production)
     telemetryConfig:

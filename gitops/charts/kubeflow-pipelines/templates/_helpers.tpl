@@ -98,6 +98,8 @@ Return the image registry prefix
 {{- define "kubeflow-pipelines.imageRegistry" -}}
 {{- if .Values.global.imageRegistry }}
 {{- printf "%s/" .Values.global.imageRegistry }}
+{{- else if .Values.imageRegistry }}
+{{- printf "%s/" .Values.imageRegistry }}
 {{- else }}
 {{- printf "" }}
 {{- end }}
