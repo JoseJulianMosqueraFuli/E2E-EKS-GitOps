@@ -54,13 +54,13 @@ kc -n argo-workflows rollout status deployment/argo-server --timeout=180s
 
 log "MLflow (PostgreSQL + MinIO + tracking server)"
 kc create namespace mlflow --dry-run=client -o yaml | kc apply -f -
-kc -n mlflow create secret generic dev-mlflow-secrets \
+kc -n mlflow create secret generic mlflow-secrets \
   --from-literal=postgres-user=mlflow \
   --from-literal=postgres-password="${PG_PASSWORD}" \
   --from-literal=postgres-db=mlflow \
   --from-literal=backend_store_uri="postgresql://mlflow:${PG_PASSWORD}@dev-mlflow-postgresql:5432/mlflow" \
   --dry-run=client -o yaml | kc apply -f -
-kc -n mlflow create secret generic dev-mlflow-minio-secrets \
+kc -n mlflow create secret generic mlflow-minio-secrets \
   --from-literal=root-user="${S3_ACCESS_KEY}" \
   --from-literal=root-password="${S3_SECRET_KEY}" \
   --from-literal=aws-access-key-id="${S3_ACCESS_KEY}" \
