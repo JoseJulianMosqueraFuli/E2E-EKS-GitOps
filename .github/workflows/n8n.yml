@@ -1,0 +1,46 @@
+name: n8n Workflow Tests
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "n8n/**"
+      - "Makefile"
+      - ".github/workflows/n8n.yml"
+  pull_request:
+    branches: [main]
+    paths:
+      - "n8n/**"
+      - "Makefile"
+      - ".github/workflows/n8n.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: n8n-workflow-tests-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: Import and execute n8n workflows
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+
+      - name: Run n8n workflow tests
+        run: make test-n8n
+
+      - name: Upload test report
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: n8n-workflow-test-report
+          path: n8n-test-artifacts/
+          if-no-files-found: error

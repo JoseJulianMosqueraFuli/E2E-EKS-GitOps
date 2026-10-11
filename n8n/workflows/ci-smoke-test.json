@@ -1,0 +1,58 @@
+{
+  "id": "ci-smoke-test",
+  "name": "CI smoke test",
+  "active": false,
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "84a3d217-f221-4d67-8e59-ec746f6bb2b8",
+      "name": "When clicking 'Test workflow'",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        260,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "bd7e3438-4df9-441e-a82f-dca4b8be6e4f",
+              "name": "status",
+              "value": "passed",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "a981f01c-bd59-4e59-aa6c-2355cbab2ca7",
+      "name": "Set smoke test result",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        480,
+        300
+      ]
+    }
+  ],
+  "connections": {
+    "When clicking 'Test workflow'": {
+      "main": [
+        [
+          {
+            "node": "Set smoke test result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "tags": []
+}

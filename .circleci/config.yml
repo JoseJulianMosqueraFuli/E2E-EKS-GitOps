@@ -10,6 +10,9 @@ executors:
   python:
     docker:
       - image: cimg/python:3.11
+  n8n:
+    docker:
+      - image: cimg/base:2025.02@sha256:c4b738db95b65caeb66429913ce5ef53e203ee30bcf050896c9a6694a335b942
   kubectl:
     docker:
       - image: cimg/go:1.21
@@ -85,6 +88,51 @@ jobs:
             flake8 src/ tests/
             black --check src/ tests/
 
+  n8n-workflow-test:
+    executor: n8n
+    steps:
+      - checkout
+      - run:
+          name: Install n8n test dependencies
+          command: |
+            sudo apt-get update
+            sudo apt-get install -y jq make
+      - setup_remote_docker:
+          version: 27.5.1
+      - run:
+          name: Run n8n tests only for related changes
+          command: |
+            has_changes=true
+            if [ "$CIRCLE_BRANCH" = "main" ]; then
+              if git diff --quiet HEAD^ HEAD -- n8n Makefile .circleci/config.yml; then
+                has_changes=false
+              fi
+            elif git fetch --no-tags origin +refs/heads/main:refs/remotes/origin/main; then
+              if git diff --quiet origin/main...HEAD -- n8n Makefile .circleci/config.yml; then
+                has_changes=false
+              fi
+            fi
+
+            if [ "$has_changes" = false ]; then
+              mkdir -p n8n-test-artifacts
+              printf '# n8n workflow test report\n\nSkipped: no n8n-related files changed.\n' > n8n-test-artifacts/n8n-test-report.md
+              status=0
+            else
+              set +e
+              timeout --signal=TERM --kill-after=30s 30m make test-n8n
+              status=$?
+              set -e
+            fi
+            echo "$status" > /tmp/n8n-workflow-test-status
+            exit 0
+          no_output_timeout: 30m
+      - store_artifacts:
+          path: n8n-test-artifacts
+          destination: n8n-test-artifacts
+      - run:
+          name: Return n8n workflow test status
+          command: test "$(cat /tmp/n8n-workflow-test-status)" -eq 0
+
   security-scan:
     executor: python
     steps:
@@ -102,4 +150,5 @@ workflows:
       - k8s-validate
       - helm-lint
       - ml-platform-test
+      - n8n-workflow-test
       - security-scan
