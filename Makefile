@@ -12,7 +12,7 @@
 
 # Default environment
 ENV ?= dev
-REGION ?= us-west-2
+REGION ?= us-east-1
 CI_PROVIDER ?= github
 MLOPS_TOOLS ?= mlflow,kubeflow,monitoring
 

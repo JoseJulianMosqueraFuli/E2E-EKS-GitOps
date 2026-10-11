@@ -25,11 +25,11 @@ mlflow:
   # Artifact storage configuration
   artifacts:
     root: "s3://mlops-model-artifacts/mlflow-artifacts"
-    s3EndpointUrl: "https://s3.us-west-2.amazonaws.com"
+    s3EndpointUrl: "https://s3.us-east-1.amazonaws.com"
 
   # AWS configuration
   aws:
-    region: "us-west-2"
+    region: "us-east-1"
 
   # Resource limits
   resources:
@@ -100,7 +100,7 @@ ingress:
     alb.ingress.kubernetes.io/healthcheck-path: /health
     alb.ingress.kubernetes.io/ssl-redirect: "443"
     # REQUIRED: Create an ACM certificate for the hostname and provide its ARN.
-    # Example: alb.ingress.kubernetes.io/certificate-arn: arn:aws:acm:us-west-2:123456789012:certificate/abcd1234-5678-90ab-cdef-example11111
+    # Example: alb.ingress.kubernetes.io/certificate-arn: arn:aws:acm:us-east-1:123456789012:certificate/abcd1234-5678-90ab-cdef-example11111
     alb.ingress.kubernetes.io/certificate-arn: ""
     alb.ingress.kubernetes.io/listen-ports: '[{"HTTP":80},{"HTTPS":443}]'
   hosts:

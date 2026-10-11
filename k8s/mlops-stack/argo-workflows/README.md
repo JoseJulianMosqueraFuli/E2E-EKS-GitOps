@@ -346,7 +346,7 @@ parameters:
   model-name: "fraud-detection"
   model-version: "3"
   deployment-namespace: "models"
-  ecr-repository: "231629457413.dkr.ecr.us-west-2.amazonaws.com/mlops-dev-inference"
+  ecr-repository: "231629457413.dkr.ecr.us-east-1.amazonaws.com/mlops-dev-inference"
 ```
 
 ## Security Configuration

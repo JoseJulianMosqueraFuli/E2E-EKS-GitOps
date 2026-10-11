@@ -11,7 +11,7 @@ labels:
 
 images:
   - name: mlops-platform
-    newName: 231629457413.dkr.ecr.us-west-2.amazonaws.com/mlops-staging-trainer
+    newName: 231629457413.dkr.ecr.us-east-1.amazonaws.com/mlops-staging-trainer
 
 patches:
   - target:
@@ -23,7 +23,7 @@ patches:
         value: ecr-repository
       - op: replace
         path: /spec/arguments/parameters/4/value
-        value: 231629457413.dkr.ecr.us-west-2.amazonaws.com/mlops-staging-inference
+        value: 231629457413.dkr.ecr.us-east-1.amazonaws.com/mlops-staging-inference
   - target:
       kind: WorkflowTemplate
       name: ml-pipeline-template
@@ -33,4 +33,4 @@ patches:
         value: ecr-repository
       - op: replace
         path: /spec/arguments/parameters/5/value
-        value: 231629457413.dkr.ecr.us-west-2.amazonaws.com/mlops-staging-inference
+        value: 231629457413.dkr.ecr.us-east-1.amazonaws.com/mlops-staging-inference

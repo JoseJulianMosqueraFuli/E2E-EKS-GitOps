@@ -43,7 +43,7 @@ patches:
         value: s3://mlflow-artifacts-production
       - op: replace
         path: /data/s3_endpoint_url
-        value: https://s3.us-west-2.amazonaws.com
+        value: https://s3.us-east-1.amazonaws.com
     target:
       kind: ConfigMap
       name: mlflow-config
@@ -132,4 +132,4 @@ patches:
 
 images:
   - name: mlflow-server
-    newName: 231629457413.dkr.ecr.us-west-2.amazonaws.com/mlops-prod-mlflow-server
+    newName: 231629457413.dkr.ecr.us-east-1.amazonaws.com/mlops-prod-mlflow-server

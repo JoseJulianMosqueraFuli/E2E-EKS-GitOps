@@ -135,7 +135,7 @@ spec:
   aws acm request-certificate \
     --domain-name mlflow.mlops.company.com \
     --validation-method DNS \
-    --region us-west-2
+    --region us-east-1
 
   # Update the Helm values with the certificate ARN
   # gitops/charts/mlflow/values.yaml

@@ -6,7 +6,7 @@ metadata:
 data:
   environment: "production"
   cluster_name: "mlops-prod-cluster"
-  region: "us-west-2"
+  region: "us-east-1"
   domain: "mlops.company.com"
   monitoring_enabled: "true"
   backup_enabled: "true"
@@ -19,6 +19,6 @@ metadata:
   name: environment-vars
   namespace: flux-system
 data:
-  AWS_REGION: "us-west-2"
+  AWS_REGION: "us-east-1"
   CLUSTER_NAME: "mlops-prod-cluster"
   ENVIRONMENT: "production"

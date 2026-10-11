@@ -387,7 +387,7 @@ poetry run python -m src.cli inference data/sample.csv --model-path artifacts/mo
 
 ```bash
 # 1. Bootstrap backend (once per account)
-./scripts/bootstrap-terraform-backend.sh dev us-west-2
+./scripts/bootstrap-terraform-backend.sh dev us-east-1
 
 # 2. Deploy infrastructure
 make init ENV=dev
@@ -471,7 +471,7 @@ mlflow:
 - `ENV`: dev/staging/prod
 - `CI_PROVIDER`: github/gitlab/circleci/jenkins
 - `MLOPS_TOOLS`: comma-separated list (mlflow,kubeflow,kserve,monitoring)
-- `REGION`: AWS region (default: us-west-2)
+- `REGION`: AWS region (default: us-east-1)
 
 ---
 

@@ -363,7 +363,7 @@ export MLFLOW_TRACKING_URI="http://mlflow-server:5000"
 export MLFLOW_REGISTRY_URI="http://mlflow-server:5000"
 
 # Configuración AWS
-export AWS_REGION="us-west-2"
+export AWS_REGION="us-east-1"
 export S3_BUCKET="mlops-dev-data"
 
 # Ambiente

@@ -83,4 +83,4 @@ patches:
 
 images:
   - name: mlflow-server
-    newName: 231629457413.dkr.ecr.us-west-2.amazonaws.com/mlops-dev-mlflow-server
+    newName: 231629457413.dkr.ecr.us-east-1.amazonaws.com/mlops-dev-mlflow-server

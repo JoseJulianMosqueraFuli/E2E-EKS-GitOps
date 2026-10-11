@@ -119,7 +119,7 @@ This document lists all **CRITICAL** and **HIGH** severity findings identified d
 - **Impact**: Risk of state file loss, no state locking, no collaboration safety.
 - **Fix**: Follow the activation checklist in each `main.tf` (requires AWS account):
   1. Run `aws configure`
-  2. Run `./scripts/bootstrap-terraform-backend.sh <env> us-west-2`
+  2. Run `./scripts/bootstrap-terraform-backend.sh <env> us-east-1`
   3. Uncomment the backend block
   4. Run `terraform init -migrate-state`
 - **Status**: Procedure documented; pending AWS account setup.

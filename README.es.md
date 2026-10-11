@@ -122,7 +122,7 @@ make plan ENV=dev
 make apply ENV=dev
 
 # 2. Configurar kubectl
-aws eks update-kubeconfig --name mlops-dev-cluster --region us-west-2
+aws eks update-kubeconfig --name mlops-dev-cluster --region us-east-1
 
 # 3. Instalar stack MLOps
 make mlops-core    # MLflow + Monitoreo

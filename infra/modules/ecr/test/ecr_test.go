@@ -17,7 +17,7 @@ func TestECRModule(t *testing.T) {
 
 		// Variables to pass to our Terraform code using -var options
 		Vars: map[string]interface{}{
-			"kms_key_arn": "arn:aws:kms:us-west-2:123456789012:key/12345678-1234-1234-1234-123456789012",
+			"kms_key_arn": "arn:aws:kms:us-east-1:123456789012:key/12345678-1234-1234-1234-123456789012",
 			"repositories": map[string]interface{}{
 				"test_trainer": map[string]interface{}{
 					"name":                 "test-trainer",
@@ -82,7 +82,7 @@ func TestECRModuleMinimalConfig(t *testing.T) {
 	terraformOptions := terraform.WithDefaultRetryableErrors(t, &terraform.Options{
 		TerraformDir: "../",
 		Vars: map[string]interface{}{
-			"kms_key_arn": "arn:aws:kms:us-west-2:123456789012:key/12345678-1234-1234-1234-123456789012",
+			"kms_key_arn": "arn:aws:kms:us-east-1:123456789012:key/12345678-1234-1234-1234-123456789012",
 			"repositories": map[string]interface{}{
 				"test_minimal": map[string]interface{}{
 					"name":                 "test-minimal-repo",
@@ -112,7 +112,7 @@ func TestECRModuleWithReplication(t *testing.T) {
 	terraformOptions := terraform.WithDefaultRetryableErrors(t, &terraform.Options{
 		TerraformDir: "../",
 		Vars: map[string]interface{}{
-			"kms_key_arn": "arn:aws:kms:us-west-2:123456789012:key/12345678-1234-1234-1234-123456789012",
+			"kms_key_arn": "arn:aws:kms:us-east-1:123456789012:key/12345678-1234-1234-1234-123456789012",
 			"repositories": map[string]interface{}{
 				"test_replicated": map[string]interface{}{
 					"name":                 "test-replicated-repo",

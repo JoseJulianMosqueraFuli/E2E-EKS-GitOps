@@ -9,7 +9,7 @@ set -e
 ENVIRONMENT=${ENVIRONMENT:-"dev"}
 CI_PROVIDER=${CI_PROVIDER:-"github"}
 MLOPS_TOOLS=${MLOPS_TOOLS:-"mlflow,kubeflow,kserve,monitoring"}
-AWS_REGION=${AWS_REGION:-"us-west-2"}
+AWS_REGION=${AWS_REGION:-"us-east-1"}
 CLUSTER_NAME=${CLUSTER_NAME:-"mlops-${ENVIRONMENT}-cluster"}
 
 # Colors for output
@@ -292,7 +292,7 @@ case "${1:-}" in
         echo "  ENVIRONMENT     - Target environment (default: dev)"
         echo "  CI_PROVIDER     - CI/CD provider (github|gitlab|circleci|jenkins)"
         echo "  MLOPS_TOOLS     - Comma-separated tools (mlflow,kubeflow,kserve,monitoring)"
-        echo "  AWS_REGION      - AWS region (default: us-west-2)"
+        echo "  AWS_REGION      - AWS region (default: us-east-1)"
         echo "  CLUSTER_NAME    - EKS cluster name"
         echo ""
         echo "Examples:"

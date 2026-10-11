@@ -115,8 +115,8 @@ metadata:
     app.kubernetes.io/component: istio-service-entry
 spec:
   hosts:
-  - s3.us-west-2.amazonaws.com
-  - "*.s3.us-west-2.amazonaws.com"
+  - s3.us-east-1.amazonaws.com
+  - "*.s3.us-east-1.amazonaws.com"
   ports:
   - number: 443
     name: https

@@ -21,7 +21,7 @@ func TestEKSModule(t *testing.T) {
 			"kubernetes_version":        "1.32",
 			"public_subnet_ids":         []string{"subnet-12345", "subnet-67890"},
 			"private_subnet_ids":        []string{"subnet-abcde", "subnet-fghij"},
-			"kms_key_arn":              "arn:aws:kms:us-west-2:123456789012:key/12345678-1234-1234-1234-123456789012",
+			"kms_key_arn":              "arn:aws:kms:us-east-1:123456789012:key/12345678-1234-1234-1234-123456789012",
 			"node_group_instance_types": []string{"m5.large"},
 			"node_group_desired_size":   2,
 			"node_group_max_size":       4,
@@ -90,7 +90,7 @@ func TestEKSModuleMinimalConfig(t *testing.T) {
 			"cluster_name":       "test-minimal-eks",
 			"public_subnet_ids":  []string{"subnet-12345"},
 			"private_subnet_ids": []string{"subnet-abcde"},
-			"kms_key_arn":        "arn:aws:kms:us-west-2:123456789012:key/12345678-1234-1234-1234-123456789012",
+			"kms_key_arn":        "arn:aws:kms:us-east-1:123456789012:key/12345678-1234-1234-1234-123456789012",
 		},
 		NoColor: true,
 	})

@@ -34,9 +34,9 @@ class TestDataLoader:
 
     def test_initialization(self):
         """Test data loader initialization."""
-        loader = DataLoader(aws_region="us-west-2", s3_bucket="test-bucket")
+        loader = DataLoader(aws_region="us-east-1", s3_bucket="test-bucket")
 
-        assert loader.aws_region == "us-west-2"
+        assert loader.aws_region == "us-east-1"
         assert loader.s3_bucket == "test-bucket"
 
     def test_load_local_csv(self, sample_data):

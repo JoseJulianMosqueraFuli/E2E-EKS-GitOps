@@ -6,7 +6,7 @@ set -euo pipefail
 # After running, uncomment the backend block in infra/environments/<env>/main.tf
 
 ENV=${1:-dev}
-REGION=${2:-us-west-2}
+REGION=${2:-us-east-1}
 BUCKET_NAME="mlops-terraform-state-${ENV}"
 DYNAMO_TABLE="mlops-terraform-locks-${ENV}"
 KMS_ALIAS="alias/mlops-${ENV}-key"

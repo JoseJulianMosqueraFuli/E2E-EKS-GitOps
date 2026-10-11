@@ -37,7 +37,7 @@ class TrainingPipeline:
         """
         self.config = self._load_config(config_path)
         self.data_loader = DataLoader(
-            aws_region=self.config.get("aws_region", "us-west-2"),
+            aws_region=self.config.get("aws_region", "us-east-1"),
             s3_bucket=self.config.get("s3_bucket"),
         )
         self.data_validator = DataValidator()

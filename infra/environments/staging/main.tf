@@ -20,14 +20,14 @@ terraform {
     #
     # Activation checklist (requires AWS account):
     #   1. aws configure  (set credentials)
-    #   2. ./scripts/bootstrap-terraform-backend.sh staging us-west-2
+    #   2. ./scripts/bootstrap-terraform-backend.sh staging us-east-1
     #   3. Uncomment the block below
     #   4. cd infra/environments/staging && terraform init -migrate-state
     #   5. terraform plan  (verify state migrated correctly)
     # --------------------------------------------------------------------------
     # bucket         = "mlops-terraform-state-staging"
     # key            = "staging/terraform.tfstate"
-    # region         = "us-west-2"
+    # region         = "us-east-1"
     # dynamodb_table = "mlops-terraform-locks-staging"
     # encrypt        = true
     # kms_key_id     = "alias/mlops-staging-key"

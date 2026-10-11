@@ -58,7 +58,7 @@ spec:
   postBuild:
     substitute:
       cluster_name: "mlops-${environment}-cluster"
-      region: "us-west-2"
+      region: "us-east-1"
 ---
 apiVersion: kustomize.toolkit.fluxcd.io/v1
 kind: Kustomization

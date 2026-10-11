@@ -146,7 +146,7 @@ s3:
   accessKeyIDName: "AWS_ACCESS_KEY_ID"
   secretAccessKeyName: "AWS_SECRET_ACCESS_KEY"
   endpoint: ""
-  region: "us-west-2"
+  region: "us-east-1"
   useHttps: ""
   verifySSL: ""
   useVirtualBucket: ""
