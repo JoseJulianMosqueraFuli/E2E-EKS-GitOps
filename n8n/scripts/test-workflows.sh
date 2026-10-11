@@ -112,6 +112,7 @@ for workflow in "${workflows[@]}"; do
 
   exit_code=$(docker inspect --format '{{.State.ExitCode}}' "$container_name" 2>>"$log_file" || printf unknown)
   if [[ "$start_status" != "0" || "$exit_code" != "0" ]]; then
+    oom_killed=$(docker inspect --format '{{.State.OOMKilled}}' "$container_name" 2>>"$log_file" || printf unknown)
     failure_status="$exit_code"
     if [[ "$failure_status" == "0" || "$failure_status" == "unknown" ]]; then
       failure_status="$start_status"
@@ -121,7 +122,11 @@ for workflow in "${workflows[@]}"; do
     else
       printf 'Failed to remove container %s after execution failure.\n' "$active_container" >> "$log_file"
     fi
-    printf '| `%s` | FAIL (workflow exited with status %s) |\n' "$(basename "$workflow")" "$failure_status" >> "$report"
+    if [[ "$oom_killed" == "true" ]]; then
+      printf '| `%s` | FAIL (container exceeded its memory limit) |\n' "$(basename "$workflow")" >> "$report"
+    else
+      printf '| `%s` | FAIL (workflow exited with status %s) |\n' "$(basename "$workflow")" "$failure_status" >> "$report"
+    fi
     tail -n 40 "$log_file"
     failed=$((failed + 1))
   elif cleanup_container "$active_container"; then
