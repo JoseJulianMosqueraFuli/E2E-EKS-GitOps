@@ -214,3 +214,69 @@ jobs:
         run: |
           chmod +x scripts/setup-mlops-stack.sh
           bash -n scripts/setup-mlops-stack.sh
+
+  n8n-workflow-test:
+    name: n8n Workflow Tests
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    env:
+      N8N_IMAGE: n8nio/n8n:1.120.4
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Import and execute workflows
+        shell: bash
+        run: |
+          set -u
+          report="n8n-test-report.md"
+          printf '# n8n workflow test report\n\nImage: `%s`\n\n| Workflow | Result |\n| --- | --- |\n' "$N8N_IMAGE" > "$report"
+
+          shopt -s nullglob
+          workflows=(n8n/workflows/*.json)
+          if [ "${#workflows[@]}" -eq 0 ]; then
+            printf '| — | FAIL (no workflow JSON files found) |\n' >> "$report"
+            cat "$report" >> "$GITHUB_STEP_SUMMARY"
+            exit 1
+          fi
+
+          passed=0
+          failed=0
+          for workflow in "${workflows[@]}"; do
+            workflow_id=$(jq -er '.id | select(type == "string" and length > 0)' "$workflow" 2>/dev/null || true)
+            if [ -z "$workflow_id" ]; then
+              printf '| `%s` | FAIL (missing workflow ID) |\n' "$(basename "$workflow")" >> "$report"
+              failed=$((failed + 1))
+              continue
+            fi
+
+            if docker run --rm \
+              --env N8N_ENCRYPTION_KEY=ci-only-not-for-production \
+              --env N8N_DIAGNOSTICS_ENABLED=false \
+              --volume "$(realpath "$workflow"):/tmp/workflow.json:ro" \
+              --entrypoint /bin/sh \
+              "$N8N_IMAGE" \
+              -c "n8n import:workflow --input=/tmp/workflow.json && n8n execute --id='$workflow_id'" \
+              >/dev/null 2>&1; then
+              printf '| `%s` | PASS |\n' "$(basename "$workflow")" >> "$report"
+              passed=$((passed + 1))
+            else
+              printf '| `%s` | FAIL (import or execution returned a non-zero exit code) |\n' "$(basename "$workflow")" >> "$report"
+              failed=$((failed + 1))
+            fi
+          done
+
+          printf '\n**Result:** %s passed, %s failed.\n' "$passed" "$failed" >> "$report"
+          cat "$report" >> "$GITHUB_STEP_SUMMARY"
+          cat "$report"
+          [ "$failed" -eq 0 ]
+
+      - name: Upload test report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: n8n-workflow-test-report
+          path: n8n-test-report.md
+          if-no-files-found: ignore

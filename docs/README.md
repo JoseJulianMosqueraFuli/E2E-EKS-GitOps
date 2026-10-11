@@ -39,6 +39,7 @@ _Last updated: 2026-06-25_
 | -------------------------------------------------------- | ----------------------------------------------------- |
 | [`quick-start-guide.md`](quick-start-guide.md)           | 5-minute setup guide.                                 |
 | [`ml-platform-guide.md`](ml-platform-guide.md)           | ML code, pipelines, CLI usage (local-first).          |
+| [`../n8n-ci-testing.md`](../n8n-ci-testing.md)           | n8n workflow testing in GitHub Actions.               |
 | [`model-monitoring-guide.md`](model-monitoring-guide.md) | Evidently drift detection + Grafana monitoring setup. |
 | [`../gitops/README.md`](../gitops/README.md)             | GitOps architecture (Flux + ArgoCD).                  |
 | [`../gitops/SETUP.md`](../gitops/SETUP.md)               | GitOps installation steps.                            |
