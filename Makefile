@@ -1,10 +1,9 @@
 # Makefile for MLOps Platform
 
-.PHONY: help init plan apply destroy test test-terraform-plan test-unit test-integration clean \
+.PHONY: help init plan apply destroy test test-terraform-plan test-unit test-integration test-n8n clean \
         mlops-install mlops-uninstall mlops-status mlops-mlflow-only mlops-monitoring-only mlops-core mlops-full \
         setup-github setup-gitlab setup-circleci setup-jenkins \
         platform-config validate-terraform validate-kubernetes validate-platform-config validate-python validate-all \
-        test-n8n \
         dev-setup dev-format dev-lint agents-sync agents-check \
         quickstart-dev quickstart-prod \
         logs-mlflow logs-kserve logs-kubeflow \
@@ -18,6 +17,7 @@ CI_PROVIDER ?= github
 MLOPS_TOOLS ?= mlflow,kubeflow,monitoring
 N8N_IMAGE ?= n8nio/n8n:2.42.6@sha256:526daa38b68e923cc00c5280d18b4da5d489f115a73bdbf3b8e452b184197a9a
 N8N_WORKFLOW_TIMEOUT ?= 5m
+export N8N_IMAGE N8N_WORKFLOW_TIMEOUT
 
 help: ## Show this help message
 	@echo 'Usage: make [target] [ENV=environment]'
@@ -70,7 +70,7 @@ test-integration: ## Run integration tests
 	@echo "Integration tests require AWS/EKS cluster. Skipping in local mode."
 
 test-n8n: ## Test n8n workflows in isolated, disposable containers
-	N8N_IMAGE="$(N8N_IMAGE)" N8N_WORKFLOW_TIMEOUT="$(N8N_WORKFLOW_TIMEOUT)" bash ./n8n/scripts/test-workflows.sh
+	bash ./n8n/scripts/test-workflows.sh
 
 clean: ## Clean temporary files
 	find . -name "*.tfplan" -delete
