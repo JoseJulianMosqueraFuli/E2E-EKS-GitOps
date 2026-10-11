@@ -15,10 +15,16 @@ echo "=== Bootstrapping Terraform backend for environment: ${ENV} ==="
 
 # Create S3 bucket for state
 echo "Creating S3 bucket: ${BUCKET_NAME}..."
-aws s3api create-bucket \
-  --bucket "${BUCKET_NAME}" \
-  --region "${REGION}" \
-  --create-bucket-configuration LocationConstraint="${REGION}" 2>/dev/null || echo "Bucket may already exist"
+if aws s3api head-bucket --bucket "${BUCKET_NAME}" 2>/dev/null; then
+  echo "Bucket ${BUCKET_NAME} already exists and is accessible"
+elif [ "${REGION}" = "us-east-1" ]; then
+  aws s3api create-bucket --bucket "${BUCKET_NAME}" --region "${REGION}"
+else
+  aws s3api create-bucket \
+    --bucket "${BUCKET_NAME}" \
+    --region "${REGION}" \
+    --create-bucket-configuration LocationConstraint="${REGION}"
+fi
 
 aws s3api put-bucket-versioning \
   --bucket "${BUCKET_NAME}" \

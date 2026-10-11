@@ -5,5 +5,5 @@ resources:
   - ../../../../gitops/applications/apps/argo-workflows/overlays/dev
 
 images:
-  - name: 231629457413.dkr.ecr.us-west-2.amazonaws.com/mlops-dev-trainer
+  - name: 231629457413.dkr.ecr.us-east-1.amazonaws.com/mlops-dev-trainer
     newName: mlops-platform
