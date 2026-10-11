@@ -38,19 +38,19 @@ Para detalles técnicos de issues CRÍTICOS y ALTOS (CVSS, fix concreto), ver: [
 | Area | CRITICAL | HIGH | MEDIUM | LOW | Total |
 |------|----------|------|--------|-----|-------|
 | Seguridad | 1 | 3 | 9 | 2 | 15 |
-| Infra (Terraform) | 0 | 2 | 6 | 2 | 10 |
-| GitOps / K8s | 0 | 2 | 8 | 3 | 13 |
-| Plataforma ML (Python) | 0 | 0 | 2 | 2 | 4 |
-| Monitoreo | 0 | 2 | 4 | 2 | 8 |
-| CI/CD | 0 | 1 | 5 | 2 | 8 |
+| Infra (Terraform) | 0 | 2 | 7 | 2 | 11 |
+| GitOps / K8s | 0 | 2 | 11 | 3 | 16 |
+| Plataforma ML (Python) | 0 | 0 | 4 | 2 | 6 |
+| Monitoreo | 0 | 2 | 5 | 2 | 9 |
+| CI/CD | 0 | 1 | 7 | 2 | 10 |
 | Arquitectura / Extras | 0 | 0 | 0 | 7 | 7 |
-| **TOTAL** | **1** | **10** | **34** | **20** | **65** |
+| **TOTAL** | **1** | **10** | **43** | **20** | **74** |
 
 > **4 HIGH + 1 MEDIUM resueltos el 2026-07-13**: HIGH-003 (egress), HIGH-004 (CIDR prod), HIGH-008 (KServe redirect), MEDIUM #29 (LabelEncoder), MEDIUM #30-33 (dead code/dependencies). Total anterior: 74 items.
 
 ### Score estimado tras cada fase
 
-- Actual: ~85/100
+- Actual: ~85/100 (calidad estatica de manifiestos y codigo; la validacion funcional empezo el 2026-10-10 con el E2E en kind y encontro bugs que la puntuacion no reflejaba)
 - Post Fase 1 (Criticos): ~91/100
 - Post Fase 2 (Altos): ~96/100
 - Post Fase 3+4 (Medios + GitOps): ~98/100
@@ -96,7 +96,7 @@ Para detalles técnicos de issues CRÍTICOS y ALTOS (CVSS, fix concreto), ver: [
 
 ---
 
-## MEDIUM (34 pendientes, 7 resueltos)
+## MEDIUM (43 pendientes, 7 resueltos)
 
 ### Istio / Service Mesh (5)
 
@@ -123,6 +123,9 @@ Para detalles técnicos de issues CRÍTICOS y ALTOS (CVSS, fix concreto), ver: [
 |---|-------|------------|
 | 45 | Argo `instanceID: argo-workflows` exige el label `workflows.argoproj.io/controller-instanceid` en cada Workflow; las WorkflowTemplates y KFP no lo ponen, por lo que el controller las ignora (confirmado en kind 2026-10-10) | `gitops/applications/apps/argo-workflows/base/configmap.yaml` | ✅ `instanceID` eliminado (un solo controller) 2026-10-10 |
 | 46 | Archivo de workflows deshabilitado: requiere Postgres/MySQL (bloque `persistence` removido porque sin DB el controller no arranca) | `gitops/applications/apps/argo-workflows/base/configmap.yaml` |
+| 48 | ArgoCD no puede leer `gitops/platform/aws.env` (esta en `.gitignore`): inyectar cuenta/region al renderizar (anotaciones del cluster en el ApplicationSet + `kustomize.patches` sobre `platform-config`, o un Config Management Plugin) | `gitops/applications/projects/mlops-applicationset.yaml`, `gitops/platform/` |
+| 49 | Migrar kserve, monitoring, kubeflow y external-secrets al mecanismo `gitops/platform` (aun tienen region literal o placeholders `ACCOUNT_ID`) | `gitops/applications/apps/{kserve,monitoring,kubeflow,external-secrets}/` |
+| 50 | Roles IRSA referenciados (`mlflow-irsa-role`, `mlops-backup-role`) no se crean en Terraform; la SA `argo-workflow` no tiene anotacion IRSA, asi que en EKS los pasos no tendrian acceso a S3 | `infra/`, `gitops/applications/apps/argo-workflows/base/rbac.yaml` |
 | 47 | argo-server usa `--auth-mode=sso` pero el ConfigMap no define bloque `sso` (issuer, clientId, clientSecret): el server entra en CrashLoopBackOff con `Error: issuer empty` (confirmado en kind 2026-10-10) | `gitops/applications/apps/argo-workflows/base/server-deployment.yaml` | ✅ Cambiado a `--auth-mode=client` (token de Kubernetes + RBAC) 2026-10-10. SSO/OIDC pendiente de proveedor |
 | 10 | `monitoring` en `k8s/` no apunta a `gitops/applications/apps/monitoring/` | `k8s/mlops-stack/monitoring/kustomization.yaml` | ✅ Corregido 2026-06-26 |
 | 11 | `argo-workflows` en `k8s/` no apunta a gitops | `k8s/mlops-stack/argo-workflows/kustomization.yaml` | ✅ Corregido 2026-06-26 |
@@ -152,6 +155,7 @@ Para detalles técnicos de issues CRÍTICOS y ALTOS (CVSS, fix concreto), ver: [
 | 25 | `node_group_desired_size` sin validacion vs min/max | `infra/modules/eks/variables.tf` |
 | 26 | Glue table schema hardcodeado | `infra/environments/*/main.tf` |
 | 27 | Glue crawlers schedule hardcodeado en los 3 ambientes | `infra/environments/*/main.tf` |
+| 51 | Nombres de buckets S3 globales y genericos (`mlops-curated-data`, `mlops-artifacts-bucket`, `mlflow-artifacts-<env>`, `mlops-terraform-state-<env>`): probable colision en S3; agregar sufijo de cuenta/region | `infra/`, `gitops/applications/apps/*`, `scripts/bootstrap-terraform-backend.sh` |
 
 ### Python / ML Platform (7)
 
@@ -164,6 +168,8 @@ Para detalles técnicos de issues CRÍTICOS y ALTOS (CVSS, fix concreto), ver: [
 | 32 | `dvc`, `awscli`, `kubernetes` en deps sin uso evidente | `ml-platform/pyproject.toml` | ✅ Corregido 2026-07-13 |
 | 33 | `awscli` como dependencia de libreria (deberia ser dev/extra) | `ml-platform/pyproject.toml` | ✅ Corregido 2026-07-13 |
 | 34 | Feast feature repo: falta backend productivo (Redis/DynamoDB) y deployment server K8s | `ml-platform/feature_repo/`, `k8s/mlops-stack/feast/` |
+| 52 | Imagenes inexistentes en plantillas: `mlops/data-validator`, `kserve-deployer`, `deployment-validator`, `notifier` (y `feature-transformer` en ejemplos KServe). Migrar a subcomandos de `mlops-platform` o a plantillas `resource` de Argo | `gitops/applications/apps/argo-workflows/base/workflow-templates/` |
+| 53 | `Dockerfile.monitoring` no construye: copia `requirements.txt` inexistente y fija `evidently==0.4.2` mientras el codigo usa `evidently.legacy` (>=0.7) | `ml-platform/Dockerfile.monitoring` |
 
 ### Monitoreo (4)
 
@@ -173,6 +179,7 @@ Para detalles técnicos de issues CRÍTICOS y ALTOS (CVSS, fix concreto), ver: [
 | 36 | Retencion Prometheus muy corta (200h ~ 8.3 dias) | `k8s/mlops-stack/monitoring/prometheus-stack.yaml` |
 | 37 | Prometheus `web.enable-admin-api` habilitado | `gitops/charts/monitoring-stack/values.yaml` |
 | 38 | Evidently image `latest` en monitoring chart | `gitops/charts/monitoring-stack/values.yaml` |
+| 54 | CronJob de backup de MLflow viola PodSecurity `restricted` (sin securityContext) | `gitops/applications/apps/mlflow/base/backup-cronjob.yaml` |
 
 ### CI/CD (5)
 
@@ -184,6 +191,8 @@ Para detalles técnicos de issues CRÍTICOS y ALTOS (CVSS, fix concreto), ver: [
 | 42 | GitLab CI: pytest/flake8/black con `|| true` | `.gitlab-ci.yml` |
 | 43 | CircleCI: pytest/flake8/black con `|| true` | `.circleci/config.yml` |
 | 44 | Falta pipeline automatizada para Terratest Go | `.github/workflows/ci.yml` |
+| 55 | Publicar `mlops-platform` y `mlflow-server` en ECR desde CI: falta rol OIDC de GitHub en Terraform | `.github/workflows/ml-platform-image.yml`, `infra/` |
+| 56 | Primer run verde de `e2e-kind.yml` pendiente (MLflow nunca se habia ejecutado; esperar ajustes) | `.github/workflows/e2e-kind.yml`, `scripts/e2e/kind-smoke.sh` |
 
 ---
 
@@ -256,5 +265,5 @@ Para detalles técnicos de issues CRÍTICOS y ALTOS (CVSS, fix concreto), ver: [
 
 ---
 
-*Ultima actualizacion: 2026-07-13*  
+*Ultima actualizacion: 2026-10-10*  
 *Fuentes: `critical.md`, revision manual de 120+ archivos*
