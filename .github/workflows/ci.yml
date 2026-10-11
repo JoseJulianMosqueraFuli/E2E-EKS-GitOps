@@ -255,6 +255,7 @@ jobs:
             if docker run --rm \
               --env N8N_ENCRYPTION_KEY=ci-only-not-for-production \
               --env N8N_DIAGNOSTICS_ENABLED=false \
+              --env N8N_ENFORCE_SETTINGS_FILE_PERMISSIONS=true \
               --volume "$(realpath "$workflow"):/tmp/workflow.json:ro" \
               --entrypoint /bin/sh \
               "$N8N_IMAGE" \
