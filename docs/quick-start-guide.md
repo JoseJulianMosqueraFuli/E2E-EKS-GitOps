@@ -30,6 +30,10 @@ pip install poetry
 poetry install -E dev
 ```
 
+> `-E dev` instala todos los extras (`validation`, `monitoring`, `features`) más las herramientas de desarrollo.
+> La imagen de contenedor `mlops-platform` solo instala las dependencias core. Para ver los pasos que ejecuta
+> Argo Workflows: `poetry run python -m src.cli step --help` (detalle en [`ml-platform/README.md`](../ml-platform/README.md)).
+
 ### 2. Entrenar tu Primer Modelo
 
 ```bash

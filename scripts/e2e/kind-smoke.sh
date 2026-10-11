@@ -10,8 +10,14 @@ ML_IMAGE="${ML_IMAGE:-${ECR_REGISTRY}/mlops-dev-trainer:0.1.0}"
 WORKFLOW_TIMEOUT="${WORKFLOW_TIMEOUT:-900}"
 MODEL_NAME="e2e-model"
 
+STAGE="setup"
+
 kc() { kubectl --context "${CONTEXT}" "$@"; }
-log() { echo "=== $*"; }
+log() { STAGE="$*"; echo "=== $*"; }
+
+failure_summary() {
+  kc get pods -A -o json | python3 "${ROOT}/scripts/e2e/pod_summary.py" || true
+}
 
 diagnostics() {
   log "Diagnostics"
@@ -26,8 +32,16 @@ diagnostics() {
     done
   done
   kc -n argo-workflows get workflows -o yaml || true
+  local summary
+  summary="$(failure_summary)"
+  log "Failure summary (stage: ${FAILED_STAGE})"
+  echo "${summary}"
+  if [ -n "${GITHUB_ACTIONS:-}" ]; then
+    summary="${summary//[%]/%25}"
+    echo "::error title=e2e failed at: ${FAILED_STAGE}::${summary//$'\n'/%0A}"
+  fi
 }
-trap 'rc=$?; [ "${rc}" -eq 0 ] || diagnostics; exit "${rc}"' EXIT
+trap 'rc=$?; FAILED_STAGE="${STAGE}"; [ "${rc}" -eq 0 ] || diagnostics; exit "${rc}"' EXIT
 
 PG_PASSWORD="$(openssl rand -hex 16)"
 S3_ACCESS_KEY="$(openssl rand -hex 10)"
@@ -54,13 +68,13 @@ kc -n argo-workflows rollout status deployment/argo-server --timeout=180s
 
 log "MLflow (PostgreSQL + MinIO + tracking server)"
 kc create namespace mlflow --dry-run=client -o yaml | kc apply -f -
-kc -n mlflow create secret generic dev-mlflow-secrets \
+kc -n mlflow create secret generic mlflow-secrets \
   --from-literal=postgres-user=mlflow \
   --from-literal=postgres-password="${PG_PASSWORD}" \
   --from-literal=postgres-db=mlflow \
   --from-literal=backend_store_uri="postgresql://mlflow:${PG_PASSWORD}@dev-mlflow-postgresql:5432/mlflow" \
   --dry-run=client -o yaml | kc apply -f -
-kc -n mlflow create secret generic dev-mlflow-minio-secrets \
+kc -n mlflow create secret generic mlflow-minio-secrets \
   --from-literal=root-user="${S3_ACCESS_KEY}" \
   --from-literal=root-password="${S3_SECRET_KEY}" \
   --from-literal=aws-access-key-id="${S3_ACCESS_KEY}" \

@@ -1,7 +1,8 @@
 # Argo Workflows for MLOps Pipeline
 
-This directory is a legacy entrypoint that points to the GitOps source of truth in `gitops/applications/apps/argo-workflows/base/`.
-The workflow orchestration engine manifests are maintained there.
+This directory is a legacy entrypoint that points to the GitOps source of truth in `gitops/applications/apps/argo-workflows/`
+(it renders the `dev` overlay). Argo Workflows **v4.0.13**: TLS, `--auth-mode=client`, emissary executor, no workflow archive
+(needs PostgreSQL/MySQL, backlog #46). The AWS account and region come from `gitops/platform/aws.env`.
 
 ## Overview
 
@@ -26,7 +27,7 @@ Argo Workflows provides:
 | Template                    | Description                                     | Use Case              |
 | --------------------------- | ----------------------------------------------- | --------------------- |
 | `data-validation-template`  | Validates data quality using Great Expectations | Before training       |
-| `model-training-template`   | End-to-end model training with MLflow           | Training pipeline     |
+| `model-training-template`   | split → train → evaluate (gate vs `@champion`) → register, on the `mlops-platform` image | Training pipeline     |
 | `model-deployment-template` | Deploys models to KServe                        | Production deployment |
 | `model-retraining-template` | Automatic retraining based on drift/performance | Model maintenance     |
 | `ml-pipeline-template`      | Complete E2E pipeline orchestrating all stages  | Full automation       |
@@ -42,18 +43,23 @@ Argo Workflows provides:
 
 ## Prerequisites
 
-1. **EKS Cluster**: Running Kubernetes cluster with IRSA configured
+1. **EKS Cluster**: Running Kubernetes cluster with IRSA configured (the `argo-workflow` service account still needs its IRSA annotation, backlog #50)
 2. **S3 Buckets**: Artifact storage buckets (raw-data, curated-data, models)
-3. **ECR Repository**: Container image registry for ML workloads
+3. **ECR Repository**: `mlops-<env>-trainer` holds the `mlops-platform` image used by the training template
 4. **MLflow Server**: Model registry and experiment tracking (deployed separately)
+5. **Platform config**: `make platform-config` and set the real values in `gitops/platform/aws.env`
 
 ## Installation
 
 ### 1. Deploy Argo Workflows
 
 ```bash
-# Apply all manifests using kustomize (GitOps source of truth)
-kubectl apply -k gitops/applications/apps/argo-workflows/overlays/dev/
+# Apply all manifests using kustomize (GitOps source of truth).
+# Server-side apply is required: the workflowtasksets CRD is larger than the client-side annotation limit.
+# Run twice on a fresh cluster: the first pass creates the CRDs, the second the WorkflowTemplates.
+kubectl apply --server-side -k gitops/applications/apps/argo-workflows/overlays/dev/
+kubectl wait --for=condition=Established crd --all --timeout=120s
+kubectl apply --server-side -k gitops/applications/apps/argo-workflows/overlays/dev/
 
 # Verify deployment
 kubectl get pods -n argo-workflows
@@ -66,12 +72,21 @@ kubectl get svc -n argo-workflows
 # Port forward to access UI
 kubectl port-forward svc/argo-server -n argo-workflows 2746:2746
 
-# Open browser at https://localhost:2746
+# Open browser at https://localhost:2746 and paste a token (client auth mode):
+kubectl -n argo-workflows create token <service-account-with-argo-rbac>
 ```
 
-### 3. Configure S3 Access
+### 3. Configure step access to S3 and MLflow
 
-Update the IRSA role ARN in `artifact-repository-secret.yaml` for S3 artifact storage.
+Training steps read optional per-environment settings:
+
+| Object (namespace `argo-workflows`) | Keys | When |
+| ----------------------------------- | ---- | ---- |
+| ConfigMap `ml-step-env` | `AWS_ENDPOINT_URL`, `MLFLOW_S3_ENDPOINT_URL` | MinIO or another S3-compatible endpoint (kind, dev) |
+| Secret `ml-step-credentials` | `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY` | Static credentials (kind only; on EKS use IRSA) |
+
+On EKS neither is needed once the `argo-workflow` service account has an IRSA role with access to the data and
+MLflow artifact buckets.
 
 ## Quick Start
 
@@ -127,9 +142,10 @@ argo submit -n argo-workflows --from workflowtemplate/data-validation-template \
 
 # Using model-training-template
 argo submit -n argo-workflows --from workflowtemplate/model-training-template \
-  -p data-path="s3://my-bucket/curated-data/" \
+  -p data-path="s3://my-bucket/curated-data/training/data.csv" \
   -p model-name="my-classifier" \
-  -p experiment-name="experiment-v1"
+  -p experiment-name="experiment-v1" \
+  -p min-improvement="0.01"
 
 # Using model-retraining-template
 argo submit -n argo-workflows --from workflowtemplate/model-retraining-template \
@@ -150,12 +166,22 @@ argo submit -n argo-workflows --from workflowtemplate/model-retraining-template 
 
 ### Model Training Template
 
-| Parameter             | Default                            | Description            |
-| --------------------- | ---------------------------------- | ---------------------- |
-| `data-path`           | `s3://mlops-curated-data/`         | Training data location |
-| `model-name`          | `default-model`                    | Model name for MLflow  |
-| `experiment-name`     | `default-experiment`               | MLflow experiment name |
-| `mlflow-tracking-uri` | `http://mlflow-server.mlflow:5000` | MLflow server URL      |
+| Parameter             | Default                                     | Description                                        |
+| --------------------- | ------------------------------------------- | -------------------------------------------------- |
+| `data-path`           | `s3://mlops-curated-data/training/data.csv` | Raw training file (`.csv` or `.parquet`)           |
+| `artifacts-prefix`    | `s3://mlops-artifacts-bucket/training-runs` | Where the train/test split is written (per run)    |
+| `model-name`          | `default-model`                             | Registered model name in MLflow                    |
+| `experiment-name`     | `default-experiment`                        | MLflow experiment name                             |
+| `mlflow-tracking-uri` | `http://mlflow-server.mlflow:5000`          | MLflow server URL (`dev-mlflow-server` in dev)     |
+| `target-column`       | `target`                                    | Label column                                       |
+| `task-type`           | `classification`                            | `classification` or `regression`                   |
+| `algorithm`           | `random_forest`                             | Algorithm supported by `ClassificationModel` / `RegressionModel` |
+| `hyperparameters`     | `{}`                                        | JSON passed to the estimator                       |
+| `min-score`           | `0.0`                                       | Minimum primary metric (F1 weighted / R²)          |
+| `min-improvement`     | `0.0`                                       | Required gain over the `@champion` model           |
+
+The DAG exposes `model-approved` and `model-version` as outputs, so `ml-pipeline-template` can call it with
+`templateRef`. When a candidate is not approved, `register-model` is skipped and `model-version` is empty.
 
 ### Model Retraining Template
 

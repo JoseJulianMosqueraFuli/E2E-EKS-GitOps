@@ -1,7 +1,7 @@
 # Cost Estimation — E2E-EKS-GitOps on AWS
 
-**Last updated**: 2026-07-13  
-**Pricing basis**: on-demand, us-east-1 / us-east-1. Prices are approximate and may vary.  
+**Last updated**: 2026-10-10  
+**Pricing basis**: on-demand, us-east-1 (project default region). Prices are approximate and may vary.  
 **Monthly hours**: 730
 
 ---

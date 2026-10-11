@@ -7,6 +7,7 @@ Guía completa para usar la plataforma ML implementada en el proyecto MLOps Ente
 - [Arquitectura del Código ML](#arquitectura-del-código-ml)
 - [Modelos Disponibles](#modelos-disponibles)
 - [Pipelines de Entrenamiento](#pipelines-de-entrenamiento)
+- [Pasos del Pipeline (Argo / contenedor)](#-pasos-del-pipeline-argo--contenedor)
 - [Pipelines de Inferencia](#pipelines-de-inferencia)
 - [Validación de Datos](#validación-de-datos)
 - [Feature Engineering](#feature-engineering)
@@ -182,6 +183,28 @@ mlflow:
   experiment_name: "production_models"
   tracking_uri: "http://mlflow-server:5000"
 ```
+
+## 🧩 Pasos del Pipeline (Argo / contenedor)
+
+En el cluster, el entrenamiento no corre como un solo proceso: Argo Workflows ejecuta un paso por contenedor
+con la imagen `mlops-platform`. Cada paso es un subcomando de la CLI y se puede correr igual en local:
+
+```bash
+poetry run python -m src.cli step split    --input data/sample.csv --output data/run --outputs-dir out
+poetry run python -m src.cli step train    --features data/run/train.parquet --model-name clf --experiment-name dev --outputs-dir out
+poetry run python -m src.cli step evaluate --model-uri "$(cat out/model-uri.txt)" --test-data data/run/test.parquet --model-name clf --min-improvement 0.01 --outputs-dir out
+poetry run python -m src.cli step register --model-uri "$(cat out/model-uri.txt)" --model-name clf --outputs-dir out
+```
+
+- `split` separa train/test **antes** de ajustar cualquier transformación (sin fuga de datos).
+- `train` guarda preprocesamiento + modelo como un solo `Pipeline` de sklearn en MLflow, con firma y ejemplo
+  de entrada, así el modelo servido recibe los datos crudos.
+- `evaluate` aprueba el candidato solo si alcanza `--min-score` y supera al modelo con alias `@champion` por
+  `--min-improvement`, evaluando ambos sobre el mismo conjunto de prueba.
+- `register` crea la versión en el registro y le asigna el alias `@champion`.
+
+Las rutas pueden ser locales o `s3://`; con `AWS_ENDPOINT_URL` y `MLFLOW_S3_ENDPOINT_URL` funcionan contra
+MinIO. Código: `src/pipelines/steps.py`; tests: `tests/test_steps.py`.
 
 ## 🚀 Pipelines de Inferencia
 

@@ -21,3 +21,19 @@ patches:
       kind: ServiceMonitor
       metadata:
         name: removed-in-kind
+  - target:
+      group: autoscaling
+      kind: HorizontalPodAutoscaler
+    patch: |-
+      $patch: delete
+      apiVersion: autoscaling/v2
+      kind: HorizontalPodAutoscaler
+      metadata:
+        name: removed-in-kind
+  - target:
+      kind: Deployment
+      name: dev-mlflow-server
+    patch: |-
+      - op: replace
+        path: /spec/replicas
+        value: 1
