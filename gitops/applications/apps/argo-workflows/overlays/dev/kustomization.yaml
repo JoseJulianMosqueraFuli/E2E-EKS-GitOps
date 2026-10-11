@@ -8,3 +8,7 @@ labels:
   - pairs:
       environment: dev
     includeSelectors: false
+
+images:
+  - name: mlops-platform
+    newName: 231629457413.dkr.ecr.us-west-2.amazonaws.com/mlops-dev-trainer

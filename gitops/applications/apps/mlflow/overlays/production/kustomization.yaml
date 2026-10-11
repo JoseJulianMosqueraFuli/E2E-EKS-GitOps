@@ -129,3 +129,7 @@ patches:
     target:
       kind: ExternalSecret
       name: mlflow-secrets
+
+images:
+  - name: mlflow-server
+    newName: 231629457413.dkr.ecr.us-west-2.amazonaws.com/mlops-prod-mlflow-server

@@ -202,6 +202,12 @@ module "ecr" {
       scan_on_push         = true
       tags                 = { Purpose = "feature-processing" }
     }
+    mlflow_server = {
+      name                 = "${local.name_prefix}-mlflow-server"
+      image_tag_mutability = "MUTABLE"
+      scan_on_push         = true
+      tags                 = { Purpose = "experiment-tracking" }
+    }
   }
 
   allowed_principals = [
