@@ -105,3 +105,6 @@ secrets/
 .kiro/settings/*
 !.kiro/settings/mcp.json
 gitops/charts/*/charts/
+
+# Platform AWS values (account/region); copy from gitops/platform/aws.env.example
+gitops/platform/aws.env

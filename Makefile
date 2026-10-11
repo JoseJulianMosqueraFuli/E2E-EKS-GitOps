@@ -3,7 +3,7 @@
 .PHONY: help init plan apply destroy test test-terraform-plan test-unit test-integration clean \
         mlops-install mlops-uninstall mlops-status mlops-mlflow-only mlops-monitoring-only mlops-core mlops-full \
         setup-github setup-gitlab setup-circleci setup-jenkins \
-        validate-terraform validate-kubernetes validate-platform-config validate-python validate-all \
+        platform-config validate-terraform validate-kubernetes validate-platform-config validate-python validate-all \
         dev-setup dev-format dev-lint agents-sync agents-check \
         quickstart-dev quickstart-prod \
         logs-mlflow logs-kserve logs-kubeflow \
@@ -130,11 +130,14 @@ validate-terraform: ## Validate Terraform configuration
 	@echo "Validating Terraform configuration..."
 	cd infra/environments/$(ENV) && terraform init -backend=false && terraform validate
 
-validate-kubernetes: ## Validate Kubernetes manifests
+platform-config: ## Create gitops/platform/aws.env from the example if it does not exist
+	@test -f gitops/platform/aws.env || cp gitops/platform/aws.env.example gitops/platform/aws.env
+
+validate-kubernetes: platform-config ## Validate Kubernetes manifests
 	@echo "Validating Kubernetes manifests..."
 	python3 gitops/scripts/validate_applications.py
 
-validate-platform-config: ## Fail if AWS account/region placeholders are left unresolved in rendered overlays
+validate-platform-config: platform-config ## Fail if AWS account/region placeholders are left unresolved in rendered overlays
 	@for app in argo-workflows mlflow; do \
 		for env in dev staging production; do \
 			out=$$(kustomize build gitops/applications/apps/$$app/overlays/$$env) || exit 1; \
