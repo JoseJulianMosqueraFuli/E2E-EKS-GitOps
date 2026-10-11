@@ -117,9 +117,9 @@ Para detalles técnicos de issues CRÍTICOS y ALTOS (CVSS, fix concreto), ver: [
 
 | # | Issue | Archivo(s) |
 |---|-------|------------|
-| 45 | Argo `instanceID: argo-workflows` exige el label `workflows.argoproj.io/controller-instanceid` en cada Workflow; las WorkflowTemplates y KFP no lo ponen, por lo que el controller las ignora | `gitops/applications/apps/argo-workflows/base/configmap.yaml` |
+| 45 | Argo `instanceID: argo-workflows` exige el label `workflows.argoproj.io/controller-instanceid` en cada Workflow; las WorkflowTemplates y KFP no lo ponen, por lo que el controller las ignora (confirmado en kind 2026-10-10) | `gitops/applications/apps/argo-workflows/base/configmap.yaml` |
 | 46 | Archivo de workflows deshabilitado: requiere Postgres/MySQL (bloque `persistence` removido porque sin DB el controller no arranca) | `gitops/applications/apps/argo-workflows/base/configmap.yaml` |
-| 47 | argo-server usa `--auth-mode=sso` pero el ConfigMap no define bloque `sso` (issuer, clientId, clientSecret); verificar arranque | `gitops/applications/apps/argo-workflows/base/server-deployment.yaml` |
+| 47 | argo-server usa `--auth-mode=sso` pero el ConfigMap no define bloque `sso` (issuer, clientId, clientSecret): el server entra en CrashLoopBackOff con `Error: issuer empty` (confirmado en kind 2026-10-10) | `gitops/applications/apps/argo-workflows/base/server-deployment.yaml` |
 | 10 | `monitoring` en `k8s/` no apunta a `gitops/applications/apps/monitoring/` | `k8s/mlops-stack/monitoring/kustomization.yaml` | ✅ Corregido 2026-06-26 |
 | 11 | `argo-workflows` en `k8s/` no apunta a gitops | `k8s/mlops-stack/argo-workflows/kustomization.yaml` | ✅ Corregido 2026-06-26 |
 | 12 | `feast` en `k8s/` no apunta a gitops | `k8s/mlops-stack/feast/kustomization.yaml` | ✅ Corregido 2026-06-26 |
