@@ -7,7 +7,8 @@ metadata:
     app.kubernetes.io/name: argo-workflows
     app.kubernetes.io/component: cron-workflow
 spec:
-  schedule: "0 2 * * *"  # Run daily at 2 AM UTC
+  schedules:
+    - "0 2 * * *"  # Run daily at 2 AM UTC
   timezone: "UTC"
   startingDeadlineSeconds: 0
   concurrencyPolicy: "Replace"

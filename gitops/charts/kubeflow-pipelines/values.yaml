@@ -3,14 +3,16 @@
 
 # Global settings
 global:
-  imageRegistry: "gcr.io/ml-pipeline"
+  imageRegistry: ""
   imagePullSecrets: []
+
+imageRegistry: "ghcr.io/kubeflow"
 
 # API Server Configuration
 apiServer:
   image:
-    repository: api-server
-    tag: "2.0.1"
+    repository: kfp-api-server
+    tag: "2.17.2"
     pullPolicy: IfNotPresent
 
   replicaCount: 1
@@ -30,8 +32,8 @@ apiServer:
 # Frontend Configuration
 frontend:
   image:
-    repository: frontend
-    tag: "2.0.1"
+    repository: kfp-frontend
+    tag: "2.17.2"
     pullPolicy: IfNotPresent
 
   replicaCount: 1
@@ -51,8 +53,8 @@ frontend:
 # Persistence Agent Configuration
 persistenceAgent:
   image:
-    repository: persistenceagent
-    tag: "2.0.1"
+    repository: kfp-persistence-agent
+    tag: "2.17.2"
     pullPolicy: IfNotPresent
 
   replicaCount: 1
@@ -68,8 +70,8 @@ persistenceAgent:
 # Scheduled Workflow Configuration
 scheduledWorkflow:
   image:
-    repository: scheduledworkflow
-    tag: "2.0.1"
+    repository: kfp-scheduled-workflow-controller
+    tag: "2.17.2"
     pullPolicy: IfNotPresent
 
   replicaCount: 1
@@ -85,8 +87,8 @@ scheduledWorkflow:
 # Viewer CRD Controller Configuration
 viewerCrdController:
   image:
-    repository: viewer-crd-controller
-    tag: "2.0.1"
+    repository: kfp-viewer-crd-controller
+    tag: "2.17.2"
     pullPolicy: IfNotPresent
 
   replicaCount: 1
@@ -102,8 +104,8 @@ viewerCrdController:
 # Visualization Server Configuration
 visualizationServer:
   image:
-    repository: visualization-server
-    tag: "2.0.1"
+    repository: kfp-visualization-server
+    tag: "2.17.2"
     pullPolicy: IfNotPresent
 
   replicaCount: 1
@@ -119,8 +121,8 @@ visualizationServer:
 # Metadata Writer Configuration
 metadataWriter:
   image:
-    repository: metadata-writer
-    tag: "2.0.1"
+    repository: kfp-metadata-writer
+    tag: "2.17.2"
     pullPolicy: IfNotPresent
 
   replicaCount: 1
@@ -136,8 +138,8 @@ metadataWriter:
 # Cache Server Configuration
 cacheServer:
   image:
-    repository: cache-server
-    tag: "2.0.1"
+    repository: kfp-cache-server
+    tag: "2.17.2"
     pullPolicy: IfNotPresent
 
   replicaCount: 1
@@ -149,23 +151,6 @@ cacheServer:
     limits:
       cpu: 250m
       memory: 512Mi
-
-# Workflow Controller Configuration
-workflowController:
-  image:
-    repository: workflow-controller
-    tag: "v3.3.10-license-compliance"
-    pullPolicy: IfNotPresent
-
-  replicaCount: 1
-
-  resources:
-    requests:
-      cpu: 100m
-      memory: 256Mi
-    limits:
-      cpu: 500m
-      memory: 1Gi
 
 # Service Account
 serviceAccount:
