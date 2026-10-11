@@ -44,7 +44,8 @@ env.bak/
 venv.bak/
 
 # IDE
-.vscode/
+.vscode/*
+!.vscode/mcp.json
 .idea/
 *.swp
 *.swo
@@ -98,5 +99,9 @@ secrets/
 *.key
 !*.key.example
 
-.kiro/
+.kiro/*
+!.kiro/steering/
+!.kiro/settings/
+.kiro/settings/*
+!.kiro/settings/mcp.json
 gitops/charts/*/charts/
