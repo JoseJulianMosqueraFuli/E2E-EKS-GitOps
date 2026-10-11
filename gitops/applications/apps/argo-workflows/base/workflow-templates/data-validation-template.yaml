@@ -54,7 +54,7 @@ spec:
       args: ["/app/validate_schema.py", "--input", "{{inputs.parameters.data-source}}"]
       env:
       - name: AWS_DEFAULT_REGION
-        value: "us-west-2"
+        value: "AWS_REGION"
       resources:
         requests:
           memory: "512Mi"
@@ -74,7 +74,7 @@ spec:
       args: ["/app/validate_quality.py", "--input", "{{inputs.parameters.data-source}}", "--suite", "{{inputs.parameters.validation-suite}}"]
       env:
       - name: AWS_DEFAULT_REGION
-        value: "us-west-2"
+        value: "AWS_REGION"
       resources:
         requests:
           memory: "1Gi"
@@ -93,7 +93,7 @@ spec:
       args: ["/app/generate_report.py", "--output", "{{inputs.parameters.output-path}}"]
       env:
       - name: AWS_DEFAULT_REGION
-        value: "us-west-2"
+        value: "AWS_REGION"
       resources:
         requests:
           memory: "256Mi"

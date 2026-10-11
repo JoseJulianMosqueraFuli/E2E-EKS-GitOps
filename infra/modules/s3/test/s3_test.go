@@ -17,7 +17,7 @@ func TestS3Module(t *testing.T) {
 
 		// Variables to pass to our Terraform code using -var options
 		Vars: map[string]interface{}{
-			"kms_key_arn": "arn:aws:kms:us-west-2:123456789012:key/12345678-1234-1234-1234-123456789012",
+			"kms_key_arn": "arn:aws:kms:us-east-1:123456789012:key/12345678-1234-1234-1234-123456789012",
 			"buckets": map[string]interface{}{
 				"test_raw_data": map[string]interface{}{
 					"name":               "test-mlops-raw-data",
@@ -87,7 +87,7 @@ func TestS3ModuleWithReplication(t *testing.T) {
 	terraformOptions := terraform.WithDefaultRetryableErrors(t, &terraform.Options{
 		TerraformDir: "../",
 		Vars: map[string]interface{}{
-			"kms_key_arn": "arn:aws:kms:us-west-2:123456789012:key/12345678-1234-1234-1234-123456789012",
+			"kms_key_arn": "arn:aws:kms:us-east-1:123456789012:key/12345678-1234-1234-1234-123456789012",
 			"buckets": map[string]interface{}{
 				"test_replicated": map[string]interface{}{
 					"name":               "test-mlops-replicated",
@@ -130,7 +130,7 @@ func TestS3ModuleMinimalConfig(t *testing.T) {
 	terraformOptions := terraform.WithDefaultRetryableErrors(t, &terraform.Options{
 		TerraformDir: "../",
 		Vars: map[string]interface{}{
-			"kms_key_arn": "arn:aws:kms:us-west-2:123456789012:key/12345678-1234-1234-1234-123456789012",
+			"kms_key_arn": "arn:aws:kms:us-east-1:123456789012:key/12345678-1234-1234-1234-123456789012",
 			"buckets": map[string]interface{}{
 				"test_minimal": map[string]interface{}{
 					"name":               "test-mlops-minimal",

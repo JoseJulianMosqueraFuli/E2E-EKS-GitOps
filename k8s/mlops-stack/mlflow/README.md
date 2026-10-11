@@ -131,7 +131,7 @@ Access MLflow UI at: http://localhost:5000
 | `MLFLOW_SERVER_HOST` | Server bind address | `0.0.0.0` |
 | `MLFLOW_SERVER_PORT` | Server port | `5000` |
 | `MLFLOW_SERVER_WORKERS` | Gunicorn workers | `4` |
-| `AWS_DEFAULT_REGION` | AWS region | `us-west-2` |
+| `AWS_DEFAULT_REGION` | AWS region | `us-east-1` |
 
 ### Resource Configuration
 

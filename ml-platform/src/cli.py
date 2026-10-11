@@ -11,10 +11,8 @@ import os
 import click
 
 from src.data.data_loader import DataLoader
-from src.data.data_validator import DataValidator
 from src.pipelines import steps
 from src.pipelines.inference_pipeline import InferencePipeline
-from src.pipelines.training_pipeline import TrainingPipeline
 from src.utils.config_manager import ConfigManager
 from src.utils.logging_config import MLOpsLogger, setup_logging
 
@@ -34,6 +32,8 @@ def main():
 @click.option("--environment", default="dev", help="Environment (dev/staging/prod)")
 def train_cmd(data_path, config_dir, config_name, environment):
     """Train a machine learning model."""
+    from src.pipelines.training_pipeline import TrainingPipeline
+
     config_manager = ConfigManager(config_dir=config_dir, environment=environment)
     config = config_manager.load_config(config_name)
 
@@ -103,6 +103,8 @@ def inference_cmd(
 @click.option("--create-suite", is_flag=True, help="Create new expectation suite")
 def validate_cmd(data_path, suite_name, create_suite):
     """Validate data quality."""
+    from src.data.data_validator import DataValidator
+
     loader = DataLoader()
     data = loader.load_csv(data_path)
 

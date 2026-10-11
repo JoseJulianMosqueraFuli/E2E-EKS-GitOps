@@ -26,7 +26,7 @@ pipeline {
     }
     
     environment {
-        AWS_DEFAULT_REGION = 'us-west-2'
+        AWS_DEFAULT_REGION = 'us-east-1'
         KUBECONFIG = credentials('kubeconfig')
         AWS_CREDENTIALS = credentials('aws-credentials')
     }

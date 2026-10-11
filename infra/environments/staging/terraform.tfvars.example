@@ -1,7 +1,7 @@
 # Example Terraform variables for STAGING environment
 # Copy this file to terraform.tfvars and customize as needed
 
-aws_region = "us-west-2"
+aws_region = "us-east-1"
 
 # VPC Configuration (separate CIDR from dev to avoid conflicts)
 vpc_cidr              = "10.1.0.0/16"

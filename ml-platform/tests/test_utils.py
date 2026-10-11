@@ -35,7 +35,7 @@ class TestConfigManager:
         """Return a basic configuration dictionary."""
         return {
             "environment": "dev",
-            "aws_region": "us-west-2",
+            "aws_region": "us-east-1",
             "data": {
                 "source": "local",
                 "format": "csv",
@@ -70,7 +70,7 @@ class TestConfigManager:
         manager = ConfigManager(config_dir=temp_config_dir)
         assert manager.environment == "prod"
 
-    @pytest.mark.xfail(reason="Pre-existing: default aws_region is us-east-1, not us-west-2")
+    @pytest.mark.xfail(reason="Pre-existing: default aws_region is us-east-1, not us-east-1")
     def test_load_config(self, temp_config_dir, base_config_dict):
         """Test loading configuration from file."""
         config_path = os.path.join(temp_config_dir, "config.yaml")
@@ -82,7 +82,7 @@ class TestConfigManager:
 
         assert isinstance(config, MLOpsConfig)
         assert config.environment == "dev"
-        assert config.aws_region == "us-west-2"
+        assert config.aws_region == "us-east-1"
         assert config.data.source == "local"
         assert config.model.type == "classification"
         assert config.mlflow.experiment_name == "test_experiment"

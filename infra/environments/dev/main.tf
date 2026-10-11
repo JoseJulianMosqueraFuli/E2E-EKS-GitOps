@@ -20,14 +20,14 @@ terraform {
     #
     # Activation checklist (requires AWS account):
     #   1. aws configure  (set credentials)
-    #   2. ./scripts/bootstrap-terraform-backend.sh dev us-west-2
+    #   2. ./scripts/bootstrap-terraform-backend.sh dev us-east-1
     #   3. Uncomment the block below
     #   4. cd infra/environments/dev && terraform init -migrate-state
     #   5. terraform plan  (verify state migrated correctly)
     # --------------------------------------------------------------------------
     # bucket         = "mlops-terraform-state-dev"
     # key            = "dev/terraform.tfstate"
-    # region         = "us-west-2"
+    # region         = "us-east-1"
     # dynamodb_table = "mlops-terraform-locks-dev"
     # encrypt        = true
     # kms_key_id     = "alias/mlops-dev-key"
@@ -201,6 +201,12 @@ module "ecr" {
       image_tag_mutability = "MUTABLE"
       scan_on_push         = true
       tags                 = { Purpose = "feature-processing" }
+    }
+    mlflow_server = {
+      name                 = "${local.name_prefix}-mlflow-server"
+      image_tag_mutability = "MUTABLE"
+      scan_on_push         = true
+      tags                 = { Purpose = "experiment-tracking" }
     }
   }
 

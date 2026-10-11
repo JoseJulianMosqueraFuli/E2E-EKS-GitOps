@@ -21,7 +21,7 @@ logger = logging.getLogger(__name__)
 class DataLoader:
     """Data loading utilities for various sources and formats."""
 
-    def __init__(self, aws_region: str = "us-west-2", s3_bucket: Optional[str] = None):
+    def __init__(self, aws_region: str = "us-east-1", s3_bucket: Optional[str] = None):
         """
         Initialize data loader.
 

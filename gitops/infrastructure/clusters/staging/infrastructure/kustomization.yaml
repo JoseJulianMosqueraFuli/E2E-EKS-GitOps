@@ -34,7 +34,7 @@ patches:
   - patch: |
       - op: replace
         path: /spec/postBuild/substitute/region
-        value: us-west-2
+        value: us-east-1
     target:
       kind: Kustomization
       name: infrastructure-addons

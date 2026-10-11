@@ -49,7 +49,7 @@
         "awslabs.eks-mcp-server@latest"
       ],
       "env": {
-        "AWS_REGION": "us-west-2",
+        "AWS_REGION": "us-east-1",
         "FASTMCP_LOG_LEVEL": "ERROR"
       },
       "disabled": true,

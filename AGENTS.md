@@ -57,6 +57,9 @@ poetry run pytest tests/ -v
 cd gitops && poetry install --with test,dev
 poetry run pytest tests/ -v
 
+# End-to-end smoke test: runs only in GitHub Actions (.github/workflows/e2e-kind.yml),
+# which builds the images, creates kind and runs scripts/e2e/kind-smoke.sh. Not meant for local machines.
+
 # Validation (lint/format/typecheck/k8s/tf)
 make validate-all
 make validate-python                     # flake8 + black --check + isort --check

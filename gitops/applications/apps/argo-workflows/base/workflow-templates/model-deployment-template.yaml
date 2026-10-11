@@ -20,7 +20,7 @@ spec:
     - name: mlflow-tracking-uri
       value: http://mlflow-server.mlflow:5000
     - name: ecr-repository
-      value: 123456789012.dkr.ecr.us-west-2.amazonaws.com/mlops
+      value: AWS_ACCOUNT_ID.dkr.ecr.AWS_REGION.amazonaws.com/mlops-dev-inference
   templates:
   - name: model-deployment
     dag:
@@ -139,7 +139,7 @@ spec:
       - name: ECR_REPOSITORY
         value: '{{inputs.parameters.ecr-repository}}'
       - name: AWS_DEFAULT_REGION
-        value: us-west-2
+        value: "AWS_REGION"
       - name: HOME
         value: /tmp
       volumeMounts:
@@ -224,7 +224,7 @@ spec:
       - '{{inputs.parameters.inference-image}}'
       env:
       - name: AWS_DEFAULT_REGION
-        value: us-west-2
+        value: "AWS_REGION"
       resources:
         requests:
           memory: 512Mi
@@ -249,7 +249,7 @@ spec:
       - '{{inputs.parameters.deployment-namespace}}'
       env:
       - name: AWS_DEFAULT_REGION
-        value: us-west-2
+        value: "AWS_REGION"
       resources:
         requests:
           memory: 256Mi

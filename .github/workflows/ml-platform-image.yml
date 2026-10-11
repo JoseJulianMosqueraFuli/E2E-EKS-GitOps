@@ -42,8 +42,8 @@ jobs:
           file: ml-platform/Dockerfile
           target: test
           push: false
-          cache-from: type=gha,scope=ml-platform
-          cache-to: type=gha,mode=max,scope=ml-platform
+          cache-from: type=gha,scope=ml-platform-test
+          cache-to: type=gha,mode=max,scope=ml-platform-test
 
   publish:
     name: Build and publish
@@ -56,9 +56,6 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-
-      - name: Setup QEMU
-        uses: docker/setup-qemu-action@v3
 
       - name: Setup Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -85,11 +82,14 @@ jobs:
           context: ml-platform
           file: ml-platform/Dockerfile
           target: runtime
-          platforms: linux/amd64,linux/arm64
+          platforms: linux/amd64
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           build-args: |
             GIT_COMMIT=${{ github.sha }}
             IMAGE_REF=${{ env.IMAGE_NAME }}:sha-${{ github.sha }}
-          cache-from: type=gha,scope=ml-platform
+          cache-from: |
+            type=gha,scope=ml-platform-runtime
+            type=gha,scope=ml-platform-test
+          cache-to: type=gha,mode=max,scope=ml-platform-runtime

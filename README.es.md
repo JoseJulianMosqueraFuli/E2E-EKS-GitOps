@@ -1,5 +1,8 @@
 # Plataforma MLOps E2E en EKS
 
+[![CI Pipeline](https://github.com/JoseJulianMosqueraFuli/E2E-EKS-GitOps/actions/workflows/ci.yml/badge.svg)](https://github.com/JoseJulianMosqueraFuli/E2E-EKS-GitOps/actions/workflows/ci.yml)
+[![E2E (kind)](https://github.com/JoseJulianMosqueraFuli/E2E-EKS-GitOps/actions/workflows/e2e-kind.yml/badge.svg)](https://github.com/JoseJulianMosqueraFuli/E2E-EKS-GitOps/actions/workflows/e2e-kind.yml)
+[![ML Platform Image](https://github.com/JoseJulianMosqueraFuli/E2E-EKS-GitOps/actions/workflows/ml-platform-image.yml/badge.svg)](https://github.com/JoseJulianMosqueraFuli/E2E-EKS-GitOps/actions/workflows/ml-platform-image.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Terraform](https://img.shields.io/badge/Terraform-%3E%3D1.0-blue)](https://www.terraform.io/)
 [![Kubernetes](https://img.shields.io/badge/Kubernetes-%3E%3D1.32-blue)](https://kubernetes.io/)
@@ -8,7 +11,10 @@
 
 Plataforma MLOps completa sobre Amazon EKS. Desde entrenamiento hasta producción con monitoreo incluido.
 
-> **Nota**: GitOps con ArgoCD y Flux está completamente implementado. Ver el directorio `gitops/`.
+> **Estado (octubre 2026)**: los manifiestos GitOps están completos y validados estáticamente. El camino de
+> entrenamiento (Argo Workflows → MLflow → registro de modelos con gate de promoción) se prueba de punta a
+> punta en kind dentro de CI (`.github/workflows/e2e-kind.yml`). El siguiente hito es el primer despliegue
+> completo en AWS (`us-east-1`). El trabajo pendiente está en [`backlog.md`](backlog.md).
 
 ## Qué es esto?
 
@@ -23,8 +29,8 @@ Un setup completo para correr workloads de ML en Kubernetes:
 │       │                │                     │                 │    │
 │       ▼                ▼                     ▼                 ▼    │
 │   ┌─────────┐    ┌───────────┐        ┌───────────┐    ┌─────────┐ │
-│   │Kubeflow │    │  MLflow   │        │  KServe   │    │ Grafana │ │
-│   │Pipelines│    │  Registry │        │  Serving  │    │Evidently│ │
+│   │  Argo   │    │  MLflow   │        │  KServe   │    │ Grafana │ │
+│   │Workflows│    │  Registry │        │  Serving  │    │Evidently│ │
 │   └─────────┘    └───────────┘        └───────────┘    └─────────┘ │
 │                                                                     │
 ├─────────────────────────────────────────────────────────────────────┤
@@ -39,8 +45,10 @@ Un setup completo para correr workloads de ML en Kubernetes:
 | ------------------------- | ---------------------------------------------------- |
 | **Módulos Terraform**     | VPC, EKS, S3, ECR, Glue - reutilizables y testeados  |
 | **Plataforma ML**         | Modelos listos para usar, pipelines de training, CLI |
-| **MLflow**                | Trackear experimentos, registrar modelos             |
-| **Kubeflow**              | Orquestar workflows de ML                            |
+| **Imagen `mlops-platform`** | Una sola imagen para todos los pasos del pipeline (`step split/train/evaluate/register`) |
+| **Argo Workflows v4**     | Pipeline de entrenamiento con gate de promoción contra el modelo `@champion` |
+| **MLflow 2.22**           | Experimentos y registro de modelos con aliases (imagen propia con drivers de PostgreSQL y S3) |
+| **Kubeflow Pipelines**    | UI/SDK de pipelines opcional (KFP 2.17.2)            |
 | **KServe**                | Servir modelos con autoscaling                       |
 | **Prometheus + Grafana**  | Métricas, dashboards y monitoreo de costos           |
 | **Evidently**             | Detectar data drift automáticamente                  |
@@ -49,6 +57,8 @@ Un setup completo para correr workloads de ML en Kubernetes:
 | **Gatekeeper/OPA**        | Políticas de seguridad en admisión del cluster       |
 | **Multi-ambiente**        | Configs para dev, staging, prod                      |
 | **Templates CI/CD**       | GitHub Actions, GitLab, CircleCI, Jenkins            |
+| **Prueba E2E**            | Argo + MLflow + entrenamiento en kind, solo en GitHub Actions |
+| **Reglas para agentes IA** | Reglas compartidas + MCP de solo lectura para Kiro, VS Code y Claude Code (`.agents/`) |
 
 ## Tabla de Contenidos
 
@@ -78,15 +88,19 @@ aws configure
 
 ## Dependencias Clave
 
-| Paquete            | Versión | Notas                                          |
-| ------------------ | ------- | ---------------------------------------------- |
-| MLflow             | >= 2.18 | Tracking de experimentos y registro de modelos |
-| Great Expectations | >= 0.17 | Validación de datos (1.x fluent API)           |
-| Evidently          | >= 0.4  | Detección de data drift                        |
-| scikit-learn       | >= 1.3  | Entrenamiento de modelos                       |
-| Kubernetes         | >= 27.2 | Gestión de cluster                             |
+| Paquete            | Versión     | Notas                                                      |
+| ------------------ | ----------- | ---------------------------------------------------------- |
+| MLflow             | 2.22.x      | Misma versión en el cliente (`poetry.lock`) y en la imagen del servidor |
+| scikit-learn       | >= 1.3      | Entrenamiento (preprocesamiento + modelo guardados como un solo pipeline) |
+| pandas / pyarrow   | 2.x / >= 14 | CSV y Parquet, rutas locales o `s3://`                     |
+| Great Expectations | 1.x         | Extra opcional `validation`                                |
+| Evidently          | 0.7.x       | Extra opcional `monitoring`                                |
+| Feast              | 0.40.x      | Extra opcional `features`                                  |
+| Argo Workflows     | v4.0.13     | Orquestación del pipeline                                  |
+| Kubeflow Pipelines | 2.17.2      | Opcional                                                   |
 
-> Lista completa de dependencias y extras opcionales en `ml-platform/pyproject.toml`. Instalar con Poetry.
+> Lista completa de dependencias y extras en `ml-platform/pyproject.toml`. `poetry install -E dev` instala
+> todo lo necesario para los tests; la imagen de contenedor instala solo las dependencias core.
 
 ## Inicio Rápido
 
@@ -112,6 +126,15 @@ poetry run python -m src.cli inference data/sample.csv \
 
 ### Opción B: Despliegue Completo en AWS
 
+La cuenta y la región salen de `gitops/platform/aws.env` (fuera de git; se copia desde `aws.env.example`, ver
+[`gitops/platform/README.md`](gitops/platform/README.md)). Región por defecto: `us-east-1`. Antes del primer `apply`:
+
+1. Inicializar el backend de Terraform una vez por ambiente: `./scripts/bootstrap-terraform-backend.sh dev us-east-1`
+   (ver HIGH-001 en [`critical.md`](critical.md)).
+2. Los nombres de buckets S3 son globales: confirmar que los nombres usados por Terraform y los manifiestos estén libres.
+3. Las imágenes se referencian desde ECR (`mlops-<env>-trainer`, `mlops-<env>-mlflow-server`); publicarlas
+   desde CI necesita un rol OIDC (pendiente, ver [`backlog.md`](backlog.md)).
+
 ```bash
 git clone https://github.com/JoseJulianMosqueraFuli/E2E-EKS-GitOps.git
 cd E2E-EKS-GitOps
@@ -122,7 +145,7 @@ make plan ENV=dev
 make apply ENV=dev
 
 # 2. Configurar kubectl
-aws eks update-kubeconfig --name mlops-dev-cluster --region us-west-2
+aws eks update-kubeconfig --name mlops-dev-cluster --region us-east-1
 
 # 3. Instalar stack MLOps
 make mlops-core    # MLflow + Monitoreo
@@ -160,11 +183,16 @@ make port-forward-grafana  # http://localhost:3000
 │   ├── scripts/              # Automatización (install, promote, validate)
 │   └── tests/                # Tests property-based (Hypothesis)
 ├── ml-platform/              # Código ML y pipelines
-│   ├── src/                  # Modelos, procesamiento de datos, CLI
+│   ├── src/                  # Modelos, procesamiento de datos, CLI (incluye comandos `step`)
 │   ├── tests/                # Tests unitarios e integración
+│   ├── Dockerfile            # Imagen `mlops-platform` (etapas builder / test / runtime)
+│   ├── Dockerfile.mlflow-server  # Servidor MLflow con drivers de PostgreSQL y S3
 │   └── pyproject.toml        # Paquete Python con extras opcionales
 ├── ci-cd/                    # Configuraciones CI/CD (Jenkins)
 ├── scripts/                  # Scripts de automatización
+│   └── e2e/                  # Prueba de humo en kind (corre en GitHub Actions)
+├── .github/workflows/        # CI, build de imagen, E2E en kind, promoción entre ambientes
+├── .agents/                  # Reglas y servidores MCP para agentes IA (fuente de verdad)
 └── docs/                     # Documentación
 ```
 
@@ -197,9 +225,29 @@ poetry run python -m src.cli train data/dataset.csv
 # Inferencia
 poetry run python -m src.cli inference data/input.csv --model-path artifacts/model.joblib
 
-# Validar datos
+# Validar datos (necesita el extra `validation`)
 poetry run python -m src.cli validate data/production.csv --create-suite
+
+# Pasos del pipeline (lo que ejecuta cada tarea de Argo dentro de la imagen `mlops-platform`)
+poetry run python -m src.cli step split    --input data/sample.csv --output data/run --outputs-dir out
+poetry run python -m src.cli step train    --features data/run/train.parquet --model-name clf --experiment-name dev --outputs-dir out
+poetry run python -m src.cli step evaluate --model-uri "$(cat out/model-uri.txt)" --test-data data/run/test.parquet --model-name clf --outputs-dir out
+poetry run python -m src.cli step register --model-uri "$(cat out/model-uri.txt)" --model-name clf --outputs-dir out
 ```
+
+`step evaluate` aprueba un candidato solo si alcanza `--min-score` y supera al modelo con el alias
+`@champion` por `--min-improvement`; `step register` asigna ese alias a la nueva versión.
+
+### Workflows de CI
+
+| Workflow                    | Qué hace                                                               |
+| --------------------------- | ---------------------------------------------------------------------- |
+| `ci.yml`                    | Validación de Terraform, Kubernetes, Python y Helm + escaneo de seguridad |
+| `ml-platform-image.yml`     | Tests dentro de la imagen; publica `mlops-platform` en GHCR (amd64, tags `sha-`) |
+| `e2e-kind.yml`              | Construye las dos imágenes, crea kind y ejecuta `scripts/e2e/kind-smoke.sh` |
+| `environment-promotion.yml` | Promueve cambios entre ambientes                                       |
+
+Los runners de GitHub son gratuitos para repositorios públicos, así que estos workflows no tienen costo.
 
 ### Acceder a Servicios
 
@@ -228,10 +276,11 @@ Ejecutar el test E2E completo en AWS genera costos reales. Esto es lo que puedes
 | Recurso | Costo/Hora |
 |---------|------------|
 | EKS Control Plane | $0.10 |
-| NAT Gateway | $0.045 |
-| EC2 m5.large (x2 nodos) | $0.192 c/u |
+| NAT Gateway | $0.045 + datos |
+| EC2 t3.medium (x2 nodos, default de dev) | $0.0416 c/u |
 
-**Total para un test E2E de 3 horas: ~$2.50 - $4.00 USD**
+**Total para un test E2E de 3 horas en `us-east-1`: ~$1 - $2 USD** (más EBS, load balancers y
+transferencia de datos). Precios on-demand; verificar los precios actuales de AWS antes de ejecutar.
 
 > Tip: Siempre ejecuta `make destroy ENV=dev` inmediatamente despues de testear para evitar cargos continuos.
 
@@ -295,4 +344,4 @@ Este proyecto está bajo la Licencia MIT - ver [LICENSE](LICENSE) para detalles.
 
 Construido por [Jose Julian Mosquera](https://github.com/JoseJulianMosqueraFuli)
 
-_Última actualización: Julio 2026_
+_Última actualización: 2026-10-10_

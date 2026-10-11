@@ -46,6 +46,8 @@ ENV PATH=/opt/venv/bin:$PATH \
     GIT_COMMIT=${GIT_COMMIT} \
     IMAGE_REF=${IMAGE_REF}
 
+RUN python -m src.cli step --help > /dev/null
+
 WORKDIR /tmp
 USER 8737
 

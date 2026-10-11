@@ -22,7 +22,7 @@ spec:
     - name: mlflow-tracking-uri
       value: "http://mlflow-server.mlflow:5000"
     - name: ecr-repository
-      value: "123456789012.dkr.ecr.us-west-2.amazonaws.com/mlops"
+      value: "AWS_ACCOUNT_ID.dkr.ecr.AWS_REGION.amazonaws.com/mlops-dev-inference"
   templates:
   - name: ml-pipeline
     dag:
@@ -104,7 +104,7 @@ spec:
       ]
       env:
       - name: AWS_DEFAULT_REGION
-        value: "us-west-2"
+        value: "AWS_REGION"
       resources:
         requests:
           memory: "128Mi"

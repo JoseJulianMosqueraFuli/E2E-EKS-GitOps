@@ -212,7 +212,7 @@ minio:
 externalS3:
   endpoint: ""
   bucket: mlpipeline
-  region: us-west-2
+  region: us-east-1
   accessKeyId: ""
   secretAccessKey: ""
   existingSecret: ""

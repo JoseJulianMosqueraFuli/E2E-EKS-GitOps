@@ -9,7 +9,7 @@ This Grafana dashboard estimates Kubernetes workload costs based on **resource r
 
 ## Pricing Assumptions
 
-The dashboard uses these **approximate** AWS on-demand prices (us-west-2) for estimation:
+The dashboard uses these **approximate** AWS on-demand prices (us-east-1) for estimation:
 
 | Resource | Price | Notes |
 |----------|-------|-------|

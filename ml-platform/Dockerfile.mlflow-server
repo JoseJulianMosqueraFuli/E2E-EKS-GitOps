@@ -1,0 +1,21 @@
+FROM python:3.11.17-slim-bookworm
+
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PIP_NO_CACHE_DIR=1 \
+    PIP_DISABLE_PIP_VERSION_CHECK=1 \
+    HOME=/tmp
+
+RUN pip install \
+        "mlflow==2.22.5" \
+        "psycopg2-binary==2.9.10" \
+        "boto3==1.43.9" \
+    && useradd --uid 1000 --gid 0 --home-dir /tmp --no-create-home --shell /usr/sbin/nologin mlflow \
+    && mlflow --version
+
+WORKDIR /tmp
+USER 1000
+EXPOSE 5000
+
+ENTRYPOINT ["mlflow"]
+CMD ["server", "--host=0.0.0.0", "--port=5000"]

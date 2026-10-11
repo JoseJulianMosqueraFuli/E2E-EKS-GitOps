@@ -14,30 +14,34 @@ spec:
   - Ingress
   - Egress
   ingress:
-  # Allow ingress from Argo Workflows namespace
+  # Allow ingress from Argo Workflows namespace (tracking API + direct artifact upload to MinIO)
   - from:
     - namespaceSelector:
         matchLabels:
-          name: argo-workflows
+          kubernetes.io/metadata.name: argo-workflows
     ports:
     - protocol: TCP
       port: 5000
+    - protocol: TCP
+      port: 9000
   # Allow ingress from monitoring namespace for metrics scraping
   - from:
     - namespaceSelector:
         matchLabels:
-          name: monitoring
+          kubernetes.io/metadata.name: monitoring
     ports:
     - protocol: TCP
       port: 5000
-  # Allow ingress from models namespace for model serving
+  # Allow ingress from models namespace for model serving (registry + artifact download)
   - from:
     - namespaceSelector:
         matchLabels:
-          name: models
+          kubernetes.io/metadata.name: models
     ports:
     - protocol: TCP
       port: 5000
+    - protocol: TCP
+      port: 9000
   # Allow internal communication within mlflow namespace
   - from:
     - podSelector: {}
@@ -46,12 +50,14 @@ spec:
       port: 5000
     - protocol: TCP
       port: 5432
+    - protocol: TCP
+      port: 9000
   egress:
   # Allow egress to PostgreSQL within the same namespace
   - to:
     - podSelector:
         matchLabels:
-          app: postgres
+          app: mlflow-postgresql
     ports:
     - protocol: TCP
       port: 5432
@@ -59,7 +65,7 @@ spec:
   - to:
     - podSelector:
         matchLabels:
-          app: minio
+          app: mlflow-minio
     ports:
     - protocol: TCP
       port: 9000

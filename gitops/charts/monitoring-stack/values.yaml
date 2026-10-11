@@ -164,7 +164,7 @@ driftDetection:
     bucket: "mlops-model-artifacts"
     referenceDataPrefix: "reference-data"
     currentDataPrefix: "current-data"
-    region: "us-west-2"
+    region: "us-east-1"
 
 # Alert Rules
 alertRules:

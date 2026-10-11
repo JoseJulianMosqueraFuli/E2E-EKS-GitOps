@@ -44,7 +44,8 @@ Open items of note (see `critical.md` for details):
 - **Pre-commit**: `detect-secrets` scans staged files; baseline tracked in `.secrets.baseline`.
 - **Gatekeeper/OPA**: `no-latest-tag` constraint enforced in production namespaces; Pod Security Standards enforced.
 - **Istio mTLS**: mutual TLS between MLOps services (STRICT rollout in progress — see `backlog.md` Istio section).
-- **Argo Workflows**: hardened — TLS enabled, SSO auth, `emissary` executor (no `docker.sock` mounts).
+- **Argo Workflows** (v4.0.13): TLS enabled, `--auth-mode=client` (Kubernetes token + RBAC, no anonymous access; SSO pending an OIDC provider), `emissary` executor (no `docker.sock` mounts).
+- **Container images**: non-root (`mlops-platform` UID 8737, `mlflow-server` UID 1000), dependencies pinned via `poetry.lock`.
 - **Image tagging policy**: pin to semantic versions or SHAs; `latest` is disallowed in production namespaces.
 
 ## Disclosure policy
@@ -65,4 +66,4 @@ Before submitting a change that touches security-sensitive areas:
 - [ ] Update `.secrets.baseline` if new false-positives appear: `detect-secrets scan -u .secrets.baseline`.
 - [ ] If the change affects `critical.md`/`backlog.md`, update those files accordingly.
 
-*Last updated: July 2026*
+*Last updated: 2026-10-10*

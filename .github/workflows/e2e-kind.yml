@@ -1,0 +1,84 @@
+name: E2E (kind)
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "ml-platform/**"
+      - "gitops/applications/apps/argo-workflows/**"
+      - "gitops/applications/apps/mlflow/**"
+      - "scripts/e2e/**"
+      - "gitops/platform/**"
+      - ".github/workflows/e2e-kind.yml"
+  pull_request:
+    branches: [main, staging]
+    paths:
+      - "ml-platform/**"
+      - "gitops/applications/apps/argo-workflows/**"
+      - "gitops/applications/apps/mlflow/**"
+      - "scripts/e2e/**"
+      - "gitops/platform/**"
+      - ".github/workflows/e2e-kind.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: e2e-kind-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  smoke:
+    name: Train, evaluate and register on kind
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build ML platform image
+        uses: docker/build-push-action@v6
+        with:
+          context: ml-platform
+          file: ml-platform/Dockerfile
+          target: runtime
+          load: true
+          tags: mlops-platform:0.1.0
+          cache-from: |
+            type=gha,scope=ml-platform-runtime
+            type=gha,scope=ml-platform-test
+
+      - name: Build MLflow server image
+        uses: docker/build-push-action@v6
+        with:
+          context: ml-platform
+          file: ml-platform/Dockerfile.mlflow-server
+          load: true
+          tags: mlflow-server:2.22.5
+          cache-from: type=gha,scope=mlflow-server
+          cache-to: type=gha,mode=max,scope=mlflow-server
+
+      - name: Create kind cluster
+        uses: helm/kind-action@v1
+        with:
+          cluster_name: mlops-e2e
+
+      - name: Create platform config from example
+        run: make platform-config
+
+      - name: Load images into kind under their ECR names
+        run: |
+          source gitops/platform/aws.env
+          registry="${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com"
+          docker tag mlops-platform:0.1.0 "${registry}/mlops-dev-trainer:0.1.0"
+          docker tag mlflow-server:2.22.5 "${registry}/mlops-dev-mlflow-server:2.22.5"
+          kind load docker-image "${registry}/mlops-dev-trainer:0.1.0" "${registry}/mlops-dev-mlflow-server:2.22.5" --name mlops-e2e
+
+      - name: Run end-to-end smoke test
+        env:
+          KUBE_CONTEXT: kind-mlops-e2e
+        run: bash scripts/e2e/kind-smoke.sh

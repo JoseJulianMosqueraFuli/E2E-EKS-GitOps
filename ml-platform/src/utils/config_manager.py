@@ -94,7 +94,7 @@ class MLOpsConfig:
     """Complete MLOps configuration."""
 
     environment: str = "dev"
-    aws_region: str = "us-west-2"
+    aws_region: str = "us-east-1"
     data: DataConfig = None
     model: ModelConfig = None
     preprocessing: PreprocessingConfig = None

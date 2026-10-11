@@ -3,8 +3,110 @@ kind: Kustomization
 
 resources:
   - ../../base
+  - ../../../../../platform
 
 labels:
   - pairs:
       environment: staging
     includeSelectors: false
+
+images:
+  - name: mlops-platform
+    newName: AWS_ACCOUNT_ID.dkr.ecr.AWS_REGION.amazonaws.com/mlops-staging-trainer
+
+patches:
+  - target:
+      kind: WorkflowTemplate
+      name: model-deployment-template
+    patch: |-
+      - op: test
+        path: /spec/arguments/parameters/4/name
+        value: ecr-repository
+      - op: replace
+        path: /spec/arguments/parameters/4/value
+        value: AWS_ACCOUNT_ID.dkr.ecr.AWS_REGION.amazonaws.com/mlops-staging-inference
+  - target:
+      kind: WorkflowTemplate
+      name: ml-pipeline-template
+    patch: |-
+      - op: test
+        path: /spec/arguments/parameters/5/name
+        value: ecr-repository
+      - op: replace
+        path: /spec/arguments/parameters/5/value
+        value: AWS_ACCOUNT_ID.dkr.ecr.AWS_REGION.amazonaws.com/mlops-staging-inference
+
+replacements:
+  - source:
+      kind: ConfigMap
+      name: platform-config
+      fieldPath: data.AWS_ACCOUNT_ID
+    targets:
+      - select:
+          kind: WorkflowTemplate
+          name: model-training-template
+        fieldPaths:
+          - spec.templates.[name=feature-engineering-step].container.image
+          - spec.templates.[name=train-model-step].container.image
+          - spec.templates.[name=evaluate-model-step].container.image
+          - spec.templates.[name=register-model-step].container.image
+        options:
+          delimiter: "."
+          index: 0
+      - select:
+          kind: WorkflowTemplate
+          name: model-deployment-template
+        fieldPaths:
+          - spec.arguments.parameters.[name=ecr-repository].value
+        options:
+          delimiter: "."
+          index: 0
+      - select:
+          kind: WorkflowTemplate
+          name: ml-pipeline-template
+        fieldPaths:
+          - spec.arguments.parameters.[name=ecr-repository].value
+        options:
+          delimiter: "."
+          index: 0
+  - source:
+      kind: ConfigMap
+      name: platform-config
+      fieldPath: data.AWS_REGION
+    targets:
+      - select:
+          kind: WorkflowTemplate
+          name: model-training-template
+        fieldPaths:
+          - spec.templates.[name=feature-engineering-step].container.image
+          - spec.templates.[name=train-model-step].container.image
+          - spec.templates.[name=evaluate-model-step].container.image
+          - spec.templates.[name=register-model-step].container.image
+        options:
+          delimiter: "."
+          index: 3
+      - select:
+          kind: WorkflowTemplate
+          name: model-deployment-template
+        fieldPaths:
+          - spec.arguments.parameters.[name=ecr-repository].value
+        options:
+          delimiter: "."
+          index: 3
+      - select:
+          kind: WorkflowTemplate
+          name: ml-pipeline-template
+        fieldPaths:
+          - spec.arguments.parameters.[name=ecr-repository].value
+        options:
+          delimiter: "."
+          index: 3
+      - select:
+          kind: WorkflowTemplate
+        fieldPaths:
+          - spec.templates.*.container.env.[name=AWS_DEFAULT_REGION].value
+      - select:
+          kind: WorkflowTemplate
+          name: model-deployment-template
+        fieldPaths:
+          - spec.templates.[name=build-inference-image-step].initContainers.[name=registry-login].env.[name=AWS_DEFAULT_REGION].value

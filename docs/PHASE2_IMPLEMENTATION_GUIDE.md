@@ -163,7 +163,7 @@ spec:
         kind: VPC
         spec:
           forProvider:
-            region: us-west-2
+            region: us-east-1
             cidrBlock: "10.0.0.0/16"
             enableDnsSupport: true
             enableDnsHostnames: true
@@ -180,7 +180,7 @@ metadata:
   namespace: crossplane-system
 spec:
   cidrBlock: "10.0.0.0/16"
-  region: us-west-2
+  region: us-east-1
   compositionRef:
     name: aws-vpc-composition
 ```

@@ -13,7 +13,7 @@ on:
         default: false
 
 env:
-  AWS_REGION: us-west-2
+  AWS_REGION: us-east-1
 
 jobs:
   # Infrastructure validation
@@ -96,8 +96,14 @@ jobs:
       - name: Install validation dependencies
         run: pip install -r gitops/tests/requirements.txt
 
+      - name: Create platform config from example
+        run: make platform-config
+
       - name: Validate all canonical application overlays
         run: python gitops/scripts/validate_applications.py
+
+      - name: Check AWS account/region placeholders are resolved
+        run: make validate-platform-config
 
       - name: Run GitOps regression tests
         run: python -m pytest gitops/tests/ -m "not integration" -q

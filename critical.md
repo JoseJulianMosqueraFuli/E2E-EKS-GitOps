@@ -1,6 +1,7 @@
 # Critical Issues Report - E2E-EKS-GitOps
 
 **Report Date**: 2026-06-06
+**Last Updated**: 2026-10-10
 **Project**: E2E MLOps Platform on Amazon EKS
 **Reviewer**: OpenCode AI
 **Status**: OPEN - Requires immediate action before production deployment
@@ -119,7 +120,7 @@ This document lists all **CRITICAL** and **HIGH** severity findings identified d
 - **Impact**: Risk of state file loss, no state locking, no collaboration safety.
 - **Fix**: Follow the activation checklist in each `main.tf` (requires AWS account):
   1. Run `aws configure`
-  2. Run `./scripts/bootstrap-terraform-backend.sh <env> us-west-2`
+  2. Run `./scripts/bootstrap-terraform-backend.sh <env> us-east-1`
   3. Uncomment the backend block
   4. Run `terraform init -migrate-state`
 - **Status**: Procedure documented; pending AWS account setup.
@@ -182,8 +183,9 @@ This document lists all **CRITICAL** and **HIGH** severity findings identified d
 
 ### HIGH-007: `latest` Image Tags in Argo Workflow Templates
 
-- **Files**: `k8s/mlops-stack/argo-workflows/workflow-templates/*.yaml`
+- **Files**: `gitops/applications/apps/argo-workflows/base/workflow-templates/*.yaml`
 - **Issue**: Multiple workflow templates use images like `mlops/feature-engineer:latest`, `mlops/model-trainer:latest`, etc.
+- **Status (2026-10-10)**: Partial. `model-training-template` now runs every step on the pinned `mlops-platform:0.1.0` image (built from `ml-platform/Dockerfile`, mapped to ECR per overlay). Still `:latest` and not built anywhere: `mlops/data-validator`, `mlops/kserve-deployer`, `mlops/deployment-validator`, `mlops/notifier` (backlog MEDIUM #52).
 - **Impact**: Non-reproducible ML pipelines, risk of training/inference inconsistencies.
 - **Fix**: Pin all workflow images to immutable tags (SHA or semantic version).
 - **Owner**: ML Platform / DevOps Team
@@ -265,7 +267,7 @@ This document lists all **CRITICAL** and **HIGH** severity findings identified d
 | P0 | CRIT-003: Docker executor & socket | 4h | DevSecOps | ✅ Fixed 2026-06-07 |
 | P0 | CRIT-004: ArgoCD AppProject | 2h | GitOps | Open |
 | P0 | CRIT-001 & CRIT-002: Argo Workflows TLS/Auth | 4h | Platform | ✅ Fixed 2026-06-07 |
-| P1 | HIGH-005 to HIGH-007: Pin all `latest` tags | 3h | ML Platform | Partial (HIGH-005 done 2026-06-26; HIGH-006/007 open) |
+| P1 | HIGH-005 to HIGH-007: Pin all `latest` tags | 3h | ML Platform | Partial (HIGH-005 done 2026-06-26; HIGH-007 training template pinned 2026-10-10; HIGH-006 open) |
 | P1 | HIGH-011 & HIGH-012: Python fixes | 1h | ML Platform | ✅ Fixed 2026-06-08 |
 | P1 | HIGH-013: Remove `\|\| true` from CI | 1h | DevOps | Open |
 | P2 | HIGH-001: Terraform S3 backend (requires AWS account) | 2h | Infrastructure | Open (needs AWS) |
