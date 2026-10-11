@@ -20,16 +20,35 @@ fi
 
 passed=0
 failed=0
+cleanup_container() {
+  for attempt in 1 2 3 4 5; do
+    if docker rm -f "$container_name" >/dev/null 2>&1; then
+      return 0
+    fi
+    if ! docker inspect "$container_name" >/dev/null 2>&1; then
+      sleep 1
+      if ! docker inspect "$container_name" >/dev/null 2>&1; then
+        return 0
+      fi
+    fi
+    sleep 1
+  done
+  return 1
+}
+
 for workflow in "${workflows[@]}"; do
   workflow_id=$(jq -er '.id | select(type == "string" and length > 0)' "$workflow" 2>/dev/null || true)
   if [[ ! "$workflow_id" =~ ^[A-Za-z0-9_-]+$ ]]; then
-    printf '| `%s` | FAIL (missing or invalid workflow ID) |\n' "$(basename "$workflow")" >> "$report"
+    printf '| `%s` | FAIL (missing or invalid workflow ID) |\n' "$(basename "$workflow")" | tee -a "$report"
     failed=$((failed + 1))
     continue
   fi
 
   index=$((passed + failed + 1))
-  log_file="$failure_dir/workflow-$index.log"
+  workflow_slug=$(basename "$workflow" .json | tr -cs '[:alnum:]._-' '-')
+  workflow_slug="${workflow_slug:0:80}"
+  workflow_slug="${workflow_slug%-}"
+  log_file="$failure_dir/workflow-$index-$workflow_slug.log"
   container_name="n8n-ci-$$-$index"
   if timeout --signal=TERM --kill-after=30s "$workflow_timeout" docker run \
     --name "$container_name" \
@@ -51,12 +70,17 @@ for workflow in "${workflows[@]}"; do
     -c 'n8n import:workflow --input=/home/node/workflow.json && n8n execute --id="$1"' \
     n8n-test "$workflow_id" \
     >"$log_file" 2>&1; then
-    docker rm -f "$container_name" >/dev/null 2>&1 || true
-    rm -f "$log_file"
-    printf '| `%s` | PASS |\n' "$(basename "$workflow")" >> "$report"
-    passed=$((passed + 1))
+    if cleanup_container; then
+      rm -f "$log_file"
+      printf '| `%s` | PASS |\n' "$(basename "$workflow")" >> "$report"
+      passed=$((passed + 1))
+    else
+      printf 'Failed to remove container %s after execution.\n' "$container_name" >> "$log_file"
+      printf '| `%s` | FAIL (container cleanup failed) |\n' "$(basename "$workflow")" >> "$report"
+      failed=$((failed + 1))
+    fi
   else
-    docker rm -f "$container_name" >/dev/null 2>&1 || true
+    cleanup_container || printf 'Failed to remove container %s after failure.\n' "$container_name" >> "$log_file"
     printf '| `%s` | FAIL (import, execution, or %s timeout) |\n' "$(basename "$workflow")" "$workflow_timeout" >> "$report"
     tail -n 40 "$log_file"
     failed=$((failed + 1))
