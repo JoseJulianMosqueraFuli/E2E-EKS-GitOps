@@ -83,22 +83,16 @@ n8n-workflow-test:
     DOCKER_TLS_CERTDIR: ""
   rules:
     - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
-      changes:
+      changes: &n8n_test_paths
         - n8n/**/*
         - Makefile
         - .gitlab-ci.yml
     - if: '$CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH && !$CI_OPEN_MERGE_REQUESTS'
-      changes:
-        - n8n/**/*
-        - Makefile
-        - .gitlab-ci.yml
-    - if: '$CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_BRANCH != null && !$CI_OPEN_MERGE_REQUESTS'
+      changes: *n8n_test_paths
+    - if: '$CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_BRANCH != $CI_DEFAULT_BRANCH && $CI_COMMIT_BRANCH != null && !$CI_OPEN_MERGE_REQUESTS'
       changes:
         compare_to: refs/heads/$CI_DEFAULT_BRANCH
-        paths:
-          - n8n/**/*
-          - Makefile
-          - .gitlab-ci.yml
+        paths: *n8n_test_paths
   before_script:
     - apk add --no-cache bash coreutils jq make
   script:

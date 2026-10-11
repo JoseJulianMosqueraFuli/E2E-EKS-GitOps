@@ -91,7 +91,6 @@ for workflow in "${workflows[@]}"; do
   else
     start_status=$?
   fi
-  exit_code=$(docker inspect --format '{{.State.ExitCode}}' "$container_name" 2>>"$log_file" || printf unknown)
 
   if [[ "$start_status" == "124" || "$start_status" == "137" ]]; then
     if cleanup_container "$active_container"; then
@@ -102,7 +101,11 @@ for workflow in "${workflows[@]}"; do
     printf '| `%s` | FAIL (execution exceeded %s timeout) |\n' "$(basename "$workflow")" "$workflow_timeout" >> "$report"
     tail -n 40 "$log_file"
     failed=$((failed + 1))
-  elif [[ "$start_status" != "0" || "$exit_code" != "0" ]]; then
+    continue
+  fi
+
+  exit_code=$(docker inspect --format '{{.State.ExitCode}}' "$container_name" 2>>"$log_file" || printf unknown)
+  if [[ "$start_status" != "0" || "$exit_code" != "0" ]]; then
     failure_status="$exit_code"
     if [[ "$failure_status" == "0" || "$failure_status" == "unknown" ]]; then
       failure_status="$start_status"
