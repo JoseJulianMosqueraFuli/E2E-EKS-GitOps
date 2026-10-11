@@ -24,11 +24,16 @@ labels:
       app.kubernetes.io/part-of: mlops-platform
     includeSelectors: false
 
+configurations:
+  - images-config.yaml
+
 images:
   - name: quay.io/argoproj/workflow-controller
     newTag: v4.0.13
   - name: quay.io/argoproj/argocli
     newTag: v4.0.13
+  - name: mlops-platform
+    newTag: 0.1.0
 
 patches:
   - target:

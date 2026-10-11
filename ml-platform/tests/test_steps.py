@@ -130,7 +130,7 @@ class TestTrainEvaluateRegister:
 
         assert steps.register(model_uri, "clf") == "1"
         client = mlflow.tracking.MlflowClient()
-        assert client.get_model_version_by_alias("clf", "champion").version == "1"
+        assert str(client.get_model_version_by_alias("clf", "champion").version) == "1"
 
     def test_candidate_must_beat_champion(self, mlflow_tmp, raw_csv):
         train_uri, test_uri = self._split(mlflow_tmp, raw_csv)

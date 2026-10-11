@@ -18,7 +18,7 @@ ENV VIRTUAL_ENV=/opt/venv \
     POETRY_NO_INTERACTION=1
 
 WORKDIR /build
-COPY pyproject.toml poetry.lock ./
+COPY pyproject.toml poetry.lock README.md ./
 RUN /opt/poetry/bin/poetry check --lock \
     && /opt/poetry/bin/poetry install --only main --no-root
 

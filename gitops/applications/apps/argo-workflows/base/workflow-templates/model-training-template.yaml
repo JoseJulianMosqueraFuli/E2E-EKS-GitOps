@@ -12,15 +12,58 @@ spec:
   arguments:
     parameters:
     - name: data-path
-      value: "s3://mlops-curated-data/"
+      value: "s3://mlops-curated-data/training/data.csv"
+    - name: artifacts-prefix
+      value: "s3://mlops-artifacts-bucket/training-runs"
     - name: model-name
       value: "default-model"
     - name: experiment-name
       value: "default-experiment"
     - name: mlflow-tracking-uri
       value: "http://mlflow-server.mlflow:5000"
+    - name: target-column
+      value: "target"
+    - name: task-type
+      value: "classification"
+    - name: algorithm
+      value: "random_forest"
+    - name: hyperparameters
+      value: "{}"
+    - name: min-score
+      value: "0.0"
+    - name: min-improvement
+      value: "0.0"
   templates:
   - name: model-training
+    inputs:
+      parameters:
+      - name: data-path
+      - name: model-name
+      - name: experiment-name
+      - name: mlflow-tracking-uri
+      - name: artifacts-prefix
+        value: "s3://mlops-artifacts-bucket/training-runs"
+      - name: target-column
+        value: "target"
+      - name: task-type
+        value: "classification"
+      - name: algorithm
+        value: "random_forest"
+      - name: hyperparameters
+        value: "{}"
+      - name: min-score
+        value: "0.0"
+      - name: min-improvement
+        value: "0.0"
+    outputs:
+      parameters:
+      - name: model-approved
+        valueFrom:
+          parameter: "{{tasks.evaluate-model.outputs.parameters.model-approved}}"
+      - name: model-version
+        valueFrom:
+          parameter: "{{tasks.register-model.outputs.parameters.model-version}}"
+          default: ""
     dag:
       tasks:
       - name: feature-engineering
@@ -28,7 +71,13 @@ spec:
         arguments:
           parameters:
           - name: data-path
-            value: "{{workflow.parameters.data-path}}"
+            value: "{{inputs.parameters.data-path}}"
+          - name: output-prefix
+            value: "{{inputs.parameters.artifacts-prefix}}/{{workflow.name}}"
+          - name: target-column
+            value: "{{inputs.parameters.target-column}}"
+          - name: task-type
+            value: "{{inputs.parameters.task-type}}"
       - name: train-model
         template: train-model-step
         dependencies: [feature-engineering]
@@ -37,11 +86,19 @@ spec:
           - name: features-path
             value: "{{tasks.feature-engineering.outputs.parameters.features-path}}"
           - name: model-name
-            value: "{{workflow.parameters.model-name}}"
+            value: "{{inputs.parameters.model-name}}"
           - name: experiment-name
-            value: "{{workflow.parameters.experiment-name}}"
+            value: "{{inputs.parameters.experiment-name}}"
           - name: mlflow-tracking-uri
-            value: "{{workflow.parameters.mlflow-tracking-uri}}"
+            value: "{{inputs.parameters.mlflow-tracking-uri}}"
+          - name: target-column
+            value: "{{inputs.parameters.target-column}}"
+          - name: task-type
+            value: "{{inputs.parameters.task-type}}"
+          - name: algorithm
+            value: "{{inputs.parameters.algorithm}}"
+          - name: hyperparameters
+            value: "{{inputs.parameters.hyperparameters}}"
       - name: evaluate-model
         template: evaluate-model-step
         dependencies: [train-model]
@@ -51,8 +108,18 @@ spec:
             value: "{{tasks.train-model.outputs.parameters.model-uri}}"
           - name: test-data-path
             value: "{{tasks.feature-engineering.outputs.parameters.test-data-path}}"
+          - name: model-name
+            value: "{{inputs.parameters.model-name}}"
           - name: mlflow-tracking-uri
-            value: "{{workflow.parameters.mlflow-tracking-uri}}"
+            value: "{{inputs.parameters.mlflow-tracking-uri}}"
+          - name: target-column
+            value: "{{inputs.parameters.target-column}}"
+          - name: task-type
+            value: "{{inputs.parameters.task-type}}"
+          - name: min-score
+            value: "{{inputs.parameters.min-score}}"
+          - name: min-improvement
+            value: "{{inputs.parameters.min-improvement}}"
       - name: register-model
         template: register-model-step
         dependencies: [evaluate-model]
@@ -62,14 +129,17 @@ spec:
           - name: model-uri
             value: "{{tasks.train-model.outputs.parameters.model-uri}}"
           - name: model-name
-            value: "{{workflow.parameters.model-name}}"
+            value: "{{inputs.parameters.model-name}}"
           - name: mlflow-tracking-uri
-            value: "{{workflow.parameters.mlflow-tracking-uri}}"
-  
+            value: "{{inputs.parameters.mlflow-tracking-uri}}"
+
   - name: feature-engineering-step
     inputs:
       parameters:
       - name: data-path
+      - name: output-prefix
+      - name: target-column
+      - name: task-type
     outputs:
       parameters:
       - name: features-path
@@ -79,20 +149,36 @@ spec:
         valueFrom:
           path: /tmp/test-data-path.txt
     container:
-      image: mlops/feature-engineer:latest
-      command: [python]
-      args: ["/app/feature_engineering.py", "--input", "{{inputs.parameters.data-path}}"]
+      image: mlops-platform:0.1.0
+      args:
+      - step
+      - split
+      - --input
+      - "{{inputs.parameters.data-path}}"
+      - --output
+      - "{{inputs.parameters.output-prefix}}"
+      - --target
+      - "{{inputs.parameters.target-column}}"
+      - --task-type
+      - "{{inputs.parameters.task-type}}"
       env:
       - name: AWS_DEFAULT_REGION
         value: "us-west-2"
+      envFrom:
+      - configMapRef:
+          name: ml-step-env
+          optional: true
+      - secretRef:
+          name: ml-step-credentials
+          optional: true
       resources:
         requests:
+          memory: "1Gi"
+          cpu: "500m"
+        limits:
           memory: "2Gi"
           cpu: "1000m"
-        limits:
-          memory: "4Gi"
-          cpu: "2000m"
-  
+
   - name: train-model-step
     inputs:
       parameters:
@@ -100,6 +186,10 @@ spec:
       - name: model-name
       - name: experiment-name
       - name: mlflow-tracking-uri
+      - name: target-column
+      - name: task-type
+      - name: algorithm
+      - name: hyperparameters
     outputs:
       parameters:
       - name: model-uri
@@ -109,33 +199,55 @@ spec:
         valueFrom:
           path: /tmp/run-id.txt
     container:
-      image: mlops/model-trainer:latest
-      command: [python]
-      args: [
-        "/app/train_model.py",
-        "--features", "{{inputs.parameters.features-path}}",
-        "--model-name", "{{inputs.parameters.model-name}}",
-        "--experiment-name", "{{inputs.parameters.experiment-name}}"
-      ]
+      image: mlops-platform:0.1.0
+      args:
+      - step
+      - train
+      - --features
+      - "{{inputs.parameters.features-path}}"
+      - --model-name
+      - "{{inputs.parameters.model-name}}"
+      - --experiment-name
+      - "{{inputs.parameters.experiment-name}}"
+      - --target
+      - "{{inputs.parameters.target-column}}"
+      - --task-type
+      - "{{inputs.parameters.task-type}}"
+      - --algorithm
+      - "{{inputs.parameters.algorithm}}"
+      - --params
+      - "{{inputs.parameters.hyperparameters}}"
       env:
       - name: MLFLOW_TRACKING_URI
         value: "{{inputs.parameters.mlflow-tracking-uri}}"
       - name: AWS_DEFAULT_REGION
         value: "us-west-2"
+      envFrom:
+      - configMapRef:
+          name: ml-step-env
+          optional: true
+      - secretRef:
+          name: ml-step-credentials
+          optional: true
       resources:
         requests:
+          memory: "2Gi"
+          cpu: "1000m"
+        limits:
           memory: "4Gi"
           cpu: "2000m"
-        limits:
-          memory: "8Gi"
-          cpu: "4000m"
-  
+
   - name: evaluate-model-step
     inputs:
       parameters:
       - name: model-uri
       - name: test-data-path
+      - name: model-name
       - name: mlflow-tracking-uri
+      - name: target-column
+      - name: task-type
+      - name: min-score
+      - name: min-improvement
     outputs:
       parameters:
       - name: model-approved
@@ -145,26 +257,44 @@ spec:
         valueFrom:
           path: /tmp/evaluation-metrics.json
     container:
-      image: mlops/model-evaluator:latest
-      command: [python]
-      args: [
-        "/app/evaluate_model.py",
-        "--model-uri", "{{inputs.parameters.model-uri}}",
-        "--test-data", "{{inputs.parameters.test-data-path}}"
-      ]
+      image: mlops-platform:0.1.0
+      args:
+      - step
+      - evaluate
+      - --model-uri
+      - "{{inputs.parameters.model-uri}}"
+      - --test-data
+      - "{{inputs.parameters.test-data-path}}"
+      - --model-name
+      - "{{inputs.parameters.model-name}}"
+      - --target
+      - "{{inputs.parameters.target-column}}"
+      - --task-type
+      - "{{inputs.parameters.task-type}}"
+      - --min-score
+      - "{{inputs.parameters.min-score}}"
+      - --min-improvement
+      - "{{inputs.parameters.min-improvement}}"
       env:
       - name: MLFLOW_TRACKING_URI
         value: "{{inputs.parameters.mlflow-tracking-uri}}"
       - name: AWS_DEFAULT_REGION
         value: "us-west-2"
+      envFrom:
+      - configMapRef:
+          name: ml-step-env
+          optional: true
+      - secretRef:
+          name: ml-step-credentials
+          optional: true
       resources:
         requests:
+          memory: "1Gi"
+          cpu: "500m"
+        limits:
           memory: "2Gi"
           cpu: "1000m"
-        limits:
-          memory: "4Gi"
-          cpu: "2000m"
-  
+
   - name: register-model-step
     inputs:
       parameters:
@@ -176,19 +306,28 @@ spec:
       - name: model-version
         valueFrom:
           path: /tmp/model-version.txt
+          default: ""
     container:
-      image: mlops/model-registry:latest
-      command: [python]
-      args: [
-        "/app/register_model.py",
-        "--model-uri", "{{inputs.parameters.model-uri}}",
-        "--model-name", "{{inputs.parameters.model-name}}"
-      ]
+      image: mlops-platform:0.1.0
+      args:
+      - step
+      - register
+      - --model-uri
+      - "{{inputs.parameters.model-uri}}"
+      - --model-name
+      - "{{inputs.parameters.model-name}}"
       env:
       - name: MLFLOW_TRACKING_URI
         value: "{{inputs.parameters.mlflow-tracking-uri}}"
       - name: AWS_DEFAULT_REGION
         value: "us-west-2"
+      envFrom:
+      - configMapRef:
+          name: ml-step-env
+          optional: true
+      - secretRef:
+          name: ml-step-credentials
+          optional: true
       resources:
         requests:
           memory: "512Mi"
