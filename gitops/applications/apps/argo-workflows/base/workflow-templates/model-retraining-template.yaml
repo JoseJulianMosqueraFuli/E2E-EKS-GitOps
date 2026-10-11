@@ -263,7 +263,7 @@ spec:
           - name: MLFLOW_TRACKING_URI
             value: "{{inputs.parameters.mlflow-tracking-uri}}"
           - name: AWS_DEFAULT_REGION
-            value: "us-east-1"
+            value: "AWS_REGION"
         resources:
           requests:
             memory: "1.5Gi"
@@ -604,7 +604,7 @@ spec:
           - name: MLFLOW_TRACKING_URI
             value: "{{inputs.parameters.mlflow-tracking-uri}}"
           - name: AWS_DEFAULT_REGION
-            value: "us-east-1"
+            value: "AWS_REGION"
         resources:
           requests:
             memory: "4Gi"
