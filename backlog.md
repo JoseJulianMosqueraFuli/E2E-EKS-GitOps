@@ -25,6 +25,7 @@ Para detalles técnicos de issues CRÍTICOS y ALTOS (CVSS, fix concreto), ver: [
 - [x] Egress de nodos restringido a VPC en dev/staging y parametrizado en prod `(2026-07-13)`
 - [x] KServe Gateway con HTTPS redirect automatico `(2026-07-13)`
 - [x] `LabelEncoder` incompatible reemplazado por `OrdinalEncoder` en `categorical_strategy='label'` `(2026-07-13)`
+- [x] Argo Workflows v3.5.2 -> v4.0.13 (CRDs, RBAC, config, server) y Kubeflow Pipelines 2.0.x -> 2.17.2 (imagenes `ghcr.io/kubeflow`). Pendiente validar en cluster `(2026-10-10)`
 
 ---
 
@@ -34,12 +35,12 @@ Para detalles técnicos de issues CRÍTICOS y ALTOS (CVSS, fix concreto), ver: [
 |------|----------|------|--------|-----|-------|
 | Seguridad | 1 | 3 | 9 | 2 | 15 |
 | Infra (Terraform) | 0 | 2 | 6 | 2 | 10 |
-| GitOps / K8s | 0 | 2 | 8 | 3 | 13 |
+| GitOps / K8s | 0 | 2 | 10 | 3 | 15 |
 | Plataforma ML (Python) | 0 | 0 | 2 | 2 | 4 |
 | Monitoreo | 0 | 2 | 4 | 2 | 8 |
 | CI/CD | 0 | 1 | 5 | 2 | 8 |
 | Arquitectura / Extras | 0 | 0 | 0 | 7 | 7 |
-| **TOTAL** | **1** | **10** | **34** | **20** | **65** |
+| **TOTAL** | **1** | **10** | **36** | **20** | **67** |
 
 > **4 HIGH + 1 MEDIUM resueltos el 2026-07-13**: HIGH-003 (egress), HIGH-004 (CIDR prod), HIGH-008 (KServe redirect), MEDIUM #29 (LabelEncoder), MEDIUM #30-33 (dead code/dependencies). Total anterior: 74 items.
 
@@ -91,7 +92,7 @@ Para detalles técnicos de issues CRÍTICOS y ALTOS (CVSS, fix concreto), ver: [
 
 ---
 
-## MEDIUM (34 pendientes, 4 resueltos)
+## MEDIUM (36 pendientes, 5 resueltos)
 
 ### Istio / Service Mesh (5)
 
@@ -116,6 +117,9 @@ Para detalles técnicos de issues CRÍTICOS y ALTOS (CVSS, fix concreto), ver: [
 
 | # | Issue | Archivo(s) |
 |---|-------|------------|
+| 45 | Argo `instanceID: argo-workflows` exige el label `workflows.argoproj.io/controller-instanceid` en cada Workflow; las WorkflowTemplates y KFP no lo ponen, por lo que el controller las ignora | `gitops/applications/apps/argo-workflows/base/configmap.yaml` |
+| 46 | Archivo de workflows deshabilitado: requiere Postgres/MySQL (bloque `persistence` removido porque sin DB el controller no arranca) | `gitops/applications/apps/argo-workflows/base/configmap.yaml` |
+| 47 | argo-server usa `--auth-mode=sso` pero el ConfigMap no define bloque `sso` (issuer, clientId, clientSecret); verificar arranque | `gitops/applications/apps/argo-workflows/base/server-deployment.yaml` |
 | 10 | `monitoring` en `k8s/` no apunta a `gitops/applications/apps/monitoring/` | `k8s/mlops-stack/monitoring/kustomization.yaml` | ✅ Corregido 2026-06-26 |
 | 11 | `argo-workflows` en `k8s/` no apunta a gitops | `k8s/mlops-stack/argo-workflows/kustomization.yaml` | ✅ Corregido 2026-06-26 |
 | 12 | `feast` en `k8s/` no apunta a gitops | `k8s/mlops-stack/feast/kustomization.yaml` | ✅ Corregido 2026-06-26 |
@@ -132,7 +136,7 @@ Para detalles técnicos de issues CRÍTICOS y ALTOS (CVSS, fix concreto), ver: [
 | 18 | MLflow chart usa `python:3.11-slim` en vez de imagen MLflow oficial | `gitops/charts/mlflow/values.yaml` |
 | 19 | KServe chart: `urlScheme: "http"` | `gitops/charts/kserve/values.yaml` |
 | 20 | KServe chart deshabilita NetworkPolicy y PDB | `gitops/charts/kserve/values.yaml` |
-| 21 | Kubeflow chart usa Argo workflow controller `v3.3.10` (antiguo) | `gitops/charts/kubeflow-pipelines/Chart.yaml` |
+| 21 | Kubeflow chart usa Argo workflow controller `v3.3.10` (antiguo) | `gitops/charts/kubeflow-pipelines/Chart.yaml` | ✅ Valor sin uso eliminado; Argo real actualizado a v4.0.13 y KFP a 2.17.2 (2026-10-10) |
 
 ### Terraform Infra (6)
 
