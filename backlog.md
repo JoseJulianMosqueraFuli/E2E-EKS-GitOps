@@ -96,7 +96,7 @@ Para detalles técnicos de issues CRÍTICOS y ALTOS (CVSS, fix concreto), ver: [
 
 ---
 
-## MEDIUM (44 pendientes, 7 resueltos)
+## MEDIUM (43 pendientes, 8 resueltos)
 
 ### Istio / Service Mesh (5)
 
@@ -193,7 +193,7 @@ Para detalles técnicos de issues CRÍTICOS y ALTOS (CVSS, fix concreto), ver: [
 | 43 | CircleCI: pytest/flake8/black con `|| true` | `.circleci/config.yml` |
 | 44 | Falta pipeline automatizada para Terratest Go | `.github/workflows/ci.yml` |
 | 55 | Publicar `mlops-platform` y `mlflow-server` en ECR desde CI: falta rol OIDC de GitHub en Terraform | `.github/workflows/ml-platform-image.yml`, `infra/` |
-| 56 | Primer run verde de `e2e-kind.yml` pendiente (MLflow nunca se habia ejecutado; esperar ajustes) | `.github/workflows/e2e-kind.yml`, `scripts/e2e/kind-smoke.sh` |
+| 56 | Primer run verde de `e2e-kind.yml` (entrena, evalua, registra y bloquea por el gate de promocion) | `.github/workflows/e2e-kind.yml`, `scripts/e2e/kind-smoke.sh` | ✅ Verde en `2ca2b2e` (2026-10-11): Secrets sin prefijo en kind, Postgres UID 70, MinIO reemplazado (#57), SQLAlchemy 2.0.49 fijado, `command` explicito para emissary |
 
 ---
 
