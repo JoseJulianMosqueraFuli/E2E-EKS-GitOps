@@ -15,6 +15,8 @@ nameReference:
         path: spec/target/name
       - kind: Deployment
         path: spec/template/spec/containers/env/valueFrom/secretKeyRef/name
+      - kind: Deployment
+        path: spec/template/spec/initContainers/env/valueFrom/secretKeyRef/name
       - kind: StatefulSet
         path: spec/template/spec/containers/env/valueFrom/secretKeyRef/name
       - kind: CronJob
