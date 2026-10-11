@@ -45,11 +45,23 @@ pipeline {
 
         stage('n8n Workflow Tests') {
             when {
-                anyOf {
-                    changeset 'n8n/**'
-                    changeset 'Makefile'
-                    changeset 'ci-cd/providers/jenkins/Jenkinsfile'
-                    expression { params.RUN_N8N_TESTS }
+                expression {
+                    if (params.RUN_N8N_TESTS) {
+                        return true
+                    }
+                    try {
+                        if (env.BRANCH_NAME != 'main') {
+                            sh 'git fetch --no-tags origin +refs/heads/main:refs/remotes/origin/main'
+                        }
+                        def baseRef = env.BRANCH_NAME == 'main' ? 'HEAD^' : 'origin/main'
+                        def changedFiles = sh(
+                            script: "git diff --name-only ${baseRef} HEAD -- n8n Makefile ci-cd/providers/jenkins/Jenkinsfile",
+                            returnStdout: true
+                        ).trim()
+                        return !changedFiles.isEmpty()
+                    } catch (Exception ignored) {
+                        return false
+                    }
                 }
             }
             steps {
