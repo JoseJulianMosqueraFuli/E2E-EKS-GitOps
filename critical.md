@@ -52,6 +52,7 @@ This document lists all **CRITICAL** and **HIGH** severity findings identified d
   ```
 - **References**: [Argo Workflows SSO Setup](https://argoproj.github.io/argo-workflows/argo-server-sso/)
 - **Owner**: Security / Platform Team
+- **Status (2026-10-10)**: `--auth-mode=sso` was set without an `sso` block in the ConfigMap, so argo-server crashed with `Error: issuer empty` (verified on kind). Switched to `--auth-mode=client` (Kubernetes bearer token + RBAC, no anonymous access). Move to `sso+client` once an OIDC provider (Dex/Cognito) is configured.
 
 ---
 
@@ -281,7 +282,7 @@ This document lists all **CRITICAL** and **HIGH** severity findings identified d
 Before marking this report as resolved:
 
 - [x] CRIT-001: Argo Workflows `--secure=true` (corregido 2026-06-07)
-- [x] CRIT-002: Argo Workflows `--auth-mode=sso` (corregido 2026-06-07)
+- [x] CRIT-002: Argo Workflows `--auth-mode=client` (2026-10-10; el `--auth-mode=sso` de 2026-06-07 no arrancaba sin bloque `sso`)
 - [x] CRIT-003: No `docker.sock` mounts, executor = `emissary` (corregido 2026-06-07)
 - [ ] CRIT-004: AppProject restricted to specific repos/namespaces/resources
 - [x] HIGH-009: Grafana `emptyDir` replaced with PVC (corregido 2026-06-08)

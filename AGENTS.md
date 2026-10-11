@@ -81,7 +81,7 @@ Best practices for engineering, architecture, security, ML architecture, Terrafo
 
 - **CI `|| true`**: test/lint steps in `.github/workflows/ci.yml`, `.gitlab-ci.yml`, `.circleci/config.yml` intentionally tolerate failures. **Do not remove `|| true` without explicit request** (tracked as HIGH-013 in `critical.md`, owner: DevOps).
 - **Terraform state**: backend blocks are commented out by design. Uncomment only after running `scripts/bootstrap-terraform-backend.sh` (needs AWS account).
-- **Argo Workflows** (`k8s/mlops-stack/argo-workflows/`): already hardened (TLS + SSO + emissary executor). Don't reintroduce `docker.sock` mounts or `containerRuntimeExecutor: docker`.
+- **Argo Workflows** (`k8s/mlops-stack/argo-workflows/`): already hardened (TLS + `--auth-mode=client` + emissary executor; SSO pending an OIDC provider). Don't reintroduce `docker.sock` mounts or `containerRuntimeExecutor: docker`.
 - **Gatekeeper**: `no-latest-tag` constraint is active for production namespaces. Pin image tags.
 - **AWS costs**: `make test` and `make apply` hit real AWS. Prefer `test-terraform-plan` for CI/local validation.
 

@@ -28,7 +28,7 @@ spec:
         - server
         - --configmap=workflow-controller-configmap
         - --secure=true
-        - --auth-mode=sso
+        - --auth-mode=client
         ports:
         - name: web
           containerPort: 2746
