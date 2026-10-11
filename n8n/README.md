@@ -21,8 +21,8 @@ remaining minute covers startup and shutdown. The runner needs GNU `timeout`,
 to a Docker daemon. GitLab's Docker-in-Docker runner must allow privileged
 services; CircleCI uses remote Docker, and Jenkins agents must provide Docker.
 CircleCI and Jenkins compare changed files to `main` before running the tests.
-In Jenkins, set `RUN_N8N_TESTS` to force a run if that comparison is unavailable
-or no n8n-related files changed.
+Jenkins runs the tests if it cannot compare against `main`; set
+`RUN_N8N_TESTS` to force a run when no n8n-related files changed.
 
 The standalone [GitHub Actions workflow](../.github/workflows/n8n.yml) runs when
 files under `n8n/`, `Makefile`, or that workflow change, and can also be started

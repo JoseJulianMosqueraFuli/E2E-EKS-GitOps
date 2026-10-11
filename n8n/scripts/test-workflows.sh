@@ -93,12 +93,19 @@ for workflow in "${workflows[@]}"; do
   fi
 
   if [[ "$start_status" == "124" || "$start_status" == "137" ]]; then
+    oom_killed=$(docker inspect --format '{{.State.OOMKilled}}' "$container_name" 2>>"$log_file" || printf unknown)
     if cleanup_container "$active_container"; then
       active_container=""
     else
-      printf 'Failed to remove timed-out container %s.\n' "$active_container" >> "$log_file"
+      printf 'Failed to remove container %s after interrupted execution.\n' "$active_container" >> "$log_file"
     fi
-    printf '| `%s` | FAIL (execution exceeded %s timeout) |\n' "$(basename "$workflow")" "$workflow_timeout" >> "$report"
+    if [[ "$oom_killed" == "true" ]]; then
+      printf '| `%s` | FAIL (container exceeded its memory limit) |\n' "$(basename "$workflow")" >> "$report"
+    elif [[ "$start_status" == "124" || "$oom_killed" == "false" ]]; then
+      printf '| `%s` | FAIL (execution exceeded %s timeout) |\n' "$(basename "$workflow")" "$workflow_timeout" >> "$report"
+    else
+      printf '| `%s` | FAIL (execution was killed with status %s) |\n' "$(basename "$workflow")" "$start_status" >> "$report"
+    fi
     tail -n 40 "$log_file"
     failed=$((failed + 1))
     continue

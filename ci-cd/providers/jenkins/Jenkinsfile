@@ -60,7 +60,7 @@ pipeline {
                         ).trim()
                         return !changedFiles.isEmpty()
                     } catch (Exception ignored) {
-                        return false
+                        return true
                     }
                 }
             }
