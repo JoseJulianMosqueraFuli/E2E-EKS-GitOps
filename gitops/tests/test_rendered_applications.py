@@ -3,9 +3,8 @@ from pathlib import Path
 
 import pytest
 import yaml
-from validate_applications import validate_applications
 
-from .application_helpers import generate_applications, load_application
+from .application_helpers import generate_applications, load_application, validate_applications
 
 ROOT = Path(__file__).resolve().parents[2]
 
