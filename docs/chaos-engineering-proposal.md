@@ -1,7 +1,7 @@
 # Chaos Engineering Proposal - E2E-EKS-GitOps
 
 **Scope**: MLOps platform running on Amazon EKS (MLflow, KServe, Kubeflow, ArgoCD, Prometheus/Grafana, Istio, S3/ECR/Glue).
-**Status**: Phase 1 and Phase 2 manifests implemented (`gitops/applications/apps/chaos/`); not yet run on EKS. Phases 3–4 pending.
+**Status**: Phase 1 and node-eviction manifests implemented and reviewed (`gitops/applications/apps/chaos/`); not yet run on EKS. Network partition is disabled pending isolation validation (#59). Phases 3–4 pending.
 **Last updated**: 2026-10-17
 
 ---
@@ -50,8 +50,8 @@ Scope: Worker nodes, GPU nodes, and AZ-level failures.
 |---|------------|--------|------------------|
 | 2.1 | Node drain (EC2 stop deferred) | One worker node via `node-drain`; `ec2-terminate-by-tag` needs an IRSA role (backlog #58) | Pods reschedule in < 3 min; PDBs respected; cluster autoscaler adds capacity if needed. |
 | 2.2 | GPU node loss | One GPU node via `node-drain` | GPU trainings fail gracefully and requeue on the next available GPU node. |
-| 2.3 | AZ failure | Taint all nodes in one AZ (`az-failure-test` WorkflowTemplate, `node-taint` per node) | KServe serving continues via Istio locality failover; no p95 latency > 500 ms. |
-| 2.4 | Network partition | Block egress from InferenceService pods (`models`) to `mlflow` via `pod-network-partition` | Inference services do not depend on MLflow at runtime; failure is controlled. |
+| 2.3 | Zone eviction simulation | Taint nodes in one zone; explicit confirmation, mandatory probe, surviving Ready capacity, control pods outside the target zone | Probe availability stays within the configured downtime budget; verify p95 latency separately. Does not simulate loss of AWS networking/storage. |
+| 2.4 | Network partition (disabled, #59) | Disposable model workload after verifying CNI enforcement and additive policy behavior | Prove MLflow connectivity is lost during the fault while inference remains available, then restored after cleanup. |
 
 **Metrics**: Autoscaler reaction < 3 min; KServe p95 latency < 500 ms during node chaos.
 
@@ -194,7 +194,7 @@ This is the smallest experiment that validates the most important assumption: *M
 | Approve proposal and pick target environment | Platform Lead | 30 min | Done (dev, staging) |
 | Add Litmus Helm charts to `gitops/applications/apps/chaos/` | DevOps | 2h | Done (`litmus-core` 3.31.1 + `kubernetes-chaos` 3.31.0) |
 | Create Phase 1 experiments and `mlflow-resilience-test` | DevOps | 1h | Done |
-| Create Phase 2 experiments and `az-failure-test` | DevOps | 3h | Done |
+| Create Phase 2 experiments and `az-failure-test` | DevOps | 3h | Node workflows implemented; network partition blocked by #59 |
 | IRSA role for `ec2-terminate-by-tag` | DevOps | 2h | Pending (backlog #58) |
 | Add Grafana dashboard for chaos metrics | Platform | 2h | Pending |
 | Define SLOs and pass/fail criteria | SRE + ML | 2h | Pending |

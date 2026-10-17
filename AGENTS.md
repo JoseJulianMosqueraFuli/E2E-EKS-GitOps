@@ -56,6 +56,10 @@ Place architecture, project tracking, reports, and proposals in their correspond
 and register them in `docs/README.md`. Component-specific documentation stays next to its code.
 When moving a document, update its links and references, including this file and `.agents/rules/`.
 
+Keep the public READMEs brief and aligned in English and Spanish: purpose, current status, how to start,
+and links. Put commands, configuration, component details, and contribution instructions in linked guides.
+Prioritize GitHub Actions for validation and E2E checks; running a local cluster is not a prerequisite.
+
 ## Common commands
 
 ```bash

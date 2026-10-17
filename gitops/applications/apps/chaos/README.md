@@ -8,6 +8,19 @@
 
 ---
 
+## Review status (2026-10-17)
+
+Phase 1 and the node-eviction workflows are implemented and checked statically; they have not run on EKS.
+Start with `mlflow-resilience-test` in dev after the platform deployment is healthy.
+
+- Both workflows share a mutex, validate duration limits (1–300 seconds), and wait for the availability probe before injecting faults.
+- Monitoring measures elapsed seconds, includes request timeouts, and continues until all expected ChaosEngines complete. Missing probes, API errors, exceeded downtime, and unfinished engines fail the workflow.
+- Cleanup requests a stop and waits for completion. Failures are reported; an Argo controller outage or `argo terminate` can prevent the exit handler from running, so manual recovery is still required in those cases.
+- Helm post-renderers remove the unused catalog administrator and restrict direct secret reads by the operator to `litmus`. Experiment accounts still have node and pod mutation privileges; further role separation is tracked in backlog #60.
+- Network partition is disabled pending a real isolation check (backlog #59). An experiment verdict alone does not prove traffic was blocked.
+
+Regression checks: [`test_chaos_safety.py`](../../../tests/test_chaos_safety.py), run by the existing GitHub Actions Kubernetes validation job.
+
 ## What this directory contains
 
 ```
@@ -22,6 +35,7 @@ gitops/applications/apps/chaos/
 ├── workflows/                  # Deployed in dev and staging only
 │   ├── kustomization.yaml
 │   ├── rbac.yaml               # chaos-workflow ServiceAccount (argo-workflows)
+│   ├── scripts/                # Shared readiness barrier, monitoring and cleanup scripts
 │   ├── mlflow-resilience-test.yaml  # Phase 1: pod-delete MLflow + health checks
 │   └── az-failure-test.yaml         # Phase 2: taint every node in one AZ
 ├── overlays/
@@ -72,13 +86,14 @@ Both charts come from `https://litmuschaos.github.io/litmus-helm/` and are pinne
 | `litmus-core` | `litmus-core` | `3.31.1` | CRDs (`ChaosEngine`, `ChaosExperiment`, `ChaosResult`) + chaos-operator (cluster-wide, `operatorMode: standard`) |
 | `kubernetes-chaos` | `kubernetes-chaos` | `3.31.0` | `ChaosExperiment` definitions in `litmus` (`pod-delete`, `pod-cpu-hog`, `node-drain`, `node-taint`, `pod-network-partition`, …) |
 
-There is no ChaosCenter portal and no MongoDB: experiments are submitted with `kubectl` or Argo Workflows. Litmus usage analytics are disabled (`policies.monitoring.disabled: true`). The operator tolerates the `chaos.litmuschaos.io/az-failure` taint so it survives the AZ experiment.
+There is no ChaosCenter portal and no MongoDB: experiments are submitted with `kubectl` or Argo Workflows. Litmus usage analytics are disabled (`policies.monitoring.disabled: true`). The operator tolerates the `chaos.litmuschaos.io/az-failure` taint. The AZ preflight also requires Litmus and Argo workflow pods to be outside the target zone.
 
 ### 3. RBAC
 
-- `litmus-admin` (`litmus` namespace) is the `chaosServiceAccount` of every ChaosEngine. Its ClusterRole covers pods, evictions, nodes (drain/taint), workloads, jobs, NetworkPolicies (network partition) and the Litmus CRDs. Secrets are only readable inside `litmus`.
+- `litmus-admin` (`litmus` namespace) is the `chaosServiceAccount` of every ChaosEngine. Its ClusterRole covers pods, evictions, nodes (drain/taint), workloads, jobs, NetworkPolicies (network partition) and the Litmus CRDs. Its direct secret reads are limited to `litmus`; this is not a security boundary against a principal that can create privileged pods.
 - `litmus-chaos-exporter` has read-only access to the Litmus CRDs, pods and events.
-- `chaos-workflow` (`argo-workflows` namespace) runs the validation workflows: it can create/stop ChaosEngines and read ChaosResults in `litmus`, read Deployments/StatefulSets, and list/patch nodes (to clean up the AZ taint).
+- `chaos-workflow` (`argo-workflows` namespace) runs the validation workflows: it can create/stop ChaosEngines and read ChaosResults in `litmus`, read Deployments/StatefulSets and control pods, manage probe readiness ConfigMaps, and list/patch nodes for cleanup.
+- The catalog's unused `k8s-chaos-admin` account and cluster bindings are removed by the HelmRelease post-renderer. The `litmus` operator receives secret read access through the namespace Role only (HIGH-014).
 
 ⚠️ `litmus-admin` is a powerful role. Do not change it without a security review.
 
@@ -90,7 +105,7 @@ There is no ChaosCenter portal and no MongoDB: experiments are submitted with `k
 
 #### 1. MLflow pod-delete (recommended first experiment)
 
-**Goal**: Prove that deleting one MLflow pod does not cause downtime because the Deployment runs with 2 replicas.
+**Goal**: Prove that deleting one MLflow pod does not cause downtime while at least two replicas are ready. Replica count alone does not prove availability; the probe and post-check determine the result.
 
 ```bash
 # Verify MLflow is HA first (dev overlay prefixes names with dev-)
@@ -106,7 +121,7 @@ kubectl wait --for=jsonpath='{.status.engineStatus}'=completed chaosengine/mlflo
 kubectl get chaosresult mlflow-pod-delete-pod-delete -n litmus -o jsonpath='{.status.experimentStatus.verdict}'
 ```
 
-The workflow runs: pre-check (replicas + `/health`) → pod-delete in parallel with a 1 s `/health` probe → post-check → logs a run through the MLflow REST API → report. It fails if the Litmus verdict is not `Pass` or `/health` fails for more than `max-acceptable-downtime-seconds` (default 5). The workflow aborts after 10 minutes and its exit handler stops the ChaosEngine.
+The workflow runs: pre-check (replicas + `/health`) → start the probe → pod-delete while probing → wait for engine completion → post-check → log a run through the MLflow REST API → report. Probes pause one second between requests, with a two-second request timeout. Downtime uses elapsed time, not a count of failed requests. It fails if the Litmus verdict is not `Pass` or downtime exceeds `max-acceptable-downtime-seconds` (default 5). The workflow deadline is 10 minutes; the exit handler requests a stop and reports cleanup errors.
 
 Success criteria:
 - MLflow `/health` never fails for more than 5 consecutive seconds.
@@ -184,36 +199,50 @@ Requires the GPU node group (`enable_gpu_node_group = true`) and a running GPU t
 
 #### 2.3 AZ failure
 
-**Goal**: Losing every node in one AZ keeps serving via the remaining zones.
+**Goal**: Evict workloads from every node in one zone and measure service recovery in the remaining zones. This is a taint-based eviction simulation, not an AWS AZ outage: nodes, networking, storage, and taint-tolerating pods remain available.
 
 ```bash
 kubectl get nodes -L topology.kubernetes.io/zone
 argo submit --from workflowtemplate/az-failure-test -n argo-workflows --watch \
   -p zone=<zone> \
+  -p confirm-zone-failure=true \
   -p probe-url=http://<inference-service-host>/v1/models/<model>
 ```
 
-The workflow lists the nodes in `zone` (it refuses to run if no node remains in another zone), creates one `node-taint` ChaosEngine per node in parallel with the taint `chaos.litmuschaos.io/az-failure=true:NoExecute` for `chaos-duration` seconds (default 300), probes `probe-url` every second, and finally checks that no node is still tainted or NotReady. The exit handler always stops the engines and removes the taint.
+The workflow requires a non-empty probe URL and explicit confirmation. Preflight refuses a target
+with no surviving Ready, schedulable node, an existing chaos taint, or Litmus/Argo pods in the target
+zone. Workflow pods are scheduled outside that zone. Check spare CPU, memory, GPU capacity and PVC
+zone constraints separately; the node check does not prove that workloads will fit.
+
+One `node-taint` ChaosEngine is created per target node, using
+`chaos.litmuschaos.io/az-failure=<workflow-name>:NoExecute` for `chaos-duration` seconds (default 300).
+The probe starts before injection and runs until all engines complete. Cleanup waits for the engines
+to stop before removing residual taints, and only removes taints owned by this workflow.
 
 Success criteria: the probe never fails for more than `max-acceptable-downtime-seconds` (default 10); KServe p95 latency stays < 500 ms in Grafana.
 
-If the workflow is interrupted before the exit handler runs:
+If the workflow is interrupted before the exit handler runs, first stop its ChaosEngines and verify they are completed. Inspect the taint values and remove only the affected workflow's taints:
 
 ```bash
-kubectl taint nodes -l topology.kubernetes.io/zone=<zone> chaos.litmuschaos.io/az-failure-
+kubectl get nodes -l topology.kubernetes.io/zone=<zone> -o json
+kubectl taint node <affected-node> chaos.litmuschaos.io/az-failure-
 ```
 
-#### 2.4 Network partition KServe → MLflow
+#### 2.4 Network partition KServe → MLflow (disabled)
 
-**Goal**: InferenceServices keep serving when they cannot reach MLflow.
+The manifest is parked with `engineState: stop` and requires a specific model label. Do not activate it
+until backlog #59 is resolved. The previous `NAMESPACE_SELECTOR=...=mlflow` **allowed** MLflow traffic;
+Litmus treats that selector as an allow list. The parked version allows `kube-system` for DNS, but
+isolates other destinations too and is not a selective MLflow fault.
 
-```bash
-kubectl apply -f gitops/applications/apps/chaos/experiments/pod-network-partition-kserve-mlflow.yaml
-kubectl wait --for=jsonpath='{.status.engineStatus}'=completed chaosengine/kserve-mlflow-network-partition -n litmus --timeout=600s
-kubectl get networkpolicy -n models
-```
+Kubernetes NetworkPolicies are additive: an existing policy allowing MLflow remains effective.
+Before enabling this experiment, verify CNI policy enforcement and use a disposable model workload
+with compatible policies. Prove that MLflow is reachable before the fault, unreachable from that
+workload during it, and reachable again after cleanup; probe inference independently throughout.
+Do not remove production policies just to make the experiment pass.
 
-Litmus adds a temporary egress NetworkPolicy on the InferenceService pods in `models` that blocks traffic to the `mlflow` namespace, and removes it after 300 s. Success criteria: running predictors keep answering; a predictor that restarts during the partition fails its storage initializer with a clear error instead of hanging.
+References: [Litmus network partition semantics](https://litmuschaos.github.io/litmus/experiments/categories/pods/pod-network-partition/)
+and [Kubernetes NetworkPolicies](https://kubernetes.io/docs/concepts/services-networking/network-policies/).
 
 #### EC2 instance stop (deferred)
 
@@ -264,7 +293,7 @@ spec:
 
 | Environment | Validation workflows | Notes |
 |-------------|----------------------|-------|
-| `dev` | Yes | Safe to run experiments manually. |
+| `dev` | Yes | Start with MLflow pod deletion after preflight checks. |
 | `staging` | Yes | Run experiments during business hours with team on call. |
 | `prod` | No | **No automated experiments.** Litmus is installed but experiments must be approved and scheduled manually. |
 
@@ -346,9 +375,10 @@ kubectl get chaosexperiments -n litmus
 
 1. Deploy the `chaos` application via ArgoCD in `dev` and check `kubectl get chaosexperiments -n litmus`.
 2. Run the Phase 1 experiments and `mlflow-resilience-test`; document the observed RTO per service.
-3. Run the Phase 2 experiments (node drain, AZ failure, network partition).
-4. Add the IRSA role for `ec2-terminate-by-tag` (backlog #58).
-5. Move to Phase 3: external dependency chaos (S3, ECR, MLflow DB).
+3. Validate node drain and zone eviction in dev, including cleanup after a controlled abort.
+4. Resolve network isolation (#59) and role separation (#60) before expanding the fault scope.
+5. Add the IRSA role for `ec2-terminate-by-tag` (backlog #58).
+6. Move to Phase 3: external dependency chaos (S3, ECR, MLflow DB).
 
 ---
 

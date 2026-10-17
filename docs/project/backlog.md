@@ -34,7 +34,7 @@ Para detalles técnicos de issues CRÍTICOS y ALTOS (CVSS, fix concreto), ver: [
 - [x] Smoke test E2E en kind (GitHub Actions): Argo + MLflow + entrenamiento + gate de promocion `(2026-10-10)` - pendiente primer run verde
 - [x] Terraform en GitHub Actions: validacion de dev/staging/prod y workflow manual de planes iniciales con OIDC de lectura, sin apply `(2026-10-17)` - implementado; pendiente configurar rol/variables AWS y verificar primer run. Ver `docs/terraform-ci.md`. HIGH-001 y #55 siguen pendientes.
 
-- [x] Chaos Engineering Phase 1 corregida + Phase 2 - Charts `litmus-core`/`kubernetes-chaos` fijados, exporter, WorkflowTemplates de MLflow y caida de AZ, node-drain y network partition `(2026-10-17)` - pendiente ejecutar en EKS; EC2 stop en #58
+- [x] Chaos revisado: barrera de inicio para la sonda, downtime por tiempo real, observacion hasta completar los engines, mutex, preflight de desalojo por zona y limpieza con errores visibles. RBAC de charts limitado (HIGH-014). `(2026-10-17)` - validacion estatica y pruebas con dobles; ejecucion EKS pendiente. EC2 stop #58, particion de red desactivada #59, separacion de roles #60.
 ---
 
 ## Dashboard de Estado
@@ -73,9 +73,9 @@ Para detalles técnicos de issues CRÍTICOS y ALTOS (CVSS, fix concreto), ver: [
 
 ---
 
-## HIGH (15)
+## HIGH (14)
 
-### Seguridad / Infra (8)
+### Seguridad / Infra (9)
 
 | ID | Issue | Archivo(s) | Fix |
 |----|-------|------------|-----|
@@ -87,6 +87,7 @@ Para detalles técnicos de issues CRÍTICOS y ALTOS (CVSS, fix concreto), ver: [
 | HIGH-006 | Evidently `latest` tag | `gitops/charts/monitoring-stack/values.yaml` | Pinear version |
 | HIGH-007 | Workflow templates `latest` tags | `argo-workflows/workflow-templates/*.yaml` | Pinear version |
 | HIGH-008 | KServe HTTP sin HTTPS redirect | `gitops/applications/apps/kserve/base/istio-config.yaml` | ✅ Agregado `tls.httpsRedirect: true` (2026-07-13) |
+| HIGH-014 | Charts Litmus concedian acceso directo a secretos de todo el cluster | `gitops/applications/apps/chaos/base/litmus.yaml`, `rbac.yaml` | Corregido en manifiestos: eliminado administrador del catalogo; operador solo lee secretos de `litmus`. Verificar RBAC efectivo en EKS; roles de fallos aun amplios (#60). |
 
 ### Plataforma / Monitoreo (5)
 
@@ -132,6 +133,8 @@ Para detalles técnicos de issues CRÍTICOS y ALTOS (CVSS, fix concreto), ver: [
 | 50 | Roles IRSA referenciados (`mlflow-irsa-role`, `mlops-backup-role`) no se crean en Terraform; la SA `argo-workflow` no tiene anotacion IRSA, asi que en EKS los pasos no tendrian acceso a S3 | `infra/`, `gitops/applications/apps/argo-workflows/base/rbac.yaml` |
 | 57 | MinIO dejo de publicar imagenes (Docker Hub y quay.io responden 401; repo archivado): reemplazado por Versity Gateway `versity/versitygw:v1.8.0` (S3 compatible, Apache-2). Quedan los nombres `mlflow-minio*` (Service, Secret, PVC) y menciones en docs/diagramas; renombrar a `mlflow-s3` y evaluar S3 real en dev | `gitops/applications/apps/mlflow/base/minio-*.yaml`, `docs/` |
 | 58 | Chaos Phase 2.1 `ec2-terminate-by-tag` (Litmus `kube-aws`) requiere rol IRSA para `litmus-admin` con `ec2:StopInstances`/`TerminateInstances` acotado a las instancias del node group (tag) + chart `kube-aws`; hoy se cubre con `node-drain` | `infra/modules/eks/`, `gitops/applications/apps/chaos/base/` |
+| 59 | Particion KServe→MLflow desactivada: `NAMESPACE_SELECTOR` era una allow list y las NetworkPolicies son aditivas; verificar enforcement del CNI, aislar un workload desechable y probar conectividad antes/durante/despues junto con disponibilidad de inferencia | `gitops/applications/apps/chaos/experiments/pod-network-partition-kserve-mlflow.yaml`, `infra/modules/eks/` |
+| 60 | Separar ServiceAccounts/RBAC de Chaos por tipo de fallo y namespaces destino; `litmus-admin` conserva mutacion de pods/nodos a nivel cluster y namespace privilegiado. Validar permisos efectivos y recuperacion tras abortos en EKS antes de ampliar alcance | `gitops/applications/apps/chaos/base/`, `workflows/` |
 | 47 | argo-server usa `--auth-mode=sso` pero el ConfigMap no define bloque `sso` (issuer, clientId, clientSecret): el server entra en CrashLoopBackOff con `Error: issuer empty` (confirmado en kind 2026-10-10) | `gitops/applications/apps/argo-workflows/base/server-deployment.yaml` | ✅ Cambiado a `--auth-mode=client` (token de Kubernetes + RBAC) 2026-10-10. SSO/OIDC pendiente de proveedor |
 | 10 | `monitoring` en `k8s/` no apunta a `gitops/applications/apps/monitoring/` | `k8s/mlops-stack/monitoring/kustomization.yaml` | ✅ Corregido 2026-06-26 |
 | 11 | `argo-workflows` en `k8s/` no apunta a gitops | `k8s/mlops-stack/argo-workflows/kustomization.yaml` | ✅ Corregido 2026-06-26 |
@@ -245,7 +248,7 @@ Para detalles técnicos de issues CRÍTICOS y ALTOS (CVSS, fix concreto), ver: [
 | 10 | Troubleshooting guide | Basado en experiencia real de deploy | Baja |
 | 11 | Actualizar pre-commit hooks | detect-secrets, terraform_fmt, etc. | Baja |
 | 12 | Actualizar versiones EKS addons | Fijar versiones de EBS CSI, VPC CNI, etc. | Baja |
-| 13 | Chaos Engineering | Phase 1 y 2 implementadas (sin ejecutar en EKS): `litmus-core` 3.31.1 + `kubernetes-chaos` 3.31.0 (antes el chart `litmus` = ChaosCenter, sin `ChaosExperiment`), exporter propio, `appkind: statefulset` para ArgoCD, WorkflowTemplates `mlflow-resilience-test` y `az-failure-test` (solo dev/staging), node-drain worker/GPU y network partition KServe->MLflow. Pendiente: EC2 stop (#58), dashboard Grafana, SLOs, Phase 3-4. Ver [`chaos-engineering-proposal.md`](../chaos-engineering-proposal.md). | Media |
+| 13 | Chaos Engineering | Phase 1 y 2 implementadas (sin ejecutar en EKS): `litmus-core` 3.31.1 + `kubernetes-chaos` 3.31.0 (antes el chart `litmus` = ChaosCenter, sin `ChaosExperiment`), exporter propio, `appkind: statefulset` para ArgoCD, WorkflowTemplates `mlflow-resilience-test` y `az-failure-test` (solo dev/staging), node-drain worker/GPU y simulacion de desalojo por zona con preflight. Particion KServe->MLflow desactivada (#59). Pendiente: ejecucion y recuperacion EKS, EC2 stop (#58), separacion de roles (#60), dashboard Grafana, SLOs, Phase 3-4. Ver [`chaos-engineering-proposal.md`](../chaos-engineering-proposal.md). | Media |
 
 ---
 

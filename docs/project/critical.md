@@ -3,7 +3,7 @@
 [← Documentation index](../README.md)
 
 **Report Date**: 2026-06-06
-**Last Updated**: 2026-10-10
+**Last Updated**: 2026-10-17
 **Project**: E2E MLOps Platform on Amazon EKS
 **Reviewer**: OpenCode AI
 **Status**: OPEN - Requires immediate action before production deployment
@@ -17,7 +17,7 @@ This document lists all **CRITICAL** and **HIGH** severity findings identified d
 | Severity | Count | Status |
 |----------|-------|--------|
 | CRITICAL | 4 | 3 Fixed, 1 Open (CRIT-004) |
-| HIGH | 13 | 9 Fixed (HIGH-002, 003, 004, 005, 008, 009, 010, 011, 012), 4 Open |
+| HIGH | 14 | 9 Fixed, 4 Open, 1 mitigated in manifests (HIGH-014; EKS verification pending) |
 
 ---
 
@@ -259,6 +259,20 @@ This document lists all **CRITICAL** and **HIGH** severity findings identified d
 - **Impact**: Broken code can be merged unnoticed.
 - **Fix**: Remove `|| true` from test and lint commands.
 - **Owner**: DevOps Team
+
+---
+
+## Chaos Engineering Review
+
+### HIGH-014: Litmus Helm Charts Grant Cluster-wide Secret Access
+
+- **Files**: `gitops/applications/apps/chaos/base/litmus.yaml`, `rbac.yaml`.
+- **Issue**: The pinned `kubernetes-chaos` chart installs an unused `k8s-chaos-admin` account with secret mutation permissions across namespaces. The `litmus-core` operator also receives cluster-wide secret reads. Reviewing only the repository's custom RBAC misses both grants.
+- **Fix**: Helm post-renderers remove the catalog administrator account, role, and binding. The operator's ClusterRole no longer grants secret reads; its namespaced RoleBinding permits reads only in `litmus`.
+- **Verification**: Rendered both pinned charts and applied their post-renderers offline. Regression coverage verifies the permission removal. Effective `kubectl auth can-i` checks and experiment execution on EKS are pending.
+- **Remaining scope**: This limits direct secret API access, not the powers of privileged experiment pods. Separate fault accounts and target-namespace permissions are tracked as backlog #60. Network partition remains stopped under #59.
+- **Status**: Mitigated in manifests (2026-10-17); live verification pending.
+- **Owner**: Platform / Security.
 
 ---
 
