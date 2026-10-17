@@ -2,6 +2,11 @@
 
 Guide for AI agents (and human collaborators) working on this repository.
 
+This is the shared entry point for agent instructions. `CLAUDE.md` imports this file with
+`@AGENTS.md` and must remain a single-line import. Maintain shared instructions here and in
+`.agents/rules/` so every agent follows the same guidance.
+Kiro reads this file directly. Copilot's `.github/copilot-instructions.md` links here.
+
 ## Project overview
 
 End-to-end MLOps platform on Amazon EKS: Terraform infra → EKS cluster → GitOps (ArgoCD + Flux) → MLflow / Kubeflow / KServe / Monitoring. The ML platform code lives in `ml-platform/`.
@@ -37,9 +42,19 @@ End-to-end MLOps platform on Amazon EKS: Terraform infra → EKS cluster → Git
 ## Canonical sources of truth
 
 - **Backlog & priorities**: `docs/project/backlog.md` (canonical), `docs/project/critical.md` (CRITICAL/HIGH details).
+- **Architecture overview**: [`docs/architecture/implementation.md`](docs/architecture/implementation.md).
+- **Historical validation report**: [`docs/reports/validation-report.md`](docs/reports/validation-report.md) is a snapshot; current status belongs in the backlog.
+- **Resilience and recovery proposal**: [`docs/proposals/resilience-recovery.md`](docs/proposals/resilience-recovery.md).
 - **GitOps manifests**: `gitops/applications/apps/<app>/base/` is canonical. `k8s/mlops-stack/<app>/kustomization.yaml` should point to it (ref-bound, not duplicated; argo-workflows and mlflow point to the `dev` overlay so the AWS placeholders are resolved).
 - **Documentation hub**: `docs/README.md`.
 - **Image tags**: pin to semantic versions or SHAs. Gatekeeper enforces no `:latest` in production namespaces.
+
+## Documentation placement
+
+Keep only `README.md`, `README.es.md`, `SECURITY.md`, `AGENTS.md`, and `CLAUDE.md` at the repository root.
+Place architecture, project tracking, reports, and proposals in their corresponding `docs/` directories
+and register them in `docs/README.md`. Component-specific documentation stays next to its code.
+When moving a document, update its links and references, including this file and `.agents/rules/`.
 
 ## Common commands
 
@@ -81,7 +96,11 @@ make dev-format                          # black + isort (writes)
 
 ## Agent rules (always apply)
 
-Best practices for engineering, architecture, security, ML architecture, Terraform, Kubernetes/GitOps, Python, ML engineering, CI/CD and docs live in `.agents/rules/`. Follow them for every change. MCP servers are read-only by policy.
+Before any change, read the shared [engineering](.agents/rules/engineering.md),
+[architecture](.agents/rules/architecture.md), [security](.agents/rules/security.md), and
+[ML architecture](.agents/rules/ml-architecture.md) rules. Then consult the
+[rule index](.agents/README.md#rules) and read the rules matching the files and domains involved.
+These references replace per-tool rule files. MCP servers are read-only by policy.
 
 ## Conventions
 
@@ -127,6 +146,6 @@ Best practices for engineering, architecture, security, ML architecture, Terrafo
 - `.secrets.baseline` — baseline for detect-secrets.
 - `Makefile` — single entry point for most operations.
 - `.agents/` — source of truth for AI agent rules (`rules/`) and MCP servers (`mcp/servers.json`). See `.agents/README.md`.
-- `.kiro/steering/`, `.kiro/settings/mcp.json`, `.github/instructions/`, `.vscode/mcp.json`, `.claude/rules/`, `.mcp.json` — **generated** by `make agents-sync`; do not edit by hand.
+- `CLAUDE.md`, `.github/copilot-instructions.md`, `.kiro/settings/mcp.json`, `.vscode/mcp.json`, `.mcp.json` — **generated** by `make agents-sync`; do not edit by hand. Shared rules stay in `.agents/`; per-tool rule copies are not generated.
 
-*Last updated: 2026-10-10*
+*Last updated: 2026-10-17*

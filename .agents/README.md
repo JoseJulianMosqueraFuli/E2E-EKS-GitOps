@@ -1,58 +1,63 @@
-# .agents — AI agent configuration (source of truth)
+# .agents — shared rules and MCP configuration
 
-Single source for the rules and MCP servers used by every AI assistant on this repo (Kiro, VS Code / GitHub Copilot, Claude Code). Edit here, then generate the tool-specific bridge files (frontmatter + a reference back to `.agents/rules/`, no copied content):
-
-```bash
-make agents-sync    # regenerate
-make agents-check   # fail if generated files are stale
-```
+[AGENTS.md](../AGENTS.md) is the shared entry point for project instructions. The detailed rules live
+only in this directory. Claude and Copilot reference that entry point; Kiro reads it directly.
 
 ## Layout
 
 | Path | Content |
 |------|---------|
-| `rules/*.md` | Best practices and agent documentation, one topic per file |
-| `mcp/servers.json` | MCP servers (all read-only) |
+| [`../AGENTS.md`](../AGENTS.md) | Project context and instructions for reading the shared rules |
+| `rules/*.md` | Engineering guidance, maintained once per topic |
+| `mcp/servers.json` | Canonical MCP server configuration (all read-only) |
 
 ## Rules
 
-| Rule | Loaded |
-|------|--------|
-| `engineering.md` | always |
-| `architecture.md` | always |
-| `security.md` | always |
-| `ml-architecture.md` | always |
-| `terraform.md` | `**/*.tf`, `infra/**` |
-| `kubernetes-gitops.md` | `k8s/**`, `gitops/applications/**`, `gitops/charts/**`, `gitops/infrastructure/**` |
-| `python.md` | `**/*.py`, `**/pyproject.toml` |
-| `ml-engineering.md` | `ml-platform/**` |
-| `ci-cd.md` | CI configs, `Makefile` |
-| `documentation.md` | `docs/**`, `**/*.md` |
+Before changing files, read the rules marked **always**, then the rules relevant to the task.
+`AGENTS.md` directs each agent to this index. Frontmatter records each rule's scope; separate per-tool
+files for automatic path-based inclusion are no longer generated.
 
-Each rule has frontmatter:
+| Rule | Read when |
+|------|-----------|
+| [Engineering](rules/engineering.md) | always |
+| [Architecture](rules/architecture.md) | always |
+| [Security](rules/security.md) | always |
+| [ML architecture](rules/ml-architecture.md) | always |
+| [Terraform](rules/terraform.md) | `**/*.tf`, `infra/**` |
+| [Kubernetes / GitOps](rules/kubernetes-gitops.md) | `k8s/**`, `gitops/applications/**`, `gitops/charts/**`, `gitops/infrastructure/**` |
+| [Python](rules/python.md) | `**/*.py`, `**/pyproject.toml` |
+| [ML engineering](rules/ml-engineering.md) | `ml-platform/**` |
+| [CI/CD](rules/ci-cd.md) | CI configs, `Makefile` |
+| [Documentation](rules/documentation.md) | `docs/**`, `**/*.md` |
 
-```markdown
----
-description: One line describing the rule
-globs: comma, separated, globs   # empty = always loaded
----
+## Tool entry points
+
+| Tool | Shared instructions | MCP configuration |
+|------|---------------------|-------------------|
+| Kiro | Root `AGENTS.md`, loaded natively | `.kiro/settings/mcp.json` |
+| VS Code / Copilot | `.github/copilot-instructions.md` links to `AGENTS.md` | `.vscode/mcp.json` |
+| Claude Code | `CLAUDE.md` contains only `@AGENTS.md` | `.mcp.json` |
+
+Kiro's [AGENTS.md support](https://kiro.dev/docs/steering/#agentsmd), Claude's
+[imports](https://code.claude.com/docs/en/memory), and VS Code's
+[instruction references](https://code.visualstudio.com/docs/agent-customization/custom-instructions)
+let the tools share project guidance. The tool-specific MCP files remain necessary because their
+locations, schemas, and environment-variable syntax differ.
+
+```bash
+make agents-sync
+make agents-check
 ```
 
-## Generated bridge files (do not edit)
-
-Each tool references the canonical rule with its own include syntax: Kiro `#[[file:...]]`, Claude Code `@...`, Copilot a Markdown link.
-
-| Tool | Rules | MCP |
-|------|-------|-----|
-| Kiro | `.kiro/steering/*.md` | `.kiro/settings/mcp.json` |
-| VS Code (Copilot) | `.github/instructions/*.instructions.md` | `.vscode/mcp.json` |
-| Claude Code | `.claude/rules/*.md` | `.mcp.json` |
-
-`AGENTS.md` (root) is read natively by Kiro, Copilot and Codex; `CLAUDE.md` imports it for Claude Code.
+`agents-sync` generates the two small instruction entry points and the three MCP configurations.
+It also removes obsolete generated rule references from `.kiro/steering/`, `.claude/rules/`, and
+`.github/instructions/`; if one contains customized instructions, it stops without deleting it.
+`agents-check` reports stale generated files or obsolete references without writing anything.
+Edit `AGENTS.md`, the shared rules, and `mcp/servers.json`; let the generator maintain the tool files.
 
 ## MCP servers
 
-All servers are read-only. None mutate AWS, the cluster or GitHub.
+All servers are read-only. None mutate AWS, the cluster, or GitHub.
 
 | Server | Purpose | Requirements |
 |--------|---------|--------------|
@@ -62,4 +67,5 @@ All servers are read-only. None mutate AWS, the cluster or GitHub.
 | `eks` | EKS inspection (no `--allow-write`) | `uv`, AWS credentials — disabled in Kiro by default |
 | `kubernetes` | kubectl read-only (`ALLOW_ONLY_READONLY_TOOLS`) | Node, kubeconfig — disabled in Kiro by default |
 
-Secrets are never stored here: reference them as `{env:VAR}` in `servers.json` and the generator renders the right syntax per tool.
+Secrets are never stored here: reference them as `{env:VAR}` in `servers.json`; the generator renders
+that reference in each tool's required format.

@@ -101,7 +101,6 @@ secrets/
 !*.key.example
 
 .kiro/*
-!.kiro/steering/
 !.kiro/settings/
 .kiro/settings/*
 !.kiro/settings/mcp.json

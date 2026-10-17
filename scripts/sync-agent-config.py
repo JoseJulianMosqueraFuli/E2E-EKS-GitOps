@@ -10,64 +10,27 @@ MCP_SOURCE = ROOT / ".agents" / "mcp" / "servers.json"
 ENV_REF = re.compile(r"\{env:([A-Za-z_][A-Za-z0-9_]*)\}")
 
 
-def parse_rule(path):
-    text = path.read_text()
-    match = re.match(r"^---\n(.*?)\n---\n+(.*)$", text, re.S)
-    if not match:
-        raise SystemExit(f"{path}: missing frontmatter")
-    meta = {}
-    for line in match.group(1).splitlines():
-        key, _, value = line.partition(":")
-        meta[key.strip()] = value.strip()
-    globs = [g.strip() for g in meta.get("globs", "").split(",") if g.strip()]
-    return {
-        "name": path.stem,
-        "description": meta.get("description", ""),
-        "globs": globs,
-        "source": path.relative_to(ROOT).as_posix(),
-    }
-
-
-def yaml_str(value):
-    return json.dumps(value)
-
-
-def kiro_rule(rule):
-    lines = ["---"]
-    if rule["globs"]:
-        lines.append("inclusion: fileMatch")
-        if len(rule["globs"]) == 1:
-            lines.append(f"fileMatchPattern: {yaml_str(rule['globs'][0])}")
-        else:
-            lines.append(f"fileMatchPattern: [{', '.join(yaml_str(g) for g in rule['globs'])}]")
-    else:
-        lines.append("inclusion: always")
-    lines += ["---", "", f"#[[file:{rule['source']}]]", ""]
-    return "\n".join(lines)
-
-
-def copilot_rule(rule):
-    apply_to = ",".join(rule["globs"]) if rule["globs"] else "**"
-    lines = [
-        "---",
-        f"description: {yaml_str(rule['description'])}",
-        f"applyTo: {yaml_str(apply_to)}",
-        "---",
-        "",
-        f"Read and follow [{rule['name']}](../../{rule['source']}).",
-        "",
-    ]
-    return "\n".join(lines)
-
-
-def claude_rule(rule):
-    include = f"@../../{rule['source']}\n"
-    if not rule["globs"]:
-        return include
-    lines = ["---", "paths:"]
-    lines += [f"  - {yaml_str(g)}" for g in rule["globs"]]
-    lines += ["---", "", include]
-    return "\n".join(lines)
+def legacy_bridges() -> list[Path]:
+    obsolete = []
+    for rule in sorted(RULES_DIR.glob("*.md")):
+        source = rule.relative_to(ROOT).as_posix()
+        references = {
+            ROOT / ".kiro" / "steering" / rule.name: f"#[[file:{source}]]",
+            ROOT / ".claude" / "rules" / rule.name: f"@../../{source}",
+            ROOT / ".github" / "instructions" / f"{rule.stem}.instructions.md": (
+                f"Read and follow [{rule.stem}](../../{source})."
+            ),
+        }
+        for path, reference in references.items():
+            if not path.exists():
+                continue
+            body = re.sub(r"\A---\n.*?\n---\n*", "", path.read_text(), count=1, flags=re.S)
+            if body.strip() != reference:
+                raise SystemExit(
+                    f"Preserving modified legacy instructions: {path.relative_to(ROOT)}"
+                )
+            obsolete.append(path)
+    return obsolete
 
 
 def render_env(env, style):
@@ -99,20 +62,19 @@ def mcp_configs(servers):
 
 
 def build_outputs():
-    outputs = {}
-    for path in sorted(RULES_DIR.glob("*.md")):
-        rule = parse_rule(path)
-        outputs[ROOT / ".kiro" / "steering" / f"{rule['name']}.md"] = kiro_rule(rule)
-        outputs[ROOT / ".github" / "instructions" / f"{rule['name']}.instructions.md"] = (
-            copilot_rule(rule)
-        )
-        outputs[ROOT / ".claude" / "rules" / f"{rule['name']}.md"] = claude_rule(rule)
+    outputs = {
+        ROOT / "CLAUDE.md": "@AGENTS.md\n",
+        ROOT / ".github" / "copilot-instructions.md": (
+            "Read and follow [AGENTS.md](../AGENTS.md) before starting any task.\n"
+        ),
+    }
     outputs.update(mcp_configs(json.loads(MCP_SOURCE.read_text())["servers"]))
     return outputs
 
 
 def main():
     check = "--check" in sys.argv[1:]
+    obsolete = legacy_bridges()
     stale = []
     for path, content in build_outputs().items():
         current = path.read_text() if path.exists() else None
@@ -122,12 +84,26 @@ def main():
         if not check:
             path.parent.mkdir(parents=True, exist_ok=True)
             path.write_text(content)
-    if check and stale:
+    if check and (stale or obsolete):
         print("Out of date (run `make agents-sync`):")
         for path in stale:
             print(f"  {path}")
+        for path in obsolete:
+            print(f"  Remove legacy bridge: {path.relative_to(ROOT)}")
         return 1
-    print(f"{'Checked' if check else 'Synced'}: {len(stale)} file(s) {'stale' if check else 'updated'}")
+    if not check:
+        for path in obsolete:
+            path.unlink()
+        for directory in sorted({path.parent for path in obsolete}):
+            if not any(directory.iterdir()):
+                directory.rmdir()
+        claude_directory = ROOT / ".claude"
+        if claude_directory.is_dir() and not any(claude_directory.iterdir()):
+            claude_directory.rmdir()
+        print(f"Removed {len(obsolete)} legacy bridge file(s)")
+    action = "Checked" if check else "Synced"
+    status = "stale" if check else "updated"
+    print(f"{action}: {len(stale)} file(s) {status}")
     return 0
 
 
