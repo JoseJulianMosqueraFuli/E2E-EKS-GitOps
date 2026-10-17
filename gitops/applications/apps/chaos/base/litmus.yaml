@@ -7,33 +7,61 @@ spec:
   interval: 1h
   url: https://litmuschaos.github.io/litmus-helm/
 ---
-apiVersion: helm.toolkit.fluxcd.io/v2beta1
+apiVersion: helm.toolkit.fluxcd.io/v2beta2
 kind: HelmRelease
 metadata:
-  name: litmus
+  name: litmus-core
   namespace: litmus
 spec:
   interval: 1h
   chart:
     spec:
-      chart: litmus
-      version: "3.16.x"
+      chart: litmus-core
+      version: "3.31.1"
+      sourceRef:
+        kind: HelmRepository
+        name: litmuschaos
+        namespace: litmus
+  install:
+    crds: CreateReplace
+  upgrade:
+    crds: CreateReplace
+  values:
+    operatorMode: standard
+    operator:
+      image:
+        pullPolicy: IfNotPresent
+    exporter:
+      enabled: false
+    policies:
+      monitoring:
+        disabled: true
+    tolerations:
+      - key: chaos.litmuschaos.io/az-failure
+        operator: Exists
+        effect: NoExecute
+---
+apiVersion: helm.toolkit.fluxcd.io/v2beta2
+kind: HelmRelease
+metadata:
+  name: kubernetes-chaos
+  namespace: litmus
+spec:
+  interval: 1h
+  dependsOn:
+    - name: litmus-core
+  chart:
+    spec:
+      chart: kubernetes-chaos
+      version: "3.31.0"
       sourceRef:
         kind: HelmRepository
         name: litmuschaos
         namespace: litmus
   values:
-    portal:
-      server:
-        # Disable the portal UI by default; use kubectl/Argo Workflows to run experiments.
-        enabled: false
-    # Scope to the litmus namespace by default.
-    mongodb:
-      enabled: true
-      persistence:
-        enabled: true
-        size: 8Gi
-    # Minimal agent for dev/staging.
-    agent:
-      enabled: true
-      selfDeployer: true
+    image:
+      litmusGO:
+        pullPolicy: IfNotPresent
+    environment:
+      runtime: containerd
+      socketPath: /run/containerd/containerd.sock

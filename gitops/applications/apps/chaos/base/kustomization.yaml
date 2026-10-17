@@ -7,9 +7,11 @@ resources:
   - namespace.yaml
   - litmus.yaml
   - rbac.yaml
+  - exporter.yaml
   - metrics-service.yaml
 
-commonLabels:
-  app.kubernetes.io/name: litmus
-  app.kubernetes.io/component: chaos-engineering
-  app.kubernetes.io/managed-by: argocd
+labels:
+  - pairs:
+      app.kubernetes.io/part-of: mlops-platform
+      app.kubernetes.io/managed-by: argocd
+    includeSelectors: false

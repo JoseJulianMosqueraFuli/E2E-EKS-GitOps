@@ -11,7 +11,7 @@ spec:
   appinfo:
     appns: "argocd"
     applabel: "app.kubernetes.io/name=argocd-application-controller"
-    appkind: "deployment"
+    appkind: "statefulset"
   engineState: "active"
   chaosServiceAccount: litmus-admin
   experiments:

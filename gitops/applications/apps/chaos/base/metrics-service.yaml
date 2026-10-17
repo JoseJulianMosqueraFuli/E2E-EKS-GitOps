@@ -14,8 +14,8 @@ spec:
   ports:
     - name: metrics
       port: 8080
-      targetPort: 8080
+      targetPort: metrics
       protocol: TCP
   selector:
-    app.kubernetes.io/name: litmus
-    app.kubernetes.io/component: chaos-exporter
+    app.kubernetes.io/name: litmus-chaos-exporter
+    app.kubernetes.io/component: metrics
