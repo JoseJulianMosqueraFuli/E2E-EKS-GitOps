@@ -42,6 +42,7 @@ _Last updated: 2026-10-10_
 | -------------------------------------------------------- | ----------------------------------------------------- |
 | [`quick-start-guide.md`](quick-start-guide.md)           | 5-minute setup guide.                                 |
 | [`ml-platform-guide.md`](ml-platform-guide.md)           | ML code, pipelines, CLI usage (local-first).          |
+| [`../n8n/README.md`](../n8n/README.md)                   | n8n automation, CI tests, and planned EKS deployment. |
 | [`model-monitoring-guide.md`](model-monitoring-guide.md) | Evidently drift detection + Grafana monitoring setup. |
 | [`../gitops/README.md`](../gitops/README.md)             | GitOps architecture (Flux + ArgoCD).                  |
 | [`../gitops/SETUP.md`](../gitops/SETUP.md)               | GitOps installation steps.                            |

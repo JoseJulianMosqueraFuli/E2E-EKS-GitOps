@@ -63,6 +63,7 @@ Thumbs.db
 # Logs
 *.log
 logs/
+n8n-test-artifacts/
 
 # Docker
 .dockerignore

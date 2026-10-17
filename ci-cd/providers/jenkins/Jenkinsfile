@@ -23,6 +23,11 @@ pipeline {
             defaultValue: false,
             description: 'Trigger model training'
         )
+        booleanParam(
+            name: 'RUN_N8N_TESTS',
+            defaultValue: false,
+            description: 'Run n8n workflow tests'
+        )
     }
     
     environment {
@@ -35,6 +40,39 @@ pipeline {
         stage('Checkout') {
             steps {
                 checkout scm
+            }
+        }
+
+        stage('n8n Workflow Tests') {
+            when {
+                expression {
+                    if (params.RUN_N8N_TESTS) {
+                        return true
+                    }
+                    try {
+                        if (env.BRANCH_NAME != 'main') {
+                            sh 'git fetch --no-tags origin +refs/heads/main:refs/remotes/origin/main'
+                        }
+                        def diffRange = env.BRANCH_NAME == 'main' ? 'HEAD^ HEAD' : 'origin/main...HEAD'
+                        def changedFiles = sh(
+                            script: "git diff --name-only ${diffRange} -- n8n Makefile ci-cd/providers/jenkins/Jenkinsfile",
+                            returnStdout: true
+                        ).trim()
+                        return !changedFiles.isEmpty()
+                    } catch (Exception ignored) {
+                        return true
+                    }
+                }
+            }
+            steps {
+                timeout(time: 30, unit: 'MINUTES') {
+                    sh 'make test-n8n'
+                }
+            }
+            post {
+                always {
+                    archiveArtifacts artifacts: 'n8n-test-artifacts/**', allowEmptyArchive: true
+                }
             }
         }
         
