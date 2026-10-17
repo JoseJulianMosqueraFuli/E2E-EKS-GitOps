@@ -1,0 +1,31 @@
+apiVersion: litmuschaos.io/v1alpha1
+kind: ChaosEngine
+metadata:
+  name: worker-node-drain
+  namespace: litmus
+  labels:
+    app.kubernetes.io/name: worker-node-drain
+    app.kubernetes.io/component: chaos-experiment
+    environment: dev
+spec:
+  engineState: "active"
+  jobCleanUpPolicy: "delete"
+  chaosServiceAccount: litmus-admin
+  experiments:
+    - name: node-drain
+      spec:
+        components:
+          env:
+            # Replace with a general-purpose node that does not host the Litmus
+            # operator or runner (see README: "Phase 2 experiments").
+            - name: TARGET_NODE
+              value: "REPLACE_WITH_NODE_NAME"
+            - name: TOTAL_CHAOS_DURATION
+              value: "300"
+            - name: DEFAULT_HEALTH_CHECK
+              value: "false"
+          experimentAnnotations:
+            environment: dev
+            target-service: worker-nodes
+            phase: "phase-2-node-chaos"
+            note: "pods-reschedule-pdbs-respected"

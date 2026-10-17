@@ -1,0 +1,35 @@
+apiVersion: litmuschaos.io/v1alpha1
+kind: ChaosEngine
+metadata:
+  name: kserve-mlflow-network-partition
+  namespace: litmus
+  labels:
+    app.kubernetes.io/name: kserve-mlflow-network-partition
+    app.kubernetes.io/component: chaos-experiment
+    environment: dev
+spec:
+  appinfo:
+    appns: "models"
+    applabel: "serving.kserve.io/inferenceservice"
+    appkind: "deployment"
+  engineState: "active"
+  jobCleanUpPolicy: "delete"
+  chaosServiceAccount: litmus-admin
+  experiments:
+    - name: pod-network-partition
+      spec:
+        components:
+          env:
+            - name: TOTAL_CHAOS_DURATION
+              value: "300"
+            # Block egress from every InferenceService pod to the mlflow namespace.
+            # Serving must not depend on MLflow at runtime.
+            - name: POLICY_TYPES
+              value: "egress"
+            - name: NAMESPACE_SELECTOR
+              value: "kubernetes.io/metadata.name=mlflow"
+          experimentAnnotations:
+            environment: dev
+            target-service: kserve
+            phase: "phase-2-network-chaos"
+            note: "inference-independent-of-mlflow"

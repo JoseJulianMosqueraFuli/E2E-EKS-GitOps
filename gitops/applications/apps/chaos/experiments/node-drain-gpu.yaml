@@ -1,0 +1,30 @@
+apiVersion: litmuschaos.io/v1alpha1
+kind: ChaosEngine
+metadata:
+  name: gpu-node-drain
+  namespace: litmus
+  labels:
+    app.kubernetes.io/name: gpu-node-drain
+    app.kubernetes.io/component: chaos-experiment
+    environment: dev
+spec:
+  engineState: "active"
+  jobCleanUpPolicy: "delete"
+  chaosServiceAccount: litmus-admin
+  experiments:
+    - name: node-drain
+      spec:
+        components:
+          env:
+            # Replace with a node labeled nvidia.com/gpu.present=true.
+            - name: TARGET_NODE
+              value: "REPLACE_WITH_NODE_NAME"
+            - name: TOTAL_CHAOS_DURATION
+              value: "300"
+            - name: DEFAULT_HEALTH_CHECK
+              value: "false"
+          experimentAnnotations:
+            environment: dev
+            target-service: gpu-nodes
+            phase: "phase-2-node-chaos"
+            note: "gpu-training-requeues"
