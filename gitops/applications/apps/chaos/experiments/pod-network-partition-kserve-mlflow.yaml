@@ -10,9 +10,9 @@ metadata:
 spec:
   appinfo:
     appns: "models"
-    applabel: "serving.kserve.io/inferenceservice"
+    applabel: "serving.kserve.io/inferenceservice=REPLACE_WITH_MODEL_NAME"
     appkind: "deployment"
-  engineState: "active"
+  engineState: "stop"
   jobCleanUpPolicy: "delete"
   chaosServiceAccount: litmus-admin
   experiments:
@@ -22,12 +22,10 @@ spec:
           env:
             - name: TOTAL_CHAOS_DURATION
               value: "300"
-            # Block egress from every InferenceService pod to the mlflow namespace.
-            # Serving must not depend on MLflow at runtime.
             - name: POLICY_TYPES
               value: "egress"
             - name: NAMESPACE_SELECTOR
-              value: "kubernetes.io/metadata.name=mlflow"
+              value: "kubernetes.io/metadata.name=kube-system"
           experimentAnnotations:
             environment: dev
             target-service: kserve

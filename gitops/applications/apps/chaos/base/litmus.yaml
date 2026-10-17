@@ -26,6 +26,19 @@ spec:
     crds: CreateReplace
   upgrade:
     crds: CreateReplace
+  postRenderers:
+    - kustomize:
+        patches:
+          - target:
+              kind: ClusterRole
+              name: litmus
+            patch: |
+              - op: test
+                path: /rules/0/resources
+                value: [replicationcontrollers, secrets]
+              - op: replace
+                path: /rules/0/resources
+                value: [replicationcontrollers]
   values:
     operatorMode: standard
     operator:
@@ -50,6 +63,36 @@ spec:
   interval: 1h
   dependsOn:
     - name: litmus-core
+  postRenderers:
+    - kustomize:
+        patches:
+          - target:
+              kind: ClusterRole
+              name: k8s-chaos-admin
+            patch: |
+              $patch: delete
+              apiVersion: rbac.authorization.k8s.io/v1
+              kind: ClusterRole
+              metadata:
+                name: k8s-chaos-admin
+          - target:
+              kind: ClusterRoleBinding
+              name: k8s-chaos-admin
+            patch: |
+              $patch: delete
+              apiVersion: rbac.authorization.k8s.io/v1
+              kind: ClusterRoleBinding
+              metadata:
+                name: k8s-chaos-admin
+          - target:
+              kind: ServiceAccount
+              name: k8s-chaos-admin
+            patch: |
+              $patch: delete
+              apiVersion: v1
+              kind: ServiceAccount
+              metadata:
+                name: k8s-chaos-admin
   chart:
     spec:
       chart: kubernetes-chaos

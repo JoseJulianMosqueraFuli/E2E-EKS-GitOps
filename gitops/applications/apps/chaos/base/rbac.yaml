@@ -83,6 +83,9 @@ subjects:
   - kind: ServiceAccount
     name: litmus-admin
     namespace: litmus
+  - kind: ServiceAccount
+    name: litmus
+    namespace: litmus
 ---
 apiVersion: v1
 kind: ServiceAccount

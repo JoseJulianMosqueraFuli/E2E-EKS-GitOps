@@ -13,6 +13,7 @@ spec:
     applabel: "app=mlflow-server"
     appkind: "deployment"
   engineState: "active"
+  jobCleanUpPolicy: "delete"
   chaosServiceAccount: litmus-admin
   experiments:
     - name: pod-delete

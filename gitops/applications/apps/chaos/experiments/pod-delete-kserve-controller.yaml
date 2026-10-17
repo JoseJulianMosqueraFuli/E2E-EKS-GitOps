@@ -13,6 +13,7 @@ spec:
     applabel: "control-plane=kserve-controller-manager"
     appkind: "deployment"
   engineState: "active"
+  jobCleanUpPolicy: "delete"
   chaosServiceAccount: litmus-admin
   experiments:
     - name: pod-delete

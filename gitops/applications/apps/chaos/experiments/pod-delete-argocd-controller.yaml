@@ -13,6 +13,7 @@ spec:
     applabel: "app.kubernetes.io/name=argocd-application-controller"
     appkind: "statefulset"
   engineState: "active"
+  jobCleanUpPolicy: "delete"
   chaosServiceAccount: litmus-admin
   experiments:
     - name: pod-delete
