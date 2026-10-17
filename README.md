@@ -243,12 +243,15 @@ poetry run python -m src.cli step register --model-uri "$(cat out/model-uri.txt)
 
 | Workflow                       | What it does                                                          |
 | ------------------------------ | --------------------------------------------------------------------- |
-| `ci.yml`                       | Terraform, Kubernetes, Python and Helm validation + security scan     |
+| `ci.yml`                       | Terraform validation for dev/staging/prod, Kubernetes, Python and Helm + security scan |
+| `terraform-plan.yml`           | Manual initial AWS plans through read-only OIDC; no apply |
 | `ml-platform-image.yml`        | Tests inside the image; publishes `mlops-platform` to GHCR (amd64, `sha-` tags) |
 | `e2e-kind.yml`                 | Builds both images, creates kind and runs `scripts/e2e/kind-smoke.sh` |
 | `environment-promotion.yml`    | Promotes changes between environments                                 |
 
-GitHub-hosted runners are free for public repositories, so these workflows have no cost.
+Standard GitHub-hosted runners are free for public repositories; storage and AWS usage have separate
+billing rules. See [Terraform CI setup](docs/terraform-ci.md) to configure OIDC and run the first plan
+from GitHub Actions without running Terraform locally.
 
 ### Access Services
 

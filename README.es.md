@@ -242,12 +242,15 @@ poetry run python -m src.cli step register --model-uri "$(cat out/model-uri.txt)
 
 | Workflow                    | Qué hace                                                               |
 | --------------------------- | ---------------------------------------------------------------------- |
-| `ci.yml`                    | Validación de Terraform, Kubernetes, Python y Helm + escaneo de seguridad |
+| `ci.yml`                    | Validación de Terraform para dev/staging/prod, Kubernetes, Python y Helm + seguridad |
+| `terraform-plan.yml`        | Planes iniciales AWS manuales mediante OIDC de lectura; sin apply |
 | `ml-platform-image.yml`     | Tests dentro de la imagen; publica `mlops-platform` en GHCR (amd64, tags `sha-`) |
 | `e2e-kind.yml`              | Construye las dos imágenes, crea kind y ejecuta `scripts/e2e/kind-smoke.sh` |
 | `environment-promotion.yml` | Promueve cambios entre ambientes                                       |
 
-Los runners de GitHub son gratuitos para repositorios públicos, así que estos workflows no tienen costo.
+Los runners estándar de GitHub son gratuitos para repositorios públicos; el almacenamiento y el uso
+de AWS tienen reglas de cobro separadas. Consulta [Terraform en CI](docs/terraform-ci.md) para configurar
+OIDC y ejecutar el primer plan desde GitHub Actions sin correr Terraform localmente.
 
 ### Acceder a Servicios
 
