@@ -18,12 +18,24 @@ env:
 jobs:
   # Infrastructure validation
   terraform-validate:
-    name: Terraform Validate
+    name: Terraform Validate (${{ matrix.environment }})
     runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        environment: [dev, staging, prod]
+    env:
+      TF_IN_AUTOMATION: "true"
+      TF_INPUT: "false"
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          persist-credentials: false
 
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
@@ -31,17 +43,10 @@ jobs:
           terraform_version: 1.16.5
 
       - name: Terraform Format Check
-        run: terraform fmt -check -recursive infra/
-
-      - name: Terraform Init
-        run: |
-          cd infra/environments/dev
-          terraform init -backend=false
+        run: make terraform-fmt-check
 
       - name: Terraform Validate
-        run: |
-          cd infra/environments/dev
-          terraform validate
+        run: make validate-terraform ENV=${{ matrix.environment }}
 
   # Infrastructure Tests
   # NOTE: These tests require AWS credentials to run properly

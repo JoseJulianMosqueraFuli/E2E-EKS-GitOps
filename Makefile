@@ -1,9 +1,9 @@
 # Makefile for MLOps Platform
 
-.PHONY: help init plan apply destroy test test-terraform-plan test-unit test-integration clean \
+.PHONY: help init plan apply destroy test test-terraform-plan terraform-initial-plan test-unit test-integration clean \
         mlops-install mlops-uninstall mlops-status mlops-mlflow-only mlops-monitoring-only mlops-core mlops-full \
         setup-github setup-gitlab setup-circleci setup-jenkins \
-        platform-config validate-terraform validate-kubernetes validate-platform-config validate-python validate-all \
+        platform-config terraform-fmt-check validate-terraform validate-kubernetes validate-platform-config validate-python validate-all \
         dev-setup dev-format dev-lint agents-sync agents-check \
         quickstart-dev quickstart-prod \
         logs-mlflow logs-kserve logs-kubeflow \
@@ -40,6 +40,9 @@ init: ## Initialize Terraform
 plan: ## Plan Terraform changes
 	cd infra/environments/$(ENV) && terraform plan
 
+terraform-initial-plan: ## Generate an initial AWS plan from empty state in GitHub Actions only
+	bash scripts/terraform-initial-plan.sh "$(ENV)"
+
 apply: ## Apply Terraform changes
 	cd infra/environments/$(ENV) && terraform apply
 
@@ -54,9 +57,7 @@ test: ## Run infrastructure tests (requires AWS credentials)
 	cd infra/modules/ecr/test && go test -v -timeout 15m
 	cd infra/modules/glue/test && go test -v -timeout 25m
 
-test-terraform-plan: ## Run terraform plan tests (no AWS required, validates syntax)
-	@echo "Running Terraform plan tests (no AWS credentials needed)..."
-	cd infra/environments/$(ENV) && terraform init -backend=false && terraform validate
+test-terraform-plan: validate-terraform ## Compatibility alias for validation only; does not generate a plan
 
 test-unit: ## Run unit tests only (faster)
 	@echo "Running unit tests..."
@@ -126,9 +127,13 @@ setup-jenkins: ## Setup Jenkins
 	@echo "  - kubeconfig (Kubernetes config)"
 
 # Validation Targets
+terraform-fmt-check: ## Check Terraform formatting without changing files
+	terraform fmt -check -recursive infra/
+
 validate-terraform: ## Validate Terraform configuration
 	@echo "Validating Terraform configuration..."
-	cd infra/environments/$(ENV) && terraform init -backend=false && terraform validate
+	terraform -chdir=infra/environments/$(ENV) init -backend=false -input=false -no-color
+	terraform -chdir=infra/environments/$(ENV) validate -no-color
 
 platform-config: ## Create gitops/platform/aws.env from the example if it does not exist
 	@test -f gitops/platform/aws.env || cp gitops/platform/aws.env.example gitops/platform/aws.env

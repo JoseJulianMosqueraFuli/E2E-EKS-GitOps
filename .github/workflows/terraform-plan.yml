@@ -1,0 +1,83 @@
+name: Terraform Initial Plan
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: Environment to plan from empty state (before its first deployment)
+        required: true
+        type: choice
+        default: dev
+        options: [dev, staging, prod]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: terraform-initial-plan-${{ inputs.environment }}
+  cancel-in-progress: false
+
+jobs:
+  plan:
+    name: Initial plan (${{ inputs.environment }})
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment: terraform-plan-${{ inputs.environment }}
+    permissions:
+      contents: read
+      id-token: write
+    env:
+      TF_IN_AUTOMATION: "true"
+      TF_INPUT: "false"
+      AWS_REGION: ${{ vars.AWS_REGION }}
+      AWS_PLAN_ROLE_ARN: ${{ vars.AWS_PLAN_ROLE_ARN }}
+      PLAN_ENVIRONMENT: ${{ inputs.environment }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Check AWS configuration
+        shell: bash
+        run: |
+          for variable in AWS_REGION AWS_PLAN_ROLE_ARN; do
+            if [[ -z "${!variable}" ]]; then
+              echo "::error::Set $variable in the terraform-plan-$PLAN_ENVIRONMENT GitHub environment."
+              exit 1
+            fi
+          done
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.16.5
+          terraform_wrapper: false
+
+      - name: Terraform Format Check
+        run: make terraform-fmt-check
+
+      - name: Assume AWS planning role
+        uses: aws-actions/configure-aws-credentials@v6.3.0
+        with:
+          role-to-assume: ${{ env.AWS_PLAN_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+          role-session-name: terraform-plan-${{ github.run_id }}
+          role-duration-seconds: 900
+          mask-aws-account-id: true
+          inline-session-policy: >-
+            {
+              "Version": "2012-10-17",
+              "Statement": [{
+                "Effect": "Allow",
+                "Action": ["sts:GetCallerIdentity", "ec2:DescribeAvailabilityZones"],
+                "Resource": "*"
+              }]
+            }
+
+      - name: Generate initial plan
+        env:
+          TF_VAR_aws_region: ${{ env.AWS_REGION }}
+        run: make terraform-initial-plan ENV="$PLAN_ENVIRONMENT"
