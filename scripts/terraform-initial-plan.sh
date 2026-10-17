@@ -25,7 +25,7 @@ tar -C "$repository_root" \
   -cf - infra | tar -C "$plan_directory" -xf -
 
 terraform_root="$plan_directory/infra/environments/$environment"
-printf 'terraform { backend "local" {} }\n' > "$terraform_root/zz_initial_plan_override.tf"
+printf 'terraform {\n  backend "local" {}\n}\n' > "$terraform_root/zz_initial_plan_override.tf"
 
 echo "Initial $environment plan against empty temporary state, using environment defaults and TF_VAR_aws_region."
 terraform -chdir="$terraform_root" init -input=false -no-color

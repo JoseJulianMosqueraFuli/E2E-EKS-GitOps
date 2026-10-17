@@ -17,6 +17,7 @@ _Last updated: 2026-10-10_
 | Work on the ML code locally            | [`ml-platform-guide.md`](ml-platform-guide.md)             |
 | Run / extend the training pipeline     | [`../k8s/mlops-stack/argo-workflows/README.md`](../k8s/mlops-stack/argo-workflows/README.md) |
 | Understand the E2E smoke test (CI)     | [`../scripts/e2e/kind-smoke.sh`](../scripts/e2e/kind-smoke.sh) + [`.github/workflows/e2e-kind.yml`](../.github/workflows/e2e-kind.yml) |
+| Validate Terraform and run initial AWS plans in GitHub Actions | [`terraform-ci.md`](terraform-ci.md) |
 | Configure AI agents (rules, MCP)       | [`../.agents/README.md`](../.agents/README.md)             |
 | Set up GitOps (ArgoCD + Flux)          | [`../gitops/SETUP.md`](../gitops/SETUP.md)                 |
 | Configure monitoring & drift detection | [`model-monitoring-guide.md`](model-monitoring-guide.md)   |
@@ -42,6 +43,7 @@ _Last updated: 2026-10-10_
 | -------------------------------------------------------- | ----------------------------------------------------- |
 | [`quick-start-guide.md`](quick-start-guide.md)           | 5-minute setup guide.                                 |
 | [`ml-platform-guide.md`](ml-platform-guide.md)           | ML code, pipelines, CLI usage (local-first).          |
+| [`terraform-ci.md`](terraform-ci.md)                    | Terraform validation and initial plans on GitHub-hosted runners. |
 | [`model-monitoring-guide.md`](model-monitoring-guide.md) | Evidently drift detection + Grafana monitoring setup. |
 | [`../gitops/README.md`](../gitops/README.md)             | GitOps architecture (Flux + ArgoCD).                  |
 | [`../gitops/SETUP.md`](../gitops/SETUP.md)               | GitOps installation steps.                            |
