@@ -1,5 +1,7 @@
 # E2E-EKS-GitOps: Implementation Overview
 
+[← Documentation index](../README.md)
+
 > **Project**: End-to-End MLOps Platform on Amazon EKS  
 > **Author**: Jose Julian Mosquera  
 > **License**: MIT  
@@ -163,13 +165,17 @@ E2E-EKS-GitOps/
 │   └── setup-mlops-stack.sh        # MLOps tools installer
 │
 ├── docs/                           # Documentation
+│   ├── README.md                   # Documentation hub
+│   ├── architecture/               # Implementation overview
+│   ├── project/                    # Backlog and critical findings
+│   ├── reports/                    # Historical validation reports
+│   ├── proposals/                  # Proposed future work
 │   ├── quick-start-guide.md
 │   ├── ml-platform-guide.md
 │   ├── model-monitoring-guide.md
 │   ├── security-best-practices.md
 │   ├── mlops-enterprise-recommendations.md
-│   ├── PHASE2_IMPLEMENTATION_GUIDE.md
-│   └── (PENDING.md removed — consolidated into backlog.md)
+│   └── PHASE2_IMPLEMENTATION_GUIDE.md
 │
 ├── .github/workflows/             # GitHub Actions
 │   ├── ci.yml                      # CI pipeline (Terraform, K8s, Python, Helm, Security)
@@ -570,7 +576,7 @@ A focused security audit was performed across Terraform, Kubernetes manifests, G
 
 ## 10. Documentation Index
 
-> **📚 Central hub**: [`docs/README.md`](docs/README.md) is the single entry point for all documentation. The table below is a quick reference; the hub has the full, categorized index and names the canonical source per topic.
+> **📚 Central hub**: [`docs/README.md`](../README.md) is the single entry point for all documentation. The table below is a quick reference; the hub has the full, categorized index and names the canonical source per topic.
 
 | Document        | Location                                   | Description                 |
 | --------------- | ------------------------------------------ | --------------------------- |
@@ -580,7 +586,7 @@ A focused security audit was performed across Terraform, Kubernetes manifests, G
 | Security        | `docs/security-best-practices.md`          | mTLS, Gatekeeper guidelines |
 | Enterprise Recs | `docs/mlops-enterprise-recommendations.md` | Production recommendations  |
 | Phase 2 Guide   | `docs/PHASE2_IMPLEMENTATION_GUIDE.md`      | Implementation roadmap      |
-| Backlog         | `backlog.md`                               | Canonical backlog & status  |
+| Backlog         | `docs/project/backlog.md`                               | Canonical backlog & status  |
 | GitOps Setup    | `gitops/SETUP.md`                          | GitOps installation         |
 | GitOps README   | `gitops/README.md`                         | GitOps architecture         |
 
@@ -607,7 +613,7 @@ A focused security audit was performed across Terraform, Kubernetes manifests, G
 - **Feature Store (local)**: Feast feature repo with definitions, Parquet data sources, SQLite online store, and unit tests
 - **Security**: Pre-commit hooks (`detect-secrets`), `.secrets.baseline`, Trivy SARIF scanning
 
-### Pending ⏳ (from `backlog.md`)
+### Pending ⏳ (from `docs/project/backlog.md`)
 
 **High Priority:**
 
@@ -652,4 +658,4 @@ A focused security audit was performed across Terraform, Kubernetes manifests, G
 
 ---
 
-_This implementation overview was generated from repository analysis. Last updated: 2026-10-10. For the latest state, always refer to the actual source code and `backlog.md`._
+_This implementation overview was generated from repository analysis. Last updated: 2026-10-10. For the latest state, always refer to the actual source code and `docs/project/backlog.md`._

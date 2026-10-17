@@ -14,7 +14,7 @@ Plataforma MLOps completa sobre Amazon EKS. Desde entrenamiento hasta producció
 > **Estado (octubre 2026)**: los manifiestos GitOps están completos y validados estáticamente. El camino de
 > entrenamiento (Argo Workflows → MLflow → registro de modelos con gate de promoción) se prueba de punta a
 > punta en kind dentro de CI (`.github/workflows/e2e-kind.yml`). El siguiente hito es el primer despliegue
-> completo en AWS (`us-east-1`). El trabajo pendiente está en [`backlog.md`](backlog.md).
+> completo en AWS (`us-east-1`). El trabajo pendiente está en [`docs/project/backlog.md`](docs/project/backlog.md).
 
 ## Qué es esto?
 
@@ -130,10 +130,10 @@ La cuenta y la región salen de `gitops/platform/aws.env` (fuera de git; se copi
 [`gitops/platform/README.md`](gitops/platform/README.md)). Región por defecto: `us-east-1`. Antes del primer `apply`:
 
 1. Inicializar el backend de Terraform una vez por ambiente: `./scripts/bootstrap-terraform-backend.sh dev us-east-1`
-   (ver HIGH-001 en [`critical.md`](critical.md)).
+   (ver HIGH-001 en [`docs/project/critical.md`](docs/project/critical.md)).
 2. Los nombres de buckets S3 son globales: confirmar que los nombres usados por Terraform y los manifiestos estén libres.
 3. Las imágenes se referencian desde ECR (`mlops-<env>-trainer`, `mlops-<env>-mlflow-server`); publicarlas
-   desde CI necesita un rol OIDC (pendiente, ver [`backlog.md`](backlog.md)).
+   desde CI necesita un rol OIDC (pendiente, ver [`docs/project/backlog.md`](docs/project/backlog.md)).
 
 ```bash
 git clone https://github.com/JoseJulianMosqueraFuli/E2E-EKS-GitOps.git
@@ -194,6 +194,10 @@ make port-forward-grafana  # http://localhost:3000
 ├── .github/workflows/        # CI, build de imagen, E2E en kind, promoción entre ambientes
 ├── .agents/                  # Reglas y servidores MCP para agentes IA (fuente de verdad)
 └── docs/                     # Documentación
+    ├── architecture/         # Arquitectura de la plataforma
+    ├── project/              # Pendientes y hallazgos críticos
+    ├── reports/              # Reportes históricos
+    └── proposals/            # Propuestas de evolución
 ```
 
 ## Uso
@@ -261,6 +265,8 @@ make port-forward-kubeflow  # Kubeflow en localhost:8080
 ```
 
 ## Documentación
+
+> **Índice completo: [Centro de documentación](docs/README.md)** — arquitectura, pendientes, reportes, propuestas y guías.
 
 | Documento                                                             | Descripción                           |
 | --------------------------------------------------------------------- | ------------------------------------- |

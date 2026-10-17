@@ -15,7 +15,7 @@ End-to-end MLOps platform on Amazon EKS. From training to production with monito
 > **Status (October 2026)**: GitOps manifests are complete and validated statically. The training path
 > (Argo Workflows → MLflow → model registry with a promotion gate) is exercised end to end on kind in CI
 > (`.github/workflows/e2e-kind.yml`). The first full deployment on AWS (`us-east-1`) is the next milestone.
-> Pending work lives in [`backlog.md`](backlog.md).
+> Pending work lives in [`docs/project/backlog.md`](docs/project/backlog.md).
 
 ## What is this?
 
@@ -131,10 +131,10 @@ Account and region come from `gitops/platform/aws.env` (not in git; copy it from
 [`gitops/platform/README.md`](gitops/platform/README.md)). Default region: `us-east-1`. Before the first `apply`:
 
 1. Bootstrap the Terraform backend once per environment: `./scripts/bootstrap-terraform-backend.sh dev us-east-1`
-   (see HIGH-001 in [`critical.md`](critical.md)).
+   (see HIGH-001 in [`docs/project/critical.md`](docs/project/critical.md)).
 2. S3 bucket names are global: confirm the names used by Terraform and the manifests are free in S3.
 3. Container images are referenced from ECR (`mlops-<env>-trainer`, `mlops-<env>-mlflow-server`);
-   publishing to ECR from CI needs an OIDC role (pending, see [`backlog.md`](backlog.md)).
+   publishing to ECR from CI needs an OIDC role (pending, see [`docs/project/backlog.md`](docs/project/backlog.md)).
 
 ```bash
 git clone https://github.com/JoseJulianMosqueraFuli/E2E-EKS-GitOps.git
@@ -195,6 +195,10 @@ make port-forward-grafana  # http://localhost:3000
 ├── .github/workflows/        # CI, image build, E2E on kind, environment promotion
 ├── .agents/                  # AI agent rules and MCP servers (source of truth)
 └── docs/                     # Documentation
+    ├── architecture/         # Architecture overview
+    ├── project/              # Backlog and critical findings
+    ├── reports/              # Historical reports
+    └── proposals/            # Proposed future work
 ```
 
 ## Usage

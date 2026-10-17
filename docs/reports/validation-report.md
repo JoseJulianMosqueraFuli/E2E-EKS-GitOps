@@ -1,11 +1,13 @@
 # 🔍 Reporte de Validación del Proyecto MLOps
 
+[← Documentation index](../README.md)
+
 **Fecha**: 20 de Mayo, 2026  
 
 > **Snapshot histórico, no se mantiene.** Esta validación fue estática. La primera validación funcional
 > (2026-10-10, Argo Workflows y MLflow ejecutados en kind) encontró fallos que impedían el arranque, por lo que
-> la conclusión "lista para despliegue en AWS" ya no aplica. Estado actual: [`backlog.md`](backlog.md) y
-> [`critical.md`](critical.md).
+> la conclusión "lista para despliegue en AWS" ya no aplica. Estado actual: [`docs/project/backlog.md`](../project/backlog.md) y
+> [`docs/project/critical.md`](../project/critical.md).
 **Proyecto**: E2E MLOps Platform on EKS
 
 ---
@@ -183,7 +185,7 @@ El proyecto ha sido **auditoría y corregido** en todas las áreas críticas y d
 
 ## 🚀 Próximos Pasos Recomendados
 
-> Ver [backlog.md](backlog.md) como fuente canonica del backlog.
+> Ver [docs/project/backlog.md](../project/backlog.md) como fuente canonica del backlog.
 
 ### 🟡 Prioridad MEDIA (cuando tengas cuenta AWS)
 

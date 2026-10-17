@@ -26,7 +26,7 @@ make validate-platform-config   # fails if any placeholder is left unresolved
 | `mlflow` | Server image (ECR `mlops-<env>-mlflow-server`), IRSA role ARNs, SecretStore region, backup CronJob region, S3 endpoint in production |
 
 Other apps (kserve, monitoring, kubeflow, external-secrets) still carry literal values or `ACCOUNT_ID`
-placeholders and will be migrated to this mechanism (see `backlog.md`). Flux-managed infrastructure uses its
+placeholders and will be migrated to this mechanism (see `docs/project/backlog.md`). Flux-managed infrastructure uses its
 own per-cluster `cluster-config` ConfigMap with `postBuild.substitute`.
 
 ## Where the real values come from
@@ -34,5 +34,5 @@ own per-cluster `cluster-config` ConfigMap with `postBuild.substitute`.
 - **Local / CI**: `aws.env` (CI creates it from the example; the kind E2E works with dummy values because its
   images are loaded locally under the dummy ECR names).
 - **ArgoCD on AWS**: ArgoCD renders from git, so `aws.env` must be provided at render time. Pending decision
-  (tracked in `backlog.md`): inject the values from the cluster registration (ApplicationSet cluster
+  (tracked in `docs/project/backlog.md`): inject the values from the cluster registration (ApplicationSet cluster
   generator annotations → `kustomize.patches` on `platform-config`) or a Config Management Plugin.

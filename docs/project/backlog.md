@@ -1,7 +1,9 @@
 # Backlog Completo - E2E-EKS-GitOps
 
+[← Documentation index](../README.md)
+
 **Mapa canónico de TODO el trabajo pendiente y completado.**  
-Para detalles técnicos de issues CRÍTICOS y ALTOS (CVSS, fix concreto), ver: [`critical.md`](critical.md)
+Para detalles técnicos de issues CRÍTICOS y ALTOS (CVSS, fix concreto), ver: [`docs/project/critical.md`](critical.md)
 
 ---
 
@@ -19,7 +21,7 @@ Para detalles técnicos de issues CRÍTICOS y ALTOS (CVSS, fix concreto), ver: [
 - [x] PyProject.toml packaging - Corregido mlops_platform a cli:main, mypy target 3.10 `(2026-05-19)`
 - [x] Documentacion sincronizada - READMEs, gitops/README, gitops/SETUP, IMPLEMENTATION_STATUS, VALIDATION_REPORT, quick-start y ml-platform guide alineados con el estado real del repo `(2026-05-20)`
 - [x] Documentacion re-sincronizada - Diagramas de estructura actualizados `(2026-05-31)`
-- [x] Reporte de auditoria completa - Revison de 120+ archivos, 6000+ lineas, hallazgos mapeados en `critical.md` y `backlog.md` `(2026-06-06)`
+- [x] Reporte de auditoria completa - Revison de 120+ archivos, 6000+ lineas, hallazgos mapeados en `docs/project/critical.md` y `docs/project/backlog.md` `(2026-06-06)`
 - [x] Feature Store con Feast (parcial) - Feature repo local: definiciones en feature_definitions.py, datos parquet (model_features, transaction_stats, user_profile), online_store.db, registry.db, tests unitarios. Falta: backend productivo (Redis/DynamoDB), server K8s `(2026-06-07)`
 - [x] Codigo muerto eliminado - `ModelMonitor` duplicado, `CustomTransformers` sin uso, deps infladas (`dvc`, `awscli`, `kubernetes`) removidas `(2026-07-13)`
 - [x] Egress de nodos restringido a VPC en dev/staging y parametrizado en prod `(2026-07-13)`
@@ -32,6 +34,7 @@ Para detalles técnicos de issues CRÍTICOS y ALTOS (CVSS, fix concreto), ver: [
 - [x] Smoke test E2E en kind (GitHub Actions): Argo + MLflow + entrenamiento + gate de promocion `(2026-10-10)` - pendiente primer run verde
 - [x] Terraform en GitHub Actions: validacion de dev/staging/prod y workflow manual de planes iniciales con OIDC de lectura, sin apply `(2026-10-17)` - implementado; pendiente configurar rol/variables AWS y verificar primer run. Ver `docs/terraform-ci.md`. HIGH-001 y #55 siguen pendientes.
 
+- [x] Chaos Engineering Phase 1 corregida + Phase 2 - Charts `litmus-core`/`kubernetes-chaos` fijados, exporter, WorkflowTemplates de MLflow y caida de AZ, node-drain y network partition `(2026-10-17)` - pendiente ejecutar en EKS; EC2 stop en #58
 ---
 
 ## Dashboard de Estado
@@ -40,12 +43,12 @@ Para detalles técnicos de issues CRÍTICOS y ALTOS (CVSS, fix concreto), ver: [
 |------|----------|------|--------|-----|-------|
 | Seguridad | 1 | 3 | 9 | 2 | 15 |
 | Infra (Terraform) | 0 | 2 | 7 | 2 | 11 |
-| GitOps / K8s | 0 | 2 | 12 | 3 | 17 |
+| GitOps / K8s | 0 | 2 | 13 | 3 | 18 |
 | Plataforma ML (Python) | 0 | 0 | 4 | 2 | 6 |
 | Monitoreo | 0 | 2 | 5 | 2 | 9 |
 | CI/CD | 0 | 1 | 7 | 2 | 10 |
 | Arquitectura / Extras | 0 | 0 | 0 | 7 | 7 |
-| **TOTAL** | **1** | **10** | **44** | **20** | **75** |
+| **TOTAL** | **1** | **10** | **45** | **20** | **76** |
 
 > **4 HIGH + 1 MEDIUM resueltos el 2026-07-13**: HIGH-003 (egress), HIGH-004 (CIDR prod), HIGH-008 (KServe redirect), MEDIUM #29 (LabelEncoder), MEDIUM #30-33 (dead code/dependencies). Total anterior: 74 items.
 
@@ -59,7 +62,7 @@ Para detalles técnicos de issues CRÍTICOS y ALTOS (CVSS, fix concreto), ver: [
 
 ---
 
-## CRITICAL (4) — Ver `critical.md`
+## CRITICAL (4) — Ver `docs/project/critical.md`
 
 | ID | Issue | Archivo(s) | Owner | Estado |
 |----|-------|------------|-------|--------|
@@ -97,7 +100,7 @@ Para detalles técnicos de issues CRÍTICOS y ALTOS (CVSS, fix concreto), ver: [
 
 ---
 
-## MEDIUM (43 pendientes, 8 resueltos)
+## MEDIUM (44 pendientes, 8 resueltos)
 
 ### Istio / Service Mesh (5)
 
@@ -118,7 +121,7 @@ Para detalles técnicos de issues CRÍTICOS y ALTOS (CVSS, fix concreto), ver: [
 | 8 | PodSecurity template no verifica initContainers, runAsUser, seccompProfile a nivel pod | `k8s/security/gatekeeper/templates/pod-security.yaml` |
 | 9 | IngressHosts permite `*.example.com` | `k8s/security/gatekeeper/constraints/ingress-hosts.yaml` |
 
-### GitOps / ArgoCD (7)
+### GitOps / ArgoCD (8)
 
 | # | Issue | Archivo(s) |
 |---|-------|------------|
@@ -128,6 +131,7 @@ Para detalles técnicos de issues CRÍTICOS y ALTOS (CVSS, fix concreto), ver: [
 | 49 | Migrar kserve, monitoring, kubeflow y external-secrets al mecanismo `gitops/platform` (aun tienen region literal o placeholders `ACCOUNT_ID`) | `gitops/applications/apps/{kserve,monitoring,kubeflow,external-secrets}/` |
 | 50 | Roles IRSA referenciados (`mlflow-irsa-role`, `mlops-backup-role`) no se crean en Terraform; la SA `argo-workflow` no tiene anotacion IRSA, asi que en EKS los pasos no tendrian acceso a S3 | `infra/`, `gitops/applications/apps/argo-workflows/base/rbac.yaml` |
 | 57 | MinIO dejo de publicar imagenes (Docker Hub y quay.io responden 401; repo archivado): reemplazado por Versity Gateway `versity/versitygw:v1.8.0` (S3 compatible, Apache-2). Quedan los nombres `mlflow-minio*` (Service, Secret, PVC) y menciones en docs/diagramas; renombrar a `mlflow-s3` y evaluar S3 real en dev | `gitops/applications/apps/mlflow/base/minio-*.yaml`, `docs/` |
+| 58 | Chaos Phase 2.1 `ec2-terminate-by-tag` (Litmus `kube-aws`) requiere rol IRSA para `litmus-admin` con `ec2:StopInstances`/`TerminateInstances` acotado a las instancias del node group (tag) + chart `kube-aws`; hoy se cubre con `node-drain` | `infra/modules/eks/`, `gitops/applications/apps/chaos/base/` |
 | 47 | argo-server usa `--auth-mode=sso` pero el ConfigMap no define bloque `sso` (issuer, clientId, clientSecret): el server entra en CrashLoopBackOff con `Error: issuer empty` (confirmado en kind 2026-10-10) | `gitops/applications/apps/argo-workflows/base/server-deployment.yaml` | ✅ Cambiado a `--auth-mode=client` (token de Kubernetes + RBAC) 2026-10-10. SSO/OIDC pendiente de proveedor |
 | 10 | `monitoring` en `k8s/` no apunta a `gitops/applications/apps/monitoring/` | `k8s/mlops-stack/monitoring/kustomization.yaml` | ✅ Corregido 2026-06-26 |
 | 11 | `argo-workflows` en `k8s/` no apunta a gitops | `k8s/mlops-stack/argo-workflows/kustomization.yaml` | ✅ Corregido 2026-06-26 |
@@ -241,7 +245,7 @@ Para detalles técnicos de issues CRÍTICOS y ALTOS (CVSS, fix concreto), ver: [
 | 10 | Troubleshooting guide | Basado en experiencia real de deploy | Baja |
 | 11 | Actualizar pre-commit hooks | detect-secrets, terraform_fmt, etc. | Baja |
 | 12 | Actualizar versiones EKS addons | Fijar versiones de EBS CSI, VPC CNI, etc. | Baja |
-| 13 | Chaos Engineering | Phase 1 completo: Litmus base + ArgoCD app + 4 experimentos (MLflow, KServe, ArgoCD, CPU hog) + workflow de validacion + Prometheus metrics. Ver [`chaos-engineering-proposal.md`](docs/chaos-engineering-proposal.md). | Media |
+| 13 | Chaos Engineering | Phase 1 y 2 implementadas (sin ejecutar en EKS): `litmus-core` 3.31.1 + `kubernetes-chaos` 3.31.0 (antes el chart `litmus` = ChaosCenter, sin `ChaosExperiment`), exporter propio, `appkind: statefulset` para ArgoCD, WorkflowTemplates `mlflow-resilience-test` y `az-failure-test` (solo dev/staging), node-drain worker/GPU y network partition KServe->MLflow. Pendiente: EC2 stop (#58), dashboard Grafana, SLOs, Phase 3-4. Ver [`chaos-engineering-proposal.md`](../chaos-engineering-proposal.md). | Media |
 
 ---
 
@@ -268,4 +272,4 @@ Para detalles técnicos de issues CRÍTICOS y ALTOS (CVSS, fix concreto), ver: [
 ---
 
 *Ultima actualizacion: 2026-10-10*  
-*Fuentes: `critical.md`, revision manual de 120+ archivos*
+*Fuentes: `docs/project/critical.md`, revision manual de 120+ archivos*

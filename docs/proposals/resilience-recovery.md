@@ -1,4 +1,7 @@
-Propuesta: resiliencia y recuperación para E2E-EKS-GitOps
+# Propuesta: resiliencia y recuperación para E2E-EKS-GitOps
+
+[← Documentation index](../README.md)
+
 Estado: propuesta de evolución; experimentos y objetivos pendientes de implementar y validar.
 Objetivo
 Demostrar que la plataforma puede detectar fallos, limitar su impacto y recuperar la inferencia y los procesos de entrenamiento de manera reproducible.

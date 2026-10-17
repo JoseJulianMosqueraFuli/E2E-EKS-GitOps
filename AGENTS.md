@@ -29,10 +29,14 @@ End-to-end MLOps platform on Amazon EKS: Terraform infra → EKS cluster → Git
 | `scripts/e2e/` | kind smoke test (CI only) |
 | `.github/workflows/` | `ci.yml`, `ml-platform-image.yml`, `e2e-kind.yml`, `environment-promotion.yml` |
 | `docs/` | Project documentation (`docs/README.md` is the hub) |
+| `docs/architecture/` | Platform architecture and implementation overview |
+| `docs/project/` | Canonical backlog and CRITICAL/HIGH findings |
+| `docs/reports/` | Historical validation reports |
+| `docs/proposals/` | Proposed future work |
 
 ## Canonical sources of truth
 
-- **Backlog & priorities**: `backlog.md` (canonical), `critical.md` (CRITICAL/HIGH details).
+- **Backlog & priorities**: `docs/project/backlog.md` (canonical), `docs/project/critical.md` (CRITICAL/HIGH details).
 - **GitOps manifests**: `gitops/applications/apps/<app>/base/` is canonical. `k8s/mlops-stack/<app>/kustomization.yaml` should point to it (ref-bound, not duplicated; argo-workflows and mlflow point to the `dev` overlay so the AWS placeholders are resolved).
 - **Documentation hub**: `docs/README.md`.
 - **Image tags**: pin to semantic versions or SHAs. Gatekeeper enforces no `:latest` in production namespaces.
@@ -90,7 +94,7 @@ Best practices for engineering, architecture, security, ML architecture, Terrafo
 
 ## Sensitive areas — be careful
 
-- **CI `|| true`**: test/lint steps in `.github/workflows/ci.yml`, `.gitlab-ci.yml`, `.circleci/config.yml` intentionally tolerate failures. **Do not remove `|| true` without explicit request** (tracked as HIGH-013 in `critical.md`, owner: DevOps).
+- **CI `|| true`**: test/lint steps in `.github/workflows/ci.yml`, `.gitlab-ci.yml`, `.circleci/config.yml` intentionally tolerate failures. **Do not remove `|| true` without explicit request** (tracked as HIGH-013 in `docs/project/critical.md`, owner: DevOps).
 - **Terraform state**: backend blocks are commented out by design. Uncomment only after running `scripts/bootstrap-terraform-backend.sh` (needs AWS account).
 - **Argo Workflows** (`k8s/mlops-stack/argo-workflows/`): already hardened (TLS + `--auth-mode=client` + emissary executor; SSO pending an OIDC provider). Don't reintroduce `docker.sock` mounts or `containerRuntimeExecutor: docker`.
 - **Gatekeeper**: `no-latest-tag` constraint is active for production namespaces. Pin image tags.
@@ -98,14 +102,14 @@ Best practices for engineering, architecture, security, ML architecture, Terrafo
 - **Images**: pipeline steps run on the single `mlops-platform` image (`ml-platform/Dockerfile`); add a `step` subcommand instead of a new image. CI builds only `linux/amd64` (EKS nodes are x86).
 - **AWS costs**: `make test` and `make apply` hit real AWS. Prefer `test-terraform-plan` for CI/local validation.
 
-## Known open work (see `critical.md` / `backlog.md`)
+## Known open work (see `docs/project/critical.md` / `docs/project/backlog.md`)
 
 - CRIT-004: ArgoCD `mlops-core` AppProject is permissive (`sourceRepos: "*"`, `destinations: namespace: "*"`) — restrict.
 - HIGH-006 / HIGH-007: `:latest` in the Evidently image and in the non-training Argo templates (training template already pinned).
 - HIGH-001: Terraform S3 backend activation (account available; run `scripts/bootstrap-terraform-backend.sh <env> us-east-1`).
 - HIGH-013: CI hides failures (intentional, do not touch unless asked).
-- Before the first AWS deployment (`backlog.md`): ArgoCD injection of `aws.env` (#48), IRSA roles for Argo/MLflow (#50), globally unique S3 bucket names (#51), images still missing in templates (#52), ECR publishing via OIDC (#55), first green `e2e-kind.yml` run (#56).
-- Many MEDIUM/LOW items in `backlog.md` (Istio mTLS gaps, Gatekeeper coverage, Helm chart hardening, ML platform debt).
+- Before the first AWS deployment (`docs/project/backlog.md`): ArgoCD injection of `aws.env` (#48), IRSA roles for Argo/MLflow (#50), globally unique S3 bucket names (#51), images still missing in templates (#52), ECR publishing via OIDC (#55), first green `e2e-kind.yml` run (#56).
+- Many MEDIUM/LOW items in `docs/project/backlog.md` (Istio mTLS gaps, Gatekeeper coverage, Helm chart hardening, ML platform debt).
 
 ## When adding a new MLOps app
 
@@ -115,7 +119,7 @@ Best practices for engineering, architecture, security, ML architecture, Terrafo
 4. If the app has an ArgoCD AppProject, restrict `sourceRepos`, `destinations`, and resource whitelists (don't repeat CRIT-004).
 5. Add the app to `Makefile` `validate-kubernetes` target's `kustomize build` list.
 6. If it needs the AWS account or region, use the placeholders + `replacements` (see `gitops/platform/README.md`) and add the app to `validate-platform-config`.
-7. Update `backlog.md` / `critical.md` if security-relevant.
+7. Update `docs/project/backlog.md` / `docs/project/critical.md` if security-relevant.
 
 ## Misc env files
 

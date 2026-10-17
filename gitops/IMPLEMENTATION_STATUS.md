@@ -231,7 +231,7 @@ kubectl port-forward svc/argocd-server -n argocd 8080:443
 
 ### Tasks Pendientes
 
-Ver [backlog.md](../backlog.md) para el estado canonico. Resumen:
+Ver [docs/project/backlog.md](../docs/project/backlog.md) para el estado canonico. Resumen:
 
 - [ ] **End-to-end test on AWS**: Validar Terraform → EKS → ArgoCD → MLflow → KServe
 - [x] **Feature Store con Feast**: Server deployment local con Redis en K8s implementado; backend productivo (ElastiCache/DynamoDB) pendiente
@@ -260,7 +260,7 @@ Ver [backlog.md](../backlog.md) para el estado canonico. Resumen:
 | 2026-05-19 | Auto-retraining template COMPLETO (carga real de MLflow + Evidently) |
 | 2026-05-19 | A/B Testing Framework COMPLETO (WorkflowTemplate con metricas)       |
 | 2026-05-19 | Hardening staging/prod COMPLETO (KMS, ECR IMMUTABLE, egress)         |
-| 2026-05-20 | Pendings sincronizados con backlog.md como fuente unica             |
+| 2026-05-20 | Pendings sincronizados con docs/project/backlog.md como fuente unica             |
 | 2026-05-31 | Documentacion actualizada: diagramas de estructura alineados con     |
 |            | el estado real del repositorio (addons, networking, security, tests) |
 | 2026-06-26 | Reestructuracion GitOps: fuente de verdad unificada en               |
@@ -275,4 +275,4 @@ Ver [backlog.md](../backlog.md) para el estado canonico. Resumen:
 - Poetry is now the recommended package manager for the project
 - Both Poetry and pip installation methods are supported
 - RBAC policies are in place but will be enhanced in later tasks
-- Vease `backlog.md` para el estado detallado de cada item pendiente
+- Vease `docs/project/backlog.md` para el estado detallado de cada item pendiente

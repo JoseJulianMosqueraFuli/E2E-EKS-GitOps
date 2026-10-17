@@ -16,8 +16,8 @@ kubectl apply -f gitops/applications/apps/chaos/experiments/pod-delete-mlflow.ya
 Watch the result:
 
 ```bash
-kubectl wait --for=condition=EngineCompleted chaosengine/mlflow-pod-delete -n litmus --timeout=120s
-kubectl get chaosresults -n litmus
+kubectl wait --for=jsonpath='{.status.engineStatus}'=completed chaosengine/mlflow-pod-delete -n litmus --timeout=180s
+kubectl get chaosresult mlflow-pod-delete-pod-delete -n litmus -o jsonpath='{.status.experimentStatus.verdict}'
 ```
 
 ## Steady-state validation
@@ -39,6 +39,12 @@ for i in range(20):
 ```
 
 Success: all 20 runs are visible in the MLflow UI after the experiment ends.
+
+---
+
+For the other Phase 1 and Phase 2 experiments (KServe, ArgoCD, CPU hog,
+node drain, AZ failure, network partition) see the runbook in
+[`../README.md`](../README.md).
 
 ---
 

@@ -23,16 +23,16 @@ Instead, use **GitHub Private Security Reporting**:
    - Reproduction steps (PoC if available)
    - Suggested fix (optional)
 
-You should receive an acknowledgement within **72 hours**. Vulnerabilities are tracked in `critical.md` once confirmed.
+You should receive an acknowledgement within **72 hours**. Vulnerabilities are tracked in `docs/project/critical.md` once confirmed.
 
 ## Known security posture
 
 The project maintains a living inventory of security findings in:
 
-- [`critical.md`](critical.md) — CRITICAL and HIGH severity issues with fix status.
-- [`backlog.md`](backlog.md) — MEDIUM/LOW severity findings across security, infra, GitOps, ML platform, monitoring and CI/CD.
+- [`docs/project/critical.md`](docs/project/critical.md) — CRITICAL and HIGH severity issues with fix status.
+- [`docs/project/backlog.md`](docs/project/backlog.md) — MEDIUM/LOW severity findings across security, infra, GitOps, ML platform, monitoring and CI/CD.
 
-Open items of note (see `critical.md` for details):
+Open items of note (see `docs/project/critical.md` for details):
 
 - **CRIT-004**: ArgoCD `mlops-core` AppProject is permissive — slated for restriction.
 - **HIGH-001**: Terraform backend is local by default; S3 backend activation blocked on AWS account setup.
@@ -43,7 +43,7 @@ Open items of note (see `critical.md` for details):
 
 - **Pre-commit**: `detect-secrets` scans staged files; baseline tracked in `.secrets.baseline`.
 - **Gatekeeper/OPA**: `no-latest-tag` constraint enforced in production namespaces; Pod Security Standards enforced.
-- **Istio mTLS**: mutual TLS between MLOps services (STRICT rollout in progress — see `backlog.md` Istio section).
+- **Istio mTLS**: mutual TLS between MLOps services (STRICT rollout in progress — see `docs/project/backlog.md` Istio section).
 - **Argo Workflows** (v4.0.13): TLS enabled, `--auth-mode=client` (Kubernetes token + RBAC, no anonymous access; SSO pending an OIDC provider), `emissary` executor (no `docker.sock` mounts).
 - **Container images**: non-root (`mlops-platform` UID 8737, `mlflow-server` UID 1000), dependencies pinned via `poetry.lock`.
 - **Image tagging policy**: pin to semantic versions or SHAs; `latest` is disallowed in production namespaces.
@@ -64,6 +64,6 @@ Before submitting a change that touches security-sensitive areas:
 - [ ] NetworkPolicies defined for new namespaces.
 - [ ] Pod Security Standards satisfied (`restricted` in prod).
 - [ ] Update `.secrets.baseline` if new false-positives appear: `detect-secrets scan -u .secrets.baseline`.
-- [ ] If the change affects `critical.md`/`backlog.md`, update those files accordingly.
+- [ ] If the change affects `docs/project/critical.md`/`docs/project/backlog.md`, update those files accordingly.
 
 *Last updated: 2026-10-10*

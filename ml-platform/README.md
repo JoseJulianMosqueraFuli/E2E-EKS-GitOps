@@ -47,7 +47,7 @@ with IRSA. Implementation: `src/pipelines/steps.py`; tests: `tests/test_steps.py
 |------|-------|-------|
 | `Dockerfile` | `mlops-platform` | Stages `builder` (core deps from `poetry.lock`), `test` (all extras + pytest), `runtime` (non-root UID 8737, read-only root filesystem compatible) |
 | `Dockerfile.mlflow-server` | `mlflow-server` | MLflow 2.22.5 + psycopg2 + boto3 (the official image has no PostgreSQL/S3 drivers), UID 1000 |
-| `Dockerfile.monitoring` | monitoring service | Out of date (missing `requirements.txt`, old Evidently pin); tracked in `backlog.md` |
+| `Dockerfile.monitoring` | monitoring service | Out of date (missing `requirements.txt`, old Evidently pin); tracked in `docs/project/backlog.md` |
 
 CI (`.github/workflows/ml-platform-image.yml`) runs the `test` stage and publishes `runtime` to GHCR for
 `linux/amd64` with `sha-` tags. On EKS the manifests pull from ECR (`mlops-<env>-trainer`).
