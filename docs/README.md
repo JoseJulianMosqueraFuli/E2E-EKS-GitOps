@@ -10,6 +10,7 @@ Guides are available in English or Spanish, depending on the topic.
 
 | Goal | Guide |
 |---|---|
+| Read the complete explanation, setup and command reference | [Full platform guide](platform-guide.md) · [Guía completa en español](platform-guide.es.md) |
 | Validate Terraform and run initial AWS plans in GitHub Actions | [Terraform CI](terraform-ci.md) |
 | Understand the platform and repository layout | [Architecture](architecture/implementation.md) |
 | Contribute a change and choose the right checks | [Contributing](contributing.md) |
@@ -66,6 +67,7 @@ These provide design context and past findings. They do not establish current de
 ## Maintaining these docs
 
 Keep the public READMEs brief and aligned in English and Spanish; link to detailed guides here.
+Preserve their technical explanations in the full platform guides before shortening the public overview.
 Update each topic in its existing guide instead of duplicating it. Register new documents in this index.
 Store architecture, project tracking, reports, and proposals in their matching subdirectories.
 Component documentation stays beside its code. See [documentation placement](../AGENTS.md#documentation-placement).

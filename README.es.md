@@ -32,7 +32,8 @@ Estas comprobaciones no necesitan un clúster local.
 
 ## Documentación
 
-El **[índice de documentación](docs/README.md)** reúne todas las guías y referencias.
+**[Lee la guía completa de la plataforma](docs/platform-guide.es.md)**: arquitectura, instalación, comandos, CI/CD, costos y desarrollo.
+El [índice de documentación](docs/README.md) enlaza las guías de cada componente.
 
 | Quiero… | Consultar |
 |---|---|

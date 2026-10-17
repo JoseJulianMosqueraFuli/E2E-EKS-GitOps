@@ -32,7 +32,8 @@ No local cluster is needed for these checks.
 
 ## Documentation
 
-Start at the **[documentation index](docs/README.md)** for all guides and references.
+**[Read the full platform guide](docs/platform-guide.md)** for architecture, setup, commands, CI/CD, costs, and development.
+The [documentation index](docs/README.md) links to the guides for each component.
 
 | I want to… | Read |
 |---|---|

@@ -58,6 +58,9 @@ When moving a document, update its links and references, including this file and
 
 Keep the public READMEs brief and aligned in English and Spanish: purpose, current status, how to start,
 and links. Put commands, configuration, component details, and contribution instructions in linked guides.
+Before shortening a README, move its substantive content into the linked guide and verify that every
+topic remains covered. The expanded guides are `docs/platform-guide.md` and `docs/platform-guide.es.md`;
+keep their scope aligned. Simplifying the public overview must not discard the detailed explanation.
 Prioritize GitHub Actions for validation and E2E checks; running a local cluster is not a prerequisite.
 
 ## Common commands
