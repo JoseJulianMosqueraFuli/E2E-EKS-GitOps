@@ -5,7 +5,7 @@ globs:
 
 # Security Baseline
 
-See `SECURITY.md`, `docs/security-best-practices.md` and open items in `critical.md`.
+See `SECURITY.md`, `docs/security-best-practices.md` and open items in `docs/project/critical.md`.
 
 ## Identity and access
 

@@ -9,8 +9,8 @@ These rules apply to every task, in every part of the repository. Read `AGENTS.m
 
 ## Before changing anything
 
-- Identify the canonical source before editing: `gitops/applications/apps/<app>/base/` for manifests, `backlog.md` / `critical.md` for priorities, `docs/README.md` for docs.
-- Check `critical.md` and `backlog.md` for an existing item (CRIT-xxx, HIGH-xxx) that covers the change and reference it.
+- Identify the canonical source before editing: `gitops/applications/apps/<app>/base/` for manifests, `docs/project/backlog.md` / `docs/project/critical.md` for priorities, `docs/README.md` for docs.
+- Check `docs/project/critical.md` and `docs/project/backlog.md` for an existing item (CRIT-xxx, HIGH-xxx) that covers the change and reference it.
 - Prefer the smallest change that solves the problem. Do not refactor unrelated code in the same change.
 - Never edit generated or vendored content (`build/`, `*.egg-info`, `mlruns/`, `.hypothesis/`, `.terraform/`, files generated from `.agents/`).
 
@@ -33,5 +33,5 @@ These rules apply to every task, in every part of the repository. Read `AGENTS.m
 ## Delivering
 
 - Conventional commits: `feat(scope):`, `fix(scope):`, `docs(scope):`, `chore(scope):`, `refactor(scope):`. Concise subject, imperative mood.
-- Update `backlog.md` / `critical.md` when a change closes or creates a security-relevant or tracked item.
+- Update `docs/project/backlog.md` / `docs/project/critical.md` when a change closes or creates a security-relevant or tracked item.
 - Update docs when behavior, commands or architecture change (see the documentation rule).
