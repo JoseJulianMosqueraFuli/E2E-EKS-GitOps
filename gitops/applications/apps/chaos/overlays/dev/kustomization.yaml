@@ -3,9 +3,19 @@ kind: Kustomization
 
 resources:
   - ../../base
-
-# Dev-specific patches (e.g., smaller PVCs, lower resource limits) can be added here.
-# For now, the base configuration is sufficient for dev chaos testing.
+  - ../../workflows
 
 commonLabels:
   environment: dev
+
+patches:
+  - patch: |
+      - op: replace
+        path: /spec/arguments/parameters/0/value
+        value: http://dev-mlflow-server.mlflow:5000
+      - op: replace
+        path: /spec/arguments/parameters/1/value
+        value: dev-mlflow-server
+    target:
+      kind: WorkflowTemplate
+      name: mlflow-resilience-test

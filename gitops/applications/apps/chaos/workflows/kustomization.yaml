@@ -1,0 +1,13 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - rbac.yaml
+  - mlflow-resilience-test.yaml
+  - az-failure-test.yaml
+
+labels:
+  - pairs:
+      app.kubernetes.io/part-of: mlops-platform
+      app.kubernetes.io/managed-by: argocd
+    includeSelectors: false

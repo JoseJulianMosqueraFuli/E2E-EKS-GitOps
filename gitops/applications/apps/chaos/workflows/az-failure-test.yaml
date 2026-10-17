@@ -1,0 +1,258 @@
+apiVersion: argoproj.io/v1alpha1
+kind: WorkflowTemplate
+metadata:
+  name: az-failure-test
+  namespace: argo-workflows
+  labels:
+    app.kubernetes.io/name: az-failure-test
+    app.kubernetes.io/component: chaos-validation
+spec:
+  serviceAccountName: chaos-workflow
+  entrypoint: az-failure
+  onExit: cleanup
+  activeDeadlineSeconds: 900
+  securityContext:
+    runAsNonRoot: true
+    runAsUser: 65534
+    seccompProfile:
+      type: RuntimeDefault
+  tolerations:
+    - key: chaos.litmuschaos.io/az-failure
+      operator: Exists
+      effect: NoExecute
+  arguments:
+    parameters:
+      - name: zone
+        value: ""
+      - name: chaos-duration
+        value: "300"
+      - name: probe-url
+        value: ""
+      - name: max-acceptable-downtime-seconds
+        value: "10"
+  templates:
+    - name: az-failure
+      steps:
+        - - name: pre-check
+            template: select-nodes
+
+        - - name: taint-node
+            template: run-node-taint
+            arguments:
+              parameters:
+                - name: node
+                  value: "{{item.node}}"
+                - name: index
+                  value: "{{item.index}}"
+            withParam: "{{steps.pre-check.outputs.parameters.nodes}}"
+          - name: monitor-during-chaos
+            template: continuous-probe
+
+        - - name: post-check
+            template: verify-recovery
+
+        - - name: report
+            template: report-results
+            arguments:
+              parameters:
+                - name: downtime
+                  value: "{{steps.monitor-during-chaos.outputs.parameters.max-downtime}}"
+
+    - name: select-nodes
+      outputs:
+        parameters:
+          - name: nodes
+            valueFrom:
+              path: /tmp/nodes.json
+      script:
+        image: alpine/k8s:1.32.13
+        command: [sh]
+        env:
+          - name: HOME
+            value: /tmp
+        resources: &step-resources
+          requests:
+            cpu: 50m
+            memory: 64Mi
+          limits:
+            cpu: 200m
+            memory: 128Mi
+        securityContext: &step-security
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop: ["ALL"]
+        source: |
+          set -eu
+          zone="{{workflow.parameters.zone}}"
+          if [ -z "$zone" ]; then
+            echo "ERROR: the zone parameter is required (e.g. -p zone=<region>a)"
+            exit 1
+          fi
+          kubectl get nodes -l "topology.kubernetes.io/zone=$zone" -o json \
+            | jq -c '[.items | to_entries[] | {node: .value.metadata.name, index: (.key | tostring)}]' > /tmp/nodes.json
+          in_zone=$(jq length /tmp/nodes.json)
+          remaining=$(kubectl get nodes -l "topology.kubernetes.io/zone!=$zone" -o name | wc -l)
+          echo "Nodes in $zone: $in_zone; nodes in other zones: $remaining"
+          if [ "$in_zone" -eq 0 ]; then
+            echo "ERROR: no nodes found in $zone"
+            exit 1
+          fi
+          if [ "$remaining" -eq 0 ]; then
+            echo "ERROR: refusing to fail the only zone with nodes"
+            exit 1
+          fi
+
+    - name: run-node-taint
+      inputs:
+        parameters:
+          - name: node
+          - name: index
+      script:
+        image: alpine/k8s:1.32.13
+        command: [sh]
+        env:
+          - name: HOME
+            value: /tmp
+        resources: *step-resources
+        securityContext: *step-security
+        source: |
+          set -eu
+          engine="{{workflow.name}}-{{inputs.parameters.index}}"
+          cat <<EOF | kubectl create -f -
+          apiVersion: litmuschaos.io/v1alpha1
+          kind: ChaosEngine
+          metadata:
+            name: ${engine}
+            namespace: litmus
+            labels:
+              app.kubernetes.io/component: chaos-experiment
+              chaos.mlops-platform/workflow: "{{workflow.name}}"
+          spec:
+            engineState: "active"
+            jobCleanUpPolicy: "delete"
+            chaosServiceAccount: litmus-admin
+            components:
+              runner:
+                tolerations:
+                  - key: chaos.litmuschaos.io/az-failure
+                    operator: Exists
+                    effect: NoExecute
+            experiments:
+              - name: node-taint
+                spec:
+                  components:
+                    tolerations:
+                      - key: chaos.litmuschaos.io/az-failure
+                        operator: Exists
+                        effect: NoExecute
+                    env:
+                      - name: TARGET_NODE
+                        value: "{{inputs.parameters.node}}"
+                      - name: TAINTS
+                        value: "chaos.litmuschaos.io/az-failure=true:NoExecute"
+                      - name: TOTAL_CHAOS_DURATION
+                        value: "{{workflow.parameters.chaos-duration}}"
+                      - name: DEFAULT_HEALTH_CHECK
+                        value: "false"
+          EOF
+          timeout=$(( {{workflow.parameters.chaos-duration}} + 240 ))
+          kubectl wait chaosengine/"$engine" -n litmus \
+            --for=jsonpath='{.status.engineStatus}'=completed --timeout="${timeout}s"
+          verdict=$(kubectl get chaosresult "${engine}-node-taint" -n litmus \
+            -o jsonpath='{.status.experimentStatus.verdict}')
+          echo "Litmus verdict for {{inputs.parameters.node}}: $verdict"
+          [ "$verdict" = "Pass" ]
+
+    - name: continuous-probe
+      outputs:
+        parameters:
+          - name: max-downtime
+            valueFrom:
+              path: /tmp/max_downtime.txt
+      script:
+        image: curlimages/curl:8.22.0
+        command: [sh]
+        resources: *step-resources
+        securityContext: *step-security
+        source: |
+          url="{{workflow.parameters.probe-url}}"
+          max_downtime=0
+          if [ -z "$url" ]; then
+            echo "No probe-url given; skipping availability probe"
+            echo "$max_downtime" > /tmp/max_downtime.txt
+            exit 0
+          fi
+          consecutive_failures=0
+          end=$(( $(date +%s) + {{workflow.parameters.chaos-duration}} + 60 ))
+          while [ "$(date +%s)" -lt "$end" ]; do
+            code=$(curl -s -o /dev/null -w "%{http_code}" --max-time 2 "$url" || echo "000")
+            if [ "$code" != "200" ]; then
+              consecutive_failures=$((consecutive_failures + 1))
+              if [ $consecutive_failures -gt $max_downtime ]; then
+                max_downtime=$consecutive_failures
+              fi
+            else
+              consecutive_failures=0
+            fi
+            sleep 1
+          done
+          echo "Max consecutive failed seconds: $max_downtime"
+          echo "$max_downtime" > /tmp/max_downtime.txt
+
+    - name: verify-recovery
+      script:
+        image: alpine/k8s:1.32.13
+        command: [sh]
+        env:
+          - name: HOME
+            value: /tmp
+        resources: *step-resources
+        securityContext: *step-security
+        source: |
+          set -eu
+          zone="{{workflow.parameters.zone}}"
+          tainted=$(kubectl get nodes -l "topology.kubernetes.io/zone=$zone" -o json \
+            | jq '[.items[] | select(any(.spec.taints[]?; .key == "chaos.litmuschaos.io/az-failure"))] | length')
+          not_ready=$(kubectl get nodes -o json \
+            | jq '[.items[] | select(any(.status.conditions[]; .type == "Ready" and .status != "True"))] | length')
+          echo "Nodes still tainted in $zone: $tainted; NotReady nodes: $not_ready"
+          [ "$tainted" -eq 0 ] && [ "$not_ready" -eq 0 ]
+
+    - name: report-results
+      inputs:
+        parameters:
+          - name: downtime
+      script:
+        image: curlimages/curl:8.22.0
+        command: [sh]
+        resources: *step-resources
+        securityContext: *step-security
+        source: |
+          echo "=== AZ Failure Test Report ==="
+          echo "Workflow: {{workflow.name}}"
+          echo "Zone: {{workflow.parameters.zone}}"
+          echo "Max consecutive probe failures: {{inputs.parameters.downtime}} seconds"
+          if [ "{{inputs.parameters.downtime}}" -gt "{{workflow.parameters.max-acceptable-downtime-seconds}}" ]; then
+            echo "RESULT: FAIL (downtime > {{workflow.parameters.max-acceptable-downtime-seconds}}s)"
+            exit 1
+          fi
+          echo "RESULT: PASS (downtime <= {{workflow.parameters.max-acceptable-downtime-seconds}}s)"
+
+    - name: cleanup
+      script:
+        image: alpine/k8s:1.32.13
+        command: [sh]
+        env:
+          - name: HOME
+            value: /tmp
+        resources: *step-resources
+        securityContext: *step-security
+        source: |
+          for engine in $(kubectl get chaosengine -n litmus -l "chaos.mlops-platform/workflow={{workflow.name}}" -o name); do
+            kubectl patch "$engine" -n litmus --type merge -p '{"spec":{"engineState":"stop"}}' || true
+          done
+          zone="{{workflow.parameters.zone}}"
+          if [ -n "$zone" ]; then
+            kubectl taint nodes -l "topology.kubernetes.io/zone=$zone" chaos.litmuschaos.io/az-failure- 2>/dev/null || true
+          fi
+          echo "Workflow finished with status {{workflow.status}}"
