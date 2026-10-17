@@ -6,6 +6,17 @@ resources:
   - mlflow-resilience-test.yaml
   - az-failure-test.yaml
 
+configMapGenerator:
+  - name: chaos-workflow-scripts
+    namespace: argo-workflows
+    files:
+      - scripts/common.sh
+      - scripts/monitor.sh
+      - scripts/cleanup.sh
+
+generatorOptions:
+  disableNameSuffixHash: true
+
 labels:
   - pairs:
       app.kubernetes.io/part-of: mlops-platform

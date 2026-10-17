@@ -17,9 +17,21 @@ metadata:
     app.kubernetes.io/name: chaos-workflow
     app.kubernetes.io/component: chaos-validation
 rules:
-  - apiGroups: ["argoproj.io"]
-    resources: ["workflowtaskresults"]
-    verbs: ["create", "patch"]
+- apiGroups:
+  - argoproj.io
+  resources:
+  - workflowtaskresults
+  verbs:
+  - create
+  - patch
+- apiGroups:
+  - ''
+  resources:
+  - configmaps
+  verbs:
+  - get
+  - create
+  - delete
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
@@ -34,9 +46,9 @@ roleRef:
   kind: Role
   name: chaos-workflow-executor
 subjects:
-  - kind: ServiceAccount
-    name: chaos-workflow
-    namespace: argo-workflows
+- kind: ServiceAccount
+  name: chaos-workflow
+  namespace: argo-workflows
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
@@ -47,12 +59,25 @@ metadata:
     app.kubernetes.io/name: chaos-workflow
     app.kubernetes.io/component: chaos-validation
 rules:
-  - apiGroups: ["litmuschaos.io"]
-    resources: ["chaosengines"]
-    verbs: ["get", "list", "watch", "create", "patch", "delete"]
-  - apiGroups: ["litmuschaos.io"]
-    resources: ["chaosresults"]
-    verbs: ["get", "list", "watch"]
+- apiGroups:
+  - litmuschaos.io
+  resources:
+  - chaosengines
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - patch
+  - delete
+- apiGroups:
+  - litmuschaos.io
+  resources:
+  - chaosresults
+  verbs:
+  - get
+  - list
+  - watch
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
@@ -67,9 +92,9 @@ roleRef:
   kind: Role
   name: chaos-workflow-engines
 subjects:
-  - kind: ServiceAccount
-    name: chaos-workflow
-    namespace: argo-workflows
+- kind: ServiceAccount
+  name: chaos-workflow
+  namespace: argo-workflows
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
@@ -79,13 +104,23 @@ metadata:
     app.kubernetes.io/name: chaos-workflow
     app.kubernetes.io/component: chaos-validation
 rules:
-  - apiGroups: ["apps"]
-    resources: ["deployments", "statefulsets"]
-    verbs: ["get", "list"]
-  # az-failure-test lists nodes per zone and removes its own taint on exit
-  - apiGroups: [""]
-    resources: ["nodes"]
-    verbs: ["get", "list", "patch"]
+- apiGroups:
+  - apps
+  resources:
+  - deployments
+  - statefulsets
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - ''
+  resources:
+  - nodes
+  verbs:
+  - get
+  - list
+  - patch
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
@@ -99,6 +134,62 @@ roleRef:
   kind: ClusterRole
   name: chaos-workflow
 subjects:
-  - kind: ServiceAccount
-    name: chaos-workflow
-    namespace: argo-workflows
+- kind: ServiceAccount
+  name: chaos-workflow
+  namespace: argo-workflows
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: chaos-workflow-control-pods
+  namespace: litmus
+rules:
+- apiGroups:
+  - ''
+  resources:
+  - pods
+  verbs:
+  - get
+  - list
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: chaos-workflow-control-pods
+  namespace: litmus
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: chaos-workflow-control-pods
+subjects:
+- kind: ServiceAccount
+  name: chaos-workflow
+  namespace: argo-workflows
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: chaos-workflow-control-pods
+  namespace: argo-workflows
+rules:
+- apiGroups:
+  - ''
+  resources:
+  - pods
+  verbs:
+  - get
+  - list
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: chaos-workflow-control-pods
+  namespace: argo-workflows
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: chaos-workflow-control-pods
+subjects:
+- kind: ServiceAccount
+  name: chaos-workflow
+  namespace: argo-workflows
