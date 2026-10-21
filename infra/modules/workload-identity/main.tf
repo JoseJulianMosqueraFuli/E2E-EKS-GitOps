@@ -8,6 +8,10 @@ locals {
       subject = "system:serviceaccount:argo-workflows:argo-workflow"
       buckets = [var.bucket_arns.raw_data, var.bucket_arns.curated_data, var.bucket_arns.model_artifacts]
     }
+    secrets = {
+      subject = "system:serviceaccount:mlflow:${var.environment}-mlflow-secrets"
+      buckets = []
+    }
     backup = {
       subject = "system:serviceaccount:mlflow:${var.environment}-mlflow-backup-sa"
       buckets = [var.bucket_arns.backups]
@@ -44,7 +48,7 @@ resource "aws_iam_role" "workload" {
 }
 
 data "aws_iam_policy_document" "storage" {
-  for_each = local.workloads
+  for_each = { for name, workload in local.workloads : name => workload if length(workload.buckets) > 0 }
   statement {
     actions   = ["s3:ListBucket", "s3:GetBucketLocation"]
     resources = each.value.buckets
@@ -60,7 +64,7 @@ data "aws_iam_policy_document" "storage" {
 }
 
 resource "aws_iam_role_policy" "storage" {
-  for_each = local.workloads
+  for_each = data.aws_iam_policy_document.storage
   name     = "platform-storage"
   role     = aws_iam_role.workload[each.key].id
   policy   = data.aws_iam_policy_document.storage[each.key].json
@@ -84,4 +88,24 @@ resource "aws_iam_role_policy" "inference_images" {
   name   = "inference-images"
   role   = aws_iam_role.workload["argo"].id
   policy = data.aws_iam_policy_document.inference_images.json
+}
+
+data "aws_region" "current" {}
+data "aws_caller_identity" "current" {}
+
+data "aws_iam_policy_document" "secrets" {
+  statement {
+    actions   = ["secretsmanager:GetSecretValue", "secretsmanager:DescribeSecret"]
+    resources = ["arn:aws:secretsmanager:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:secret:mlops/${var.environment == "prod" ? "production" : var.environment}/mlflow/*"]
+  }
+  statement {
+    actions   = ["kms:Decrypt"]
+    resources = [var.kms_key_arn]
+  }
+}
+
+resource "aws_iam_role_policy" "secrets" {
+  name   = "mlflow-secret-values"
+  role   = aws_iam_role.workload["secrets"].id
+  policy = data.aws_iam_policy_document.secrets.json
 }

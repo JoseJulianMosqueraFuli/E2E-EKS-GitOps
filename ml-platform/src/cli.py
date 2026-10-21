@@ -306,5 +306,41 @@ def step_chaos_canary_cmd(phase, workflow, run_id, outputs_dir):
     click.echo(f"Canary {phase} succeeded")
 
 
+@step.command("validate-data")
+@click.option("--input", "source", required=True)
+@click.option("--output-prefix", required=True)
+@click.option("--target", default="target")
+@click.option("--suite", type=click.Choice(["default", "production"]), default="default")
+@OUTPUTS_DIR_OPTION
+def step_validate_data_cmd(source, output_prefix, target, suite, outputs_dir):
+    from src.pipelines.validation import validate_data
+
+    report = validate_data(source, output_prefix, target, suite)
+    steps.write_outputs(outputs_dir, {"validated-data.txt": report["data_uri"], "validation-report.json": json.dumps(report)})
+    click.echo(json.dumps(report))
+
+
+@step.command("validate-deployment")
+@click.option("--url", required=True)
+@click.option("--data-uri", required=True)
+@click.option("--target", default="target")
+def step_validate_deployment_cmd(url, data_uri, target):
+    from src.pipelines.validation import validate_deployment
+
+    validate_deployment(url, data_uri, target)
+    click.echo("Prediction request and response verified")
+
+
+@step.command("notify")
+@click.option("--model-name", required=True)
+@click.option("--version", required=True)
+@click.option("--status", required=True)
+def step_notify_cmd(model_name, version, status):
+    from src.pipelines.validation import notify_pipeline
+
+    notify_pipeline(model_name, version, status)
+    click.echo(f"{model_name} {version}: {status}")
+
+
 if __name__ == "__main__":
     main()

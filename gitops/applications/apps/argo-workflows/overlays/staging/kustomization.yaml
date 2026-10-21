@@ -45,6 +45,32 @@ replacements:
 - source:
     kind: ConfigMap
     name: platform-config
+    fieldPath: data.AWS_REGION
+  targets:
+  - select:
+      kind: ConfigMap
+      name: platform-resources
+    fieldPaths:
+    - data.RAW_BUCKET
+    options:
+      delimiter: '-'
+      index: 5
+- source:
+    kind: ConfigMap
+    name: platform-config
+    fieldPath: data.AWS_ACCOUNT_ID
+  targets:
+  - select:
+      kind: ConfigMap
+      name: platform-resources
+    fieldPaths:
+    - data.RAW_BUCKET
+    options:
+      delimiter: '-'
+      index: 4
+- source:
+    kind: ConfigMap
+    name: platform-config
     fieldPath: data.AWS_ACCOUNT_ID
   targets:
   - select:
@@ -208,6 +234,80 @@ replacements:
       index: 4
 - source:
     kind: ConfigMap
+    name: platform-config
+    fieldPath: data.AWS_ACCOUNT_ID
+  targets:
+  - select:
+      kind: WorkflowTemplate
+      name: data-validation-template
+    fieldPaths:
+    - spec.templates.[name=data-validation].container.image
+    options:
+      delimiter: .
+      index: 0
+  - select:
+      kind: WorkflowTemplate
+      name: model-deployment-template
+    fieldPaths:
+    - spec.templates.[name=build-inference-image-step].initContainers.[name=prepare-model].image
+    options:
+      delimiter: .
+      index: 0
+  - select:
+      kind: WorkflowTemplate
+      name: model-deployment-template
+    fieldPaths:
+    - spec.templates.[name=validate-deployment-step].container.image
+    options:
+      delimiter: .
+      index: 0
+  - select:
+      kind: WorkflowTemplate
+      name: ml-pipeline-template
+    fieldPaths:
+    - spec.templates.[name=send-notification-step].container.image
+    options:
+      delimiter: .
+      index: 0
+- source:
+    kind: ConfigMap
+    name: platform-config
+    fieldPath: data.AWS_REGION
+  targets:
+  - select:
+      kind: WorkflowTemplate
+      name: data-validation-template
+    fieldPaths:
+    - spec.templates.[name=data-validation].container.image
+    options:
+      delimiter: .
+      index: 3
+  - select:
+      kind: WorkflowTemplate
+      name: model-deployment-template
+    fieldPaths:
+    - spec.templates.[name=build-inference-image-step].initContainers.[name=prepare-model].image
+    options:
+      delimiter: .
+      index: 3
+  - select:
+      kind: WorkflowTemplate
+      name: model-deployment-template
+    fieldPaths:
+    - spec.templates.[name=validate-deployment-step].container.image
+    options:
+      delimiter: .
+      index: 3
+  - select:
+      kind: WorkflowTemplate
+      name: ml-pipeline-template
+    fieldPaths:
+    - spec.templates.[name=send-notification-step].container.image
+    options:
+      delimiter: .
+      index: 3
+- source:
+    kind: ConfigMap
     name: platform-resources
     fieldPath: data.CURATED_BUCKET
   targets:
@@ -246,6 +346,89 @@ replacements:
       delimiter: /
       index: 2
 - source:
+    kind: WorkflowTemplate
+    name: model-training-template
+    fieldPath: spec.arguments.parameters.[name=artifacts-prefix].value
+  targets:
+  - select:
+      kind: WorkflowTemplate
+      name: model-training-template
+    fieldPaths:
+    - spec.templates.[name=model-training].inputs.parameters.[name=artifacts-prefix].value
+- source:
+    kind: WorkflowTemplate
+    name: model-training-template
+    fieldPath: spec.arguments.parameters.[name=target-column].value
+  targets:
+  - select:
+      kind: WorkflowTemplate
+      name: model-training-template
+    fieldPaths:
+    - spec.templates.[name=model-training].inputs.parameters.[name=target-column].value
+- source:
+    kind: WorkflowTemplate
+    name: model-training-template
+    fieldPath: spec.arguments.parameters.[name=task-type].value
+  targets:
+  - select:
+      kind: WorkflowTemplate
+      name: model-training-template
+    fieldPaths:
+    - spec.templates.[name=model-training].inputs.parameters.[name=task-type].value
+- source:
+    kind: WorkflowTemplate
+    name: model-training-template
+    fieldPath: spec.arguments.parameters.[name=algorithm].value
+  targets:
+  - select:
+      kind: WorkflowTemplate
+      name: model-training-template
+    fieldPaths:
+    - spec.templates.[name=model-training].inputs.parameters.[name=algorithm].value
+- source:
+    kind: WorkflowTemplate
+    name: model-training-template
+    fieldPath: spec.arguments.parameters.[name=hyperparameters].value
+  targets:
+  - select:
+      kind: WorkflowTemplate
+      name: model-training-template
+    fieldPaths:
+    - spec.templates.[name=model-training].inputs.parameters.[name=hyperparameters].value
+- source:
+    kind: WorkflowTemplate
+    name: model-training-template
+    fieldPath: spec.arguments.parameters.[name=min-score].value
+  targets:
+  - select:
+      kind: WorkflowTemplate
+      name: model-training-template
+    fieldPaths:
+    - spec.templates.[name=model-training].inputs.parameters.[name=min-score].value
+- source:
+    kind: WorkflowTemplate
+    name: model-training-template
+    fieldPath: spec.arguments.parameters.[name=min-improvement].value
+  targets:
+  - select:
+      kind: WorkflowTemplate
+      name: model-training-template
+    fieldPaths:
+    - spec.templates.[name=model-training].inputs.parameters.[name=min-improvement].value
+- source:
+    kind: ConfigMap
+    name: platform-resources
+    fieldPath: data.RAW_BUCKET
+  targets:
+  - select:
+      kind: WorkflowTemplate
+      name: ml-pipeline-template
+    fieldPaths:
+    - spec.arguments.parameters.0.value
+    options:
+      delimiter: /
+      index: 2
+- source:
     kind: ConfigMap
     name: platform-resources
     fieldPath: data.CURATED_BUCKET
@@ -265,12 +448,85 @@ replacements:
   targets:
   - select:
       kind: WorkflowTemplate
-      name: ml-pipeline-template
+      name: model-deployment-template
     fieldPaths:
-    - spec.templates.0.dag.tasks.1.arguments.parameters.0.value
+    - spec.arguments.parameters.5.value
     options:
       delimiter: /
       index: 2
+- source:
+    kind: ConfigMap
+    name: platform-resources
+    fieldPath: data.CURATED_BUCKET
+  targets:
+  - select:
+      kind: WorkflowTemplate
+      name: model-deployment-template
+    fieldPaths:
+    - spec.templates.0.inputs.parameters.5.default
+    options:
+      delimiter: /
+      index: 2
+- source:
+    kind: WorkflowTemplate
+    name: model-deployment-template
+    fieldPath: spec.arguments.parameters.[name=model-name].value
+  targets:
+  - select:
+      kind: WorkflowTemplate
+      name: model-deployment-template
+    fieldPaths:
+    - spec.templates.[name=model-deployment].inputs.parameters.[name=model-name].default
+- source:
+    kind: WorkflowTemplate
+    name: model-deployment-template
+    fieldPath: spec.arguments.parameters.[name=model-version].value
+  targets:
+  - select:
+      kind: WorkflowTemplate
+      name: model-deployment-template
+    fieldPaths:
+    - spec.templates.[name=model-deployment].inputs.parameters.[name=model-version].default
+- source:
+    kind: WorkflowTemplate
+    name: model-deployment-template
+    fieldPath: spec.arguments.parameters.[name=deployment-namespace].value
+  targets:
+  - select:
+      kind: WorkflowTemplate
+      name: model-deployment-template
+    fieldPaths:
+    - spec.templates.[name=model-deployment].inputs.parameters.[name=deployment-namespace].default
+- source:
+    kind: WorkflowTemplate
+    name: model-deployment-template
+    fieldPath: spec.arguments.parameters.[name=mlflow-tracking-uri].value
+  targets:
+  - select:
+      kind: WorkflowTemplate
+      name: model-deployment-template
+    fieldPaths:
+    - spec.templates.[name=model-deployment].inputs.parameters.[name=mlflow-tracking-uri].default
+- source:
+    kind: WorkflowTemplate
+    name: model-deployment-template
+    fieldPath: spec.arguments.parameters.[name=ecr-repository].value
+  targets:
+  - select:
+      kind: WorkflowTemplate
+      name: model-deployment-template
+    fieldPaths:
+    - spec.templates.[name=model-deployment].inputs.parameters.[name=ecr-repository].default
+- source:
+    kind: WorkflowTemplate
+    name: model-deployment-template
+    fieldPath: spec.arguments.parameters.[name=validation-data].value
+  targets:
+  - select:
+      kind: WorkflowTemplate
+      name: model-deployment-template
+    fieldPaths:
+    - spec.templates.[name=model-deployment].inputs.parameters.[name=validation-data].default
 - source:
     kind: ConfigMap
     name: platform-resources
@@ -287,6 +543,19 @@ replacements:
 - source:
     kind: ConfigMap
     name: platform-resources
+    fieldPath: data.RAW_BUCKET
+  targets:
+  - select:
+      kind: WorkflowTemplate
+      name: data-validation-template
+    fieldPaths:
+    - spec.arguments.parameters.0.value
+    options:
+      delimiter: /
+      index: 2
+- source:
+    kind: ConfigMap
+    name: platform-resources
     fieldPath: data.CURATED_BUCKET
   targets:
   - select:
@@ -297,12 +566,79 @@ replacements:
     options:
       delimiter: /
       index: 2
+- source:
+    kind: ConfigMap
+    name: platform-resources
+    fieldPath: data.RAW_BUCKET
+  targets:
+  - select:
+      kind: WorkflowTemplate
+      name: data-validation-template
+    fieldPaths:
+    - spec.templates.0.inputs.parameters.0.default
+    options:
+      delimiter: /
+      index: 2
+- source:
+    kind: ConfigMap
+    name: platform-resources
+    fieldPath: data.CURATED_BUCKET
+  targets:
+  - select:
+      kind: WorkflowTemplate
+      name: data-validation-template
+    fieldPaths:
+    - spec.templates.0.inputs.parameters.2.default
+    options:
+      delimiter: /
+      index: 2
+- source:
+    kind: WorkflowTemplate
+    name: data-validation-template
+    fieldPath: spec.arguments.parameters.[name=data-source].value
+  targets:
+  - select:
+      kind: WorkflowTemplate
+      name: data-validation-template
+    fieldPaths:
+    - spec.templates.[name=data-validation].inputs.parameters.[name=data-source].default
+- source:
+    kind: WorkflowTemplate
+    name: data-validation-template
+    fieldPath: spec.arguments.parameters.[name=validation-suite].value
+  targets:
+  - select:
+      kind: WorkflowTemplate
+      name: data-validation-template
+    fieldPaths:
+    - spec.templates.[name=data-validation].inputs.parameters.[name=validation-suite].default
+- source:
+    kind: WorkflowTemplate
+    name: data-validation-template
+    fieldPath: spec.arguments.parameters.[name=output-path].value
+  targets:
+  - select:
+      kind: WorkflowTemplate
+      name: data-validation-template
+    fieldPaths:
+    - spec.templates.[name=data-validation].inputs.parameters.[name=output-path].default
+- source:
+    kind: WorkflowTemplate
+    name: data-validation-template
+    fieldPath: spec.arguments.parameters.[name=target-column].value
+  targets:
+  - select:
+      kind: WorkflowTemplate
+      name: data-validation-template
+    fieldPaths:
+    - spec.templates.[name=data-validation].inputs.parameters.[name=target-column].default
 configMapGenerator:
 - name: platform-resources
   literals:
   - ARTIFACT_BUCKET=mlops-staging-model-artifacts-AWS_ACCOUNT_ID-AWS_REGION
   - CURATED_BUCKET=mlops-staging-curated-data-AWS_ACCOUNT_ID-AWS_REGION
   - BACKUP_BUCKET=mlops-staging-backups-AWS_ACCOUNT_ID-AWS_REGION
+  - RAW_BUCKET=mlops-staging-raw-data-AWS_ACCOUNT_ID-AWS_REGION
   options:
     disableNameSuffixHash: true
     annotations:

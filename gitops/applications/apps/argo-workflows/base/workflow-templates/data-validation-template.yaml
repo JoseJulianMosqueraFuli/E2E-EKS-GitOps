@@ -12,92 +12,69 @@ spec:
   arguments:
     parameters:
     - name: data-source
-      value: "s3://mlops-raw-data/"
+      value: s3://mlops-raw-data/input/data.csv
     - name: validation-suite
-      value: "default"
+      value: default
     - name: output-path
-      value: "s3://mlops-curated-data/"
+      value: s3://mlops-curated-data/validated
+    - name: target-column
+      value: target
   templates:
   - name: data-validation
-    dag:
-      tasks:
-      - name: validate-schema
-        template: validate-schema-step
-        arguments:
-          parameters:
-          - name: data-source
-            value: "{{workflow.parameters.data-source}}"
-      - name: validate-quality
-        template: validate-quality-step
-        dependencies: [validate-schema]
-        arguments:
-          parameters:
-          - name: data-source
-            value: "{{workflow.parameters.data-source}}"
-          - name: validation-suite
-            value: "{{workflow.parameters.validation-suite}}"
-      - name: generate-report
-        template: generate-report-step
-        dependencies: [validate-quality]
-        arguments:
-          parameters:
-          - name: output-path
-            value: "{{workflow.parameters.output-path}}"
-  
-  - name: validate-schema-step
     inputs:
       parameters:
       - name: data-source
-    container:
-      image: mlops/data-validator:latest
-      command: [python]
-      args: ["/app/validate_schema.py", "--input", "{{inputs.parameters.data-source}}"]
-      env:
-      - name: AWS_DEFAULT_REGION
-        value: "AWS_REGION"
-      resources:
-        requests:
-          memory: "512Mi"
-          cpu: "250m"
-        limits:
-          memory: "1Gi"
-          cpu: "500m"
-  
-  - name: validate-quality-step
-    inputs:
-      parameters:
-      - name: data-source
+        default: s3://mlops-raw-data/input/data.csv
       - name: validation-suite
-    container:
-      image: mlops/data-validator:latest
-      command: [python]
-      args: ["/app/validate_quality.py", "--input", "{{inputs.parameters.data-source}}", "--suite", "{{inputs.parameters.validation-suite}}"]
-      env:
-      - name: AWS_DEFAULT_REGION
-        value: "AWS_REGION"
-      resources:
-        requests:
-          memory: "1Gi"
-          cpu: "500m"
-        limits:
-          memory: "2Gi"
-          cpu: "1000m"
-  
-  - name: generate-report-step
-    inputs:
-      parameters:
+        default: default
       - name: output-path
+        default: s3://mlops-curated-data/validated
+      - name: target-column
+        default: target
+    outputs:
+      parameters:
+      - name: validated-data
+        valueFrom:
+          path: /tmp/validated-data.txt
+      - name: validation-report
+        valueFrom:
+          path: /tmp/validation-report.json
     container:
-      image: mlops/data-validator:latest
-      command: [python]
-      args: ["/app/generate_report.py", "--output", "{{inputs.parameters.output-path}}"]
+      image: mlops-platform:0.1.0
+      command:
+      - python
+      - -m
+      - src.cli
+      args:
+      - step
+      - validate-data
+      - --input
+      - '{{inputs.parameters.data-source}}'
+      - --output-prefix
+      - '{{inputs.parameters.output-path}}'
+      - --suite
+      - '{{inputs.parameters.validation-suite}}'
+      - --target
+      - '{{inputs.parameters.target-column}}'
       env:
       - name: AWS_DEFAULT_REGION
-        value: "AWS_REGION"
+        value: AWS_REGION
+      envFrom:
+      - configMapRef:
+          name: ml-step-env
+          optional: true
+      - secretRef:
+          name: ml-step-credentials
+          optional: true
       resources:
         requests:
-          memory: "256Mi"
-          cpu: "100m"
+          cpu: 100m
+          memory: 256Mi
         limits:
-          memory: "512Mi"
-          cpu: "250m"
+          cpu: 500m
+          memory: 1Gi
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop:
+          - ALL

@@ -12,17 +12,17 @@ spec:
   arguments:
     parameters:
     - name: data-source
-      value: "s3://mlops-raw-data/"
+      value: s3://mlops-raw-data/input/data.csv
     - name: model-name
-      value: "default-model"
+      value: default-model
     - name: experiment-name
-      value: "default-experiment"
+      value: default-experiment
     - name: deployment-namespace
-      value: "models"
+      value: models
     - name: mlflow-tracking-uri
-      value: "http://mlflow-server.mlflow:5000"
+      value: http://mlflow-server.mlflow:5000
     - name: ecr-repository
-      value: "AWS_ACCOUNT_ID.dkr.ecr.AWS_REGION.amazonaws.com/mlops-dev-inference"
+      value: AWS_ACCOUNT_ID.dkr.ecr.AWS_REGION.amazonaws.com/mlops-dev-inference
   templates:
   - name: ml-pipeline
     dag:
@@ -34,59 +34,60 @@ spec:
         arguments:
           parameters:
           - name: data-source
-            value: "{{workflow.parameters.data-source}}"
+            value: '{{workflow.parameters.data-source}}'
           - name: validation-suite
-            value: "production"
+            value: production
           - name: output-path
-            value: "s3://mlops-curated-data/"
-      
+            value: s3://mlops-curated-data/
       - name: model-training
         templateRef:
           name: model-training-template
           template: model-training
-        dependencies: [data-validation]
+        dependencies:
+        - data-validation
         arguments:
           parameters:
           - name: data-path
-            value: "s3://mlops-curated-data/"
+            value: '{{tasks.data-validation.outputs.parameters.validated-data}}'
           - name: model-name
-            value: "{{workflow.parameters.model-name}}"
+            value: '{{workflow.parameters.model-name}}'
           - name: experiment-name
-            value: "{{workflow.parameters.experiment-name}}"
+            value: '{{workflow.parameters.experiment-name}}'
           - name: mlflow-tracking-uri
-            value: "{{workflow.parameters.mlflow-tracking-uri}}"
-      
+            value: '{{workflow.parameters.mlflow-tracking-uri}}'
       - name: model-deployment
         templateRef:
           name: model-deployment-template
           template: model-deployment
-        dependencies: [model-training]
-        when: "{{tasks.model-training.outputs.parameters.model-approved}} == true"
+        dependencies:
+        - model-training
+        when: '{{tasks.model-training.outputs.parameters.model-approved}} == true'
         arguments:
           parameters:
           - name: model-name
-            value: "{{workflow.parameters.model-name}}"
+            value: '{{workflow.parameters.model-name}}'
           - name: model-version
-            value: "{{tasks.model-training.outputs.parameters.model-version}}"
+            value: '{{tasks.model-training.outputs.parameters.model-version}}'
           - name: deployment-namespace
-            value: "{{workflow.parameters.deployment-namespace}}"
+            value: '{{workflow.parameters.deployment-namespace}}'
           - name: mlflow-tracking-uri
-            value: "{{workflow.parameters.mlflow-tracking-uri}}"
+            value: '{{workflow.parameters.mlflow-tracking-uri}}'
           - name: ecr-repository
-            value: "{{workflow.parameters.ecr-repository}}"
-      
+            value: '{{workflow.parameters.ecr-repository}}'
+          - name: validation-data
+            value: '{{tasks.data-validation.outputs.parameters.validated-data}}'
       - name: send-notification
         template: send-notification-step
-        dependencies: [model-deployment]
+        dependencies:
+        - model-deployment
         arguments:
           parameters:
           - name: model-name
-            value: "{{workflow.parameters.model-name}}"
+            value: '{{workflow.parameters.model-name}}'
           - name: deployment-status
-            value: "{{tasks.model-deployment.status}}"
+            value: '{{tasks.model-deployment.status}}'
           - name: model-version
-            value: "{{tasks.model-training.outputs.parameters.model-version}}"
-  
+            value: '{{tasks.model-training.outputs.parameters.model-version}}'
   - name: send-notification-step
     inputs:
       parameters:
@@ -94,21 +95,45 @@ spec:
       - name: deployment-status
       - name: model-version
     container:
-      image: mlops/notifier:latest
-      command: [python]
-      args: [
-        "/app/send_notification.py",
-        "--model-name", "{{inputs.parameters.model-name}}",
-        "--status", "{{inputs.parameters.deployment-status}}",
-        "--version", "{{inputs.parameters.model-version}}"
-      ]
+      image: mlops-platform:0.1.0
+      command:
+      - python
+      - -m
+      - src.cli
+      args:
+      - step
+      - notify
+      - --model-name
+      - '{{inputs.parameters.model-name}}'
+      - --status
+      - '{{inputs.parameters.deployment-status}}'
+      - --version
+      - '{{inputs.parameters.model-version}}'
       env:
       - name: AWS_DEFAULT_REGION
-        value: "AWS_REGION"
+        value: AWS_REGION
+      - name: SLACK_WEBHOOK_URL
+        valueFrom:
+          secretKeyRef:
+            name: workflow-notifications
+            key: slack-webhook-url
+            optional: true
+      envFrom:
+      - configMapRef:
+          name: ml-step-env
+          optional: true
+      - secretRef:
+          name: ml-step-credentials
+          optional: true
       resources:
         requests:
-          memory: "128Mi"
-          cpu: "100m"
+          cpu: 100m
+          memory: 256Mi
         limits:
-          memory: "256Mi"
-          cpu: "200m"
+          cpu: 500m
+          memory: 1Gi
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop:
+          - ALL
