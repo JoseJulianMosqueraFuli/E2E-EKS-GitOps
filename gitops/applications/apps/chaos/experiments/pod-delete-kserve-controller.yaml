@@ -33,3 +33,4 @@ spec:
           target-service: kserve
           phase: phase-1-pod-chaos
           note: control-plane-gap-expected
+  annotationCheck: 'false'

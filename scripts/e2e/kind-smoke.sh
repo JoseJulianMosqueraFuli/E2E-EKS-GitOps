@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 set -euo pipefail
+[ "${GITHUB_ACTIONS:-}" = true ] || { echo "This test runs only in GitHub Actions" >&2; exit 1; }
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 KIND_DIR="${ROOT}/scripts/e2e/kind"

@@ -195,6 +195,7 @@ spec:
             app.kubernetes.io/component: chaos-experiment
             chaos.mlops-platform/workflow: "{{workflow.name}}"
         spec:
+          annotationCheck: "false"
           engineState: "active"
           jobCleanUpPolicy: "delete"
           chaosServiceAccount: litmus-node

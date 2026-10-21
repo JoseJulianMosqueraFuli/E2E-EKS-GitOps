@@ -32,3 +32,4 @@ spec:
           environment: dev
           target-service: mlflow
           phase: phase-1-pod-chaos
+  annotationCheck: 'false'

@@ -27,3 +27,4 @@ spec:
           target-service: gpu-nodes
           phase: phase-2-node-chaos
           note: gpu-training-requeues
+  annotationCheck: 'false'

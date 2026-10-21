@@ -33,3 +33,4 @@ spec:
           target-service: argocd
           phase: phase-1-pod-chaos
           note: leader-re-election-expected
+  annotationCheck: 'false'

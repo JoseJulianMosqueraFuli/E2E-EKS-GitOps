@@ -154,6 +154,7 @@ spec:
             appns: "mlflow"
             applabel: "app=mlflow-server"
             appkind: "deployment"
+          annotationCheck: "false"
           engineState: "active"
           jobCleanUpPolicy: "delete"
           chaosServiceAccount: litmus-pod-mlflow

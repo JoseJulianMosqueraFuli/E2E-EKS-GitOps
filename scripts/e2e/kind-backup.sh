@@ -26,5 +26,6 @@ spec["backoffLimit"] = 0
 spec["activeDeadlineSeconds"] = 300
 print(json.dumps({"apiVersion":"batch/v1", "kind":"Job", "metadata":{"name":"e2e-backup-restore", "namespace":"mlflow"}, "spec":spec}))
 ' | kc apply -f -
-trap 'kc -n mlflow logs job/e2e-backup-restore --all-containers; kc -n mlflow get job/e2e-backup-restore -o yaml' EXIT
+mkdir -p "$ROOT/test-results/chaos"
+trap 'kc -n mlflow logs job/e2e-backup-restore --all-containers | tee "$ROOT/test-results/chaos/backup-restore.log"; kc -n mlflow get job/e2e-backup-restore -o yaml > "$ROOT/test-results/chaos/backup-restore.yaml"' EXIT
 kc -n mlflow wait --for=condition=Complete job/e2e-backup-restore --timeout=330s

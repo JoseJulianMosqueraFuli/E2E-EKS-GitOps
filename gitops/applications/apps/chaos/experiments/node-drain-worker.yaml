@@ -27,3 +27,4 @@ spec:
           target-service: worker-nodes
           phase: phase-2-node-chaos
           note: pods-reschedule-pdbs-respected
+  annotationCheck: 'false'

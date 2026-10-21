@@ -294,6 +294,7 @@ def test_rendered_chaos_workflows_have_safety_dependencies(environment):
             t for t in spec["templates"] if t["name"] in ("run-pod-delete", "run-node-taint")
         )
         source = injector["script"]["source"]
+        assert 'annotationCheck: "false"' in source
         assert source.index("wait_for_probe") < source.index("kubectl --request-timeout=10s create")
 
 

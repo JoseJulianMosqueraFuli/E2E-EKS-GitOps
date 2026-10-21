@@ -233,3 +233,14 @@ docs: ## Generate documentation
 	@echo "Generating documentation..."
 	@echo "Infrastructure documentation available in docs/"
 	@echo "MLOps recommendations available in docs/mlops-enterprise-recommendations.md"
+
+.PHONY: e2e-kind-smoke e2e-kind-backup e2e-kind-chaos
+
+e2e-kind-smoke: ## Run the training smoke on the GitHub Actions kind cluster
+	bash scripts/e2e/kind-smoke.sh
+
+e2e-kind-backup: ## Verify backup and restore on the GitHub Actions kind cluster
+	bash scripts/e2e/kind-backup.sh
+
+e2e-kind-chaos: ## Verify Litmus injection and cleanup on the GitHub Actions kind cluster
+	bash scripts/e2e/kind-chaos.sh

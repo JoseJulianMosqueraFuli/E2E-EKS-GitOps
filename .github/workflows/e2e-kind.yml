@@ -10,6 +10,8 @@ on:
       - "gitops/applications/apps/chaos/**"
       - "gitops/infrastructure/controllers/flux-system/**"
       - "gitops/scripts/install-gitops-controllers.sh"
+      - "gitops/infrastructure/security/chaos-guardrails.yaml"
+      - "Makefile"
       - "scripts/e2e/**"
       - "gitops/platform/**"
       - ".github/workflows/e2e-kind.yml"
@@ -22,6 +24,8 @@ on:
       - "gitops/applications/apps/chaos/**"
       - "gitops/infrastructure/controllers/flux-system/**"
       - "gitops/scripts/install-gitops-controllers.sh"
+      - "gitops/infrastructure/security/chaos-guardrails.yaml"
+      - "Makefile"
       - "scripts/e2e/**"
       - "gitops/platform/**"
       - ".github/workflows/e2e-kind.yml"
@@ -87,17 +91,17 @@ jobs:
       - name: Run end-to-end smoke test
         env:
           KUBE_CONTEXT: kind-mlops-e2e
-        run: bash scripts/e2e/kind-smoke.sh
+        run: make e2e-kind-smoke
 
       - name: Verify PostgreSQL backup and restore
         env:
           KUBE_CONTEXT: kind-mlops-e2e
-        run: bash scripts/e2e/kind-backup.sh
+        run: make e2e-kind-backup
 
       - name: Verify Litmus experiments and cancellation cleanup
         env:
           KUBE_CONTEXT: kind-mlops-e2e
-        run: bash scripts/e2e/kind-chaos.sh
+        run: make e2e-kind-chaos
 
       - name: Retain Chaos evidence
         if: always()

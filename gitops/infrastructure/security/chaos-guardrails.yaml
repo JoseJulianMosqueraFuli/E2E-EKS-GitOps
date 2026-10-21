@@ -78,6 +78,9 @@ spec:
   - name: pod
     expression: 'request.resource.resource == ''pods'' ? object.spec : (request.resource.resource == ''jobs'' ?
       object.spec.template.spec : null)'
+  - name: containers
+    expression: 'variables.pod == null ? [] : variables.pod.containers + (has(variables.pod.initContainers) ? variables.pod.initContainers
+      : []) + (has(variables.pod.ephemeralContainers) ? variables.pod.ephemeralContainers : [])'
   validations:
   - expression: request.resource.resource != 'pods' || object.spec.serviceAccountName == variables.account
     message: Chaos runner pods must use the requesting fault account.
@@ -89,7 +92,7 @@ spec:
       || !variables.pod.hostNetwork) && (!has(variables.pod.hostPID) || !variables.pod.hostPID) && (!has(variables.pod.hostIPC)
       || !variables.pod.hostIPC))'
     message: Pod deletion faults cannot use host namespaces.
-  - expression: '!variables.account.startsWith(''litmus-pod-'') || variables.pod == null || variables.pod.containers.all(c,
+  - expression: '!variables.account.startsWith(''litmus-pod-'') || variables.pod == null || variables.containers.all(c,
       !has(c.securityContext) || ((!has(c.securityContext.privileged) || !c.securityContext.privileged) && (!has(c.securityContext.capabilities)
       || !has(c.securityContext.capabilities.add) || c.securityContext.capabilities.add.size() == 0)))'
     message: Pod deletion faults cannot create privileged containers or add capabilities.
@@ -97,7 +100,7 @@ spec:
       || variables.pod.volumes.all(v, !has(v.hostPath) && !has(v.secret) && (!has(v.projected) || v.projected.sources.all(s,
       !has(s.secret)))))'
     message: Pod deletion faults cannot mount host paths or secrets.
-  - expression: '!variables.account.startsWith(''litmus-pod-'') || variables.pod == null || variables.pod.containers.all(c,
+  - expression: '!variables.account.startsWith(''litmus-pod-'') || variables.pod == null || variables.containers.all(c,
       (!has(c.envFrom) || c.envFrom.all(e, !has(e.secretRef))) && (!has(c.env) || c.env.all(e, !has(e.valueFrom)
       || !has(e.valueFrom.secretKeyRef))))'
     message: Pod deletion faults cannot load secret values into containers.

@@ -31,3 +31,4 @@ spec:
           target-service: mlflow
           phase: phase-1-resource-chaos
           note: hpa-scale-up-expected
+  annotationCheck: 'false'
