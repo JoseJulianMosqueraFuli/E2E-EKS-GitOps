@@ -155,31 +155,30 @@ validate-platform-config: platform-config ## Fail if AWS account/region placehol
 
 validate-python: ## Validate Python code
 	@echo "Validating Python code..."
-	cd ml-platform && python -m flake8 src/ tests/
-	cd ml-platform && python -m black --check src/ tests/
-	cd ml-platform && python -m isort --check-only src/ tests/
+	cd ml-platform && poetry run flake8 src/ tests/
+	cd ml-platform && poetry run black --check src/ tests/
+	cd ml-platform && poetry run isort --check-only src/ tests/
 
 validate-all: validate-terraform validate-kubernetes validate-platform-config validate-python ## Validate all configurations
 
 # Development Targets
 dev-setup: ## Setup development environment
 	@echo "Setting up development environment..."
-	pip install -e ml-platform/
-	pip install -e "ml-platform/[dev]"
-	pip install pre-commit detect-secrets
-	pre-commit install
+	cd ml-platform && poetry install -E dev
+	cd gitops && poetry install --with test,dev
+	poetry run --directory ml-platform pre-commit install
 	@if [ ! -f .secrets.baseline ]; then \
 		echo "Generating secrets baseline..."; \
-		detect-secrets scan > .secrets.baseline; \
+		poetry run --directory ml-platform detect-secrets scan > .secrets.baseline; \
 	fi
 
 dev-format: ## Format code
-	cd ml-platform && python -m black src/ tests/
-	cd ml-platform && python -m isort src/ tests/
+	cd ml-platform && poetry run black src/ tests/
+	cd ml-platform && poetry run isort src/ tests/
 
 dev-lint: ## Lint code
-	cd ml-platform && python -m flake8 src/ tests/
-	cd ml-platform && python -m mypy src/
+	cd ml-platform && poetry run flake8 src/ tests/
+	cd ml-platform && poetry run mypy src/
 
 agents-sync: ## Generate Kiro/VS Code/Claude rules and MCP config from .agents/
 	python3 scripts/sync-agent-config.py
