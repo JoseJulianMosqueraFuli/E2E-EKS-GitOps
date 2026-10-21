@@ -1,14 +1,15 @@
 set -eu
-kubectl --request-timeout=10s get pods --all-namespaces -o json > /tmp/cluster-pods.json
-jq -e --slurpfile targets /tmp/nodes.json '
+state_dir="${CHAOS_STATE_DIR:-/tmp}"
+kubectl --request-timeout=10s get pods --all-namespaces -o json > "$state_dir/cluster-pods.json"
+jq -e --slurpfile targets "$state_dir/nodes.json" '
   all(.items[] | select(.status.phase != "Succeeded" and .status.phase != "Failed") |
     select(.spec.nodeName as $node | any($targets[0][]; .node == $node));
     all(.spec.volumes[]?; .persistentVolumeClaim == null))
-' /tmp/cluster-pods.json >/dev/null || {
+' "$state_dir/cluster-pods.json" >/dev/null || {
   echo "ERROR: target zone contains PVC-backed workloads; validate cross-zone storage recovery first" >&2
   exit 1
 }
-jq -e --arg zone "$ZONE" --slurpfile nodes /tmp/cluster-nodes.json '
+jq -e --arg zone "$ZONE" --slurpfile nodes "$state_dir/cluster-nodes.json" '
   def cpu: tostring | if endswith("m") then rtrimstr("m") | tonumber / 1000 else tonumber end;
   def memory:
     tostring | capture("^(?<n>[0-9.]+)(?<u>Ki|Mi|Gi|Ti|K|M|G|T)?$") |
@@ -28,7 +29,7 @@ jq -e --arg zone "$ZONE" --slurpfile nodes /tmp/cluster-nodes.json '
   (([$survivors[].status.allocatable.cpu | cpu] | add // 0) - ([$used[].cpu] | add // 0) >= ([$moving[].cpu] | add // 0)) and
   (([$survivors[].status.allocatable.memory | memory] | add // 0) - ([$used[].memory] | add // 0) >= ([$moving[].memory] | add // 0)) and
   (([$survivors[].status.allocatable."nvidia.com/gpu" // "0" | tonumber] | add // 0) - ([$used[].gpu] | add // 0) >= ([$moving[].gpu] | add // 0))
-' /tmp/cluster-pods.json >/dev/null || {
+' "$state_dir/cluster-pods.json" >/dev/null || {
   echo "ERROR: insufficient surviving CPU, memory or GPU capacity, or invalid resource quantities" >&2
   exit 1
 }

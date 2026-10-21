@@ -7,6 +7,9 @@ on:
       - "ml-platform/**"
       - "gitops/applications/apps/argo-workflows/**"
       - "gitops/applications/apps/mlflow/**"
+      - "gitops/applications/apps/chaos/**"
+      - "gitops/infrastructure/controllers/flux-system/**"
+      - "gitops/scripts/install-gitops-controllers.sh"
       - "scripts/e2e/**"
       - "gitops/platform/**"
       - ".github/workflows/e2e-kind.yml"
@@ -16,6 +19,9 @@ on:
       - "ml-platform/**"
       - "gitops/applications/apps/argo-workflows/**"
       - "gitops/applications/apps/mlflow/**"
+      - "gitops/applications/apps/chaos/**"
+      - "gitops/infrastructure/controllers/flux-system/**"
+      - "gitops/scripts/install-gitops-controllers.sh"
       - "scripts/e2e/**"
       - "gitops/platform/**"
       - ".github/workflows/e2e-kind.yml"
@@ -30,9 +36,9 @@ concurrency:
 
 jobs:
   smoke:
-    name: Train, evaluate and register on kind
+    name: Training, backup recovery and Chaos on kind
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    timeout-minutes: 60
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -82,3 +88,22 @@ jobs:
         env:
           KUBE_CONTEXT: kind-mlops-e2e
         run: bash scripts/e2e/kind-smoke.sh
+
+      - name: Verify PostgreSQL backup and restore
+        env:
+          KUBE_CONTEXT: kind-mlops-e2e
+        run: bash scripts/e2e/kind-backup.sh
+
+      - name: Verify Litmus experiments and cancellation cleanup
+        env:
+          KUBE_CONTEXT: kind-mlops-e2e
+        run: bash scripts/e2e/kind-chaos.sh
+
+      - name: Retain Chaos evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: chaos-kind-evidence
+          path: test-results/chaos/
+          retention-days: 14
+          if-no-files-found: ignore

@@ -67,7 +67,7 @@ elif command == "kubectl":
     elif action == "get" and kind == "nodes":
         output = json.dumps({"items": state.get("nodes", [])})
     elif action == "get" and kind == "pods":
-        output = json.dumps({"items": state.get("control_pods", [])})
+        output = json.dumps({"items": state.get("pods" if "--all-namespaces" in args else "control_pods", [])})
     elif action == "patch" and kind == "node":
         state["node_patch"] = json.loads(args[args.index("-p") + 1])
     else:
@@ -104,6 +104,7 @@ def shell(tmp_path):
             "EXPECTED_ENGINES": "1",
             "PROBE_URL": "http://service.test/health",
             "DOWNTIME_FILE": str(tmp_path / "downtime"),
+            "CHAOS_STATE_DIR": str(tmp_path),
             **variables,
         }
         result = subprocess.run(
@@ -198,11 +199,11 @@ def node(name, zone, ready=True, unschedulable=False):
     return {
         "metadata": {"name": name, "labels": {"topology.kubernetes.io/zone": zone}},
         "spec": {"unschedulable": unschedulable},
-        "status": {"conditions": [{"type": "Ready", "status": "True" if ready else "False"}]},
+        "status": {"conditions": [{"type": "Ready", "status": "True" if ready else "False"}], "allocatable": {"cpu": "2", "memory": "4Gi"}},
     }
 
 
-@pytest.mark.parametrize("failure", ["unconfirmed", "unready", "cordoned", "control-pod", None])
+@pytest.mark.parametrize("failure", ["unconfirmed", "unready", "cordoned", "control-pod", "pvc", "cpu", "memory", "gpu", "missing-capacity", None])
 def test_az_preflight_rejects_unsafe_targets(shell, tmp_path, failure):
     workflow = yaml.safe_load((CHAOS / "workflows/az-failure-test.yaml").read_text())
     preflight = next(t for t in workflow["spec"]["templates"] if t["name"] == "select-nodes")
@@ -216,10 +217,18 @@ def test_az_preflight_rejects_unsafe_targets(shell, tmp_path, failure):
         ],
         "control_pods": [{"spec": {"nodeName": "target-node"}}] if failure == "control-pod" else [],
     }
+    if failure in ("pvc", "cpu", "memory", "gpu"):
+        state["pods"] = [{"spec": {"nodeName": "target-node", "containers": [
+            {"resources": {"requests": {"cpu": "3" if failure == "cpu" else "1", "memory": "5Gi" if failure == "memory" else "1Gi", "nvidia.com/gpu": "1" if failure == "gpu" else "0"}}}],
+            "volumes": [{"persistentVolumeClaim": {"claimName": "database"}}] if failure == "pvc" else []}}]
+    if failure == "missing-capacity":
+        del state["nodes"][1]["status"]["allocatable"]
     result, _ = shell(
         script,
         state,
         ZONE="zone-a",
+        PROBE_BODY='{"instances":[[1,2]]}',
+        PROBE_RESPONSE_FILTER=".predictions | length == 1",
         CONFIRM_ZONE_FAILURE="false" if failure == "unconfirmed" else "true",
     )
     assert (result.returncode == 0) == (failure is None), result.stdout + result.stderr
@@ -244,7 +253,7 @@ def test_rendered_chaos_workflows_have_safety_dependencies(environment):
             and r["metadata"]["name"] == spec["volumes"][0]["configMap"]["name"]
         )
         assert config["metadata"]["namespace"] == workflow["metadata"]["namespace"]
-        assert set(config["data"]) == {"common.sh", "monitor.sh", "cleanup.sh"}
+        assert set(config["data"]) == {"common.sh", "monitor.sh", "cleanup.sh", "az-safety.sh"}
         injector = next(
             t for t in spec["templates"] if t["name"] in ("run-pod-delete", "run-node-taint")
         )

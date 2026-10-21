@@ -7,7 +7,7 @@ metadata:
     app.kubernetes.io/name: mlflow-resilience-test
     app.kubernetes.io/component: chaos-validation
 spec:
-  serviceAccountName: chaos-workflow
+  serviceAccountName: chaos-workflow-mlflow
   entrypoint: resilience-test
   onExit: stop-chaos
   activeDeadlineSeconds: 600
@@ -91,27 +91,17 @@ spec:
         capabilities:
           drop:
           - ALL
-      source: 'set -eu
-
+      source: |
+        set -eu
         . /chaos/common.sh
-
         validate_parameters
-
         require_uint expected-replicas "$EXPECTED_REPLICAS" 2 100
-
         kubectl --request-timeout=130s rollout status deployment/"$MLFLOW_DEPLOYMENT" -n mlflow --timeout=120s
-
-        ready=$(kubectl --request-timeout=10s get deployment "$MLFLOW_DEPLOYMENT" -n mlflow -o jsonpath=''{.status.readyReplicas}'')
-
+        ready=$(kubectl --request-timeout=10s get deployment "$MLFLOW_DEPLOYMENT" -n mlflow -o jsonpath='{.status.readyReplicas}')
         [ "${ready:-0}" -ge "$EXPECTED_REPLICAS" ] || { echo "ERROR: insufficient ready replicas" >&2; exit 1; }
-
-        code=$(curl -s -o /dev/null -w ''%{http_code}'' --max-time 5 "$PROBE_URL") || code=000
-
+        code=$(curl -s -o /dev/null -w '%{http_code}' --max-time 5 "$PROBE_URL") || code=000
         [ "$code" = 200 ] || { echo "ERROR: /health returned $code" >&2; exit 1; }
-
         echo "OK: $ready replicas ready and /health is 200"
-
-        '
       volumeMounts:
       - name: chaos-scripts
         mountPath: /chaos
@@ -144,19 +134,50 @@ spec:
         capabilities:
           drop:
           - ALL
-      source: "set -eu\n. /chaos/common.sh\nvalidate_parameters\nwait_for_probe\nengine=\"{{workflow.name}}\"\n\
-        cat <<EOF | kubectl --request-timeout=10s create -f -\napiVersion: litmuschaos.io/v1alpha1\nkind: ChaosEngine\n\
-        metadata:\n  name: ${engine}\n  namespace: litmus\n  labels:\n    app.kubernetes.io/component: chaos-experiment\n\
-        \    chaos.mlops-platform/workflow: \"{{workflow.name}}\"\nspec:\n  appinfo:\n    appns: \"mlflow\"\n  \
-        \  applabel: \"app=mlflow-server\"\n    appkind: \"deployment\"\n  engineState: \"active\"\n  jobCleanUpPolicy:\
-        \ \"delete\"\n  chaosServiceAccount: litmus-pod-mlflow\n  experiments:\n    - name: pod-delete\n      spec:\n\
-        \        components:\n          env:\n            - name: TOTAL_CHAOS_DURATION\n              value: \"\
-        ${CHAOS_DURATION}\"\n            - name: CHAOS_INTERVAL\n              value: \"10\"\n            - name:\
-        \ FORCE\n              value: \"false\"\n            - name: PODS_AFFECTED_PERC\n              value: \"\
-        50\"\nEOF\ntimeout=$(( ${CHAOS_DURATION} + 180 ))\nkubectl wait chaosengine/\"$engine\" -n litmus \\\n \
-        \ --for=jsonpath='{.status.engineStatus}'=completed --timeout=\"${timeout}s\"\nverdict=$(kubectl get chaosresult\
-        \ \"${engine}-pod-delete\" -n litmus \\\n  -o jsonpath='{.status.experimentStatus.verdict}')\necho \"Litmus\
-        \ verdict: $verdict\"\n[ \"$verdict\" = \"Pass\" ]\n"
+      source: |
+        set -eu
+        . /chaos/common.sh
+        validate_parameters
+        wait_for_probe
+        engine="{{workflow.name}}"
+        cat <<EOF | kubectl --request-timeout=10s create -f -
+        apiVersion: litmuschaos.io/v1alpha1
+        kind: ChaosEngine
+        metadata:
+          name: ${engine}
+          namespace: litmus
+          labels:
+            app.kubernetes.io/component: chaos-experiment
+            chaos.mlops-platform/workflow: "{{workflow.name}}"
+        spec:
+          appinfo:
+            appns: "mlflow"
+            applabel: "app=mlflow-server"
+            appkind: "deployment"
+          engineState: "active"
+          jobCleanUpPolicy: "delete"
+          chaosServiceAccount: litmus-pod-mlflow
+          experiments:
+            - name: pod-delete
+              spec:
+                components:
+                  env:
+                    - name: TOTAL_CHAOS_DURATION
+                      value: "${CHAOS_DURATION}"
+                    - name: CHAOS_INTERVAL
+                      value: "10"
+                    - name: FORCE
+                      value: "false"
+                    - name: PODS_AFFECTED_PERC
+                      value: "50"
+        EOF
+        timeout=$(( ${CHAOS_DURATION} + 180 ))
+        kubectl wait chaosengine/"$engine" -n litmus \
+          --for=jsonpath='{.status.engineStatus}'=completed --timeout="${timeout}s"
+        verdict=$(kubectl get chaosresult "${engine}-pod-delete" -n litmus \
+          -o jsonpath='{.status.experimentStatus.verdict}')
+        echo "Litmus verdict: $verdict"
+        [ "$verdict" = "Pass" ]
       volumeMounts:
       - name: chaos-scripts
         mountPath: /chaos
@@ -183,9 +204,8 @@ spec:
         capabilities:
           drop:
           - ALL
-      source: 'sh /chaos/monitor.sh
-
-        '
+      source: |
+        sh /chaos/monitor.sh
       env:
       - name: HOME
         value: /tmp
@@ -236,15 +256,18 @@ spec:
         capabilities:
           drop:
           - ALL
-      source: "set -eu\napi=\"{{workflow.parameters.mlflow-url}}/api/2.0/mlflow\"\nnow=$(( $(date +%s) * 1000 ))\n\
-        run_id=$(curl -sf --max-time 10 -X POST \"$api/runs/create\" -H 'Content-Type: application/json' \\\n  -d\
-        \ \"{\\\"experiment_id\\\": \\\"0\\\", \\\"run_name\\\": \\\"chaos-resilience-test\\\", \\\"start_time\\\
-        \": $now, \\\"tags\\\": [{\\\"key\\\": \\\"workflow\\\", \\\"value\\\": \\\"{{workflow.name}}\\\"}]}\" \\\
-        \n  | jq -r '.run.info.run_id')\ncurl -sf --max-time 10 -X POST \"$api/runs/log-metric\" -H 'Content-Type:\
-        \ application/json' \\\n  -d \"{\\\"run_id\\\": \\\"$run_id\\\", \\\"key\\\": \\\"value\\\", \\\"value\\\
-        \": 1.0, \\\"timestamp\\\": $now}\"\ncurl -sf --max-time 10 -X POST \"$api/runs/update\" -H 'Content-Type:\
-        \ application/json' \\\n  -d \"{\\\"run_id\\\": \\\"$run_id\\\", \\\"status\\\": \\\"FINISHED\\\", \\\"\
-        end_time\\\": $now}\"\necho \"MLflow run $run_id logged successfully after chaos\"\n"
+      source: |
+        set -eu
+        api="{{workflow.parameters.mlflow-url}}/api/2.0/mlflow"
+        now=$(( $(date +%s) * 1000 ))
+        run_id=$(curl -sf --max-time 10 -X POST "$api/runs/create" -H 'Content-Type: application/json' \
+          -d "{\"experiment_id\": \"0\", \"run_name\": \"chaos-resilience-test\", \"start_time\": $now, \"tags\": [{\"key\": \"workflow\", \"value\": \"{{workflow.name}}\"}]}" \
+          | jq -r '.run.info.run_id')
+        curl -sf --max-time 10 -X POST "$api/runs/log-metric" -H 'Content-Type: application/json' \
+          -d "{\"run_id\": \"$run_id\", \"key\": \"value\", \"value\": 1.0, \"timestamp\": $now}"
+        curl -sf --max-time 10 -X POST "$api/runs/update" -H 'Content-Type: application/json' \
+          -d "{\"run_id\": \"$run_id\", \"status\": \"FINISHED\", \"end_time\": $now}"
+        echo "MLflow run $run_id logged successfully after chaos"
       volumeMounts:
       - name: chaos-scripts
         mountPath: /chaos
@@ -269,11 +292,15 @@ spec:
         capabilities:
           drop:
           - ALL
-      source: "echo \"=== MLflow Resilience Test Report ===\"\necho \"Workflow: {{workflow.name}}\"\necho \"Max\
-        \ consecutive /health failures: {{inputs.parameters.downtime}} seconds\"\nif [ \"{{inputs.parameters.downtime}}\"\
-        \ -gt \"{{workflow.parameters.max-acceptable-downtime-seconds}}\" ]; then\n  echo \"RESULT: FAIL (downtime\
-        \ > {{workflow.parameters.max-acceptable-downtime-seconds}}s)\"\n  exit 1\nfi\necho \"RESULT: PASS (downtime\
-        \ <= {{workflow.parameters.max-acceptable-downtime-seconds}}s)\"\n"
+      source: |
+        echo "=== MLflow Resilience Test Report ==="
+        echo "Workflow: {{workflow.name}}"
+        echo "Max consecutive functional probe failures: {{inputs.parameters.downtime}} seconds"
+        if [ "{{inputs.parameters.downtime}}" -gt "{{workflow.parameters.max-acceptable-downtime-seconds}}" ]; then
+          echo "RESULT: FAIL (downtime > {{workflow.parameters.max-acceptable-downtime-seconds}}s)"
+          exit 1
+        fi
+        echo "RESULT: PASS (downtime <= {{workflow.parameters.max-acceptable-downtime-seconds}}s)"
       env:
       - name: HOME
         value: /tmp
@@ -319,9 +346,8 @@ spec:
         capabilities:
           drop:
           - ALL
-      source: 'sh /chaos/cleanup.sh
-
-        '
+      source: |
+        sh /chaos/cleanup.sh
       volumeMounts:
       - name: chaos-scripts
         mountPath: /chaos

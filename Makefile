@@ -222,14 +222,11 @@ port-forward-kubeflow: ## Port forward Kubeflow UI
 	kubectl port-forward svc/ml-pipeline-ui 8080:80 -n kubeflow
 
 # Backup and Restore
-backup-mlflow: ## Backup MLflow data
-	@echo "Creating MLflow backup..."
-	kubectl exec -n mlflow deployment/postgres -- pg_dump -U mlflow mlflow > mlflow-backup-$(shell date +%Y%m%d-%H%M%S).sql
+backup-mlflow: ## Back up MLflow PostgreSQL to S3 using the deployed CronJob
+	ENV=$(ENV) bash scripts/mlflow-backup.sh backup
 
-restore-mlflow: ## Restore MLflow data (requires BACKUP_FILE variable)
-	@if [ -z "$(BACKUP_FILE)" ]; then echo "Please specify BACKUP_FILE=path/to/backup.sql"; exit 1; fi
-	@echo "Restoring MLflow from $(BACKUP_FILE)..."
-	kubectl exec -i -n mlflow deployment/postgres -- psql -U mlflow mlflow < $(BACKUP_FILE)
+restore-mlflow: ## Restore BACKUP_KEY from S3 into a separate empty RESTORE_DATABASE
+	ENV=$(ENV) BACKUP_KEY="$(BACKUP_KEY)" RESTORE_DATABASE="$(RESTORE_DATABASE)" bash scripts/mlflow-backup.sh restore
 
 # Documentation
 docs: ## Generate documentation
