@@ -33,6 +33,11 @@ elif command == "curl":
     down = state.get("fail_from", 0) <= state["time"] < state.get("fail_until", 0)
     state["time"] += 2 if down else 1
     output, status = ("000", 28) if down else ("200", 0)
+    if not down and any("/runs/get" in arg for arg in args):
+        value = "lost" if state["time"] >= state.get("lose_canary_at", 99999) else "test-workflow"
+        output = json.dumps({"run": {"data": {"params": [{"key": "canary", "value": value}]}}})
+    elif not down and os.environ.get("PROBE_BODY"):
+        output = json.dumps(state.get("prediction", {"predictions": [1]}))
 elif command == "kubectl":
     action, kind = args[:2]
     if action == "create" and kind == "configmap":
@@ -314,3 +319,29 @@ def test_helm_post_renderers_remove_cluster_secret_access(tmp_path):
             assert not rendered
         else:
             assert all("secrets" not in rule["resources"] for rule in rendered[0]["rules"])
+
+
+@pytest.mark.parametrize("kind", ["canary", "prediction"])
+def test_functional_probe_checks_data_not_only_http(shell, kind):
+    if kind == "canary":
+        result, state = shell(SCRIPTS / "monitor.sh", {"lose_canary_at": 1004}, CANARY_RUN_ID="run")
+    else:
+        result, state = shell(SCRIPTS / "monitor.sh", {"prediction": {"metadata": "model"}}, PROBE_BODY='{"instances":[[1]]}', PROBE_RESPONSE_FILTER=".predictions | length == 1")
+    assert result.returncode != 0
+    assert state["stopped"]
+
+
+def test_prediction_probe_requires_a_response_assertion(shell):
+    result, state = shell(SCRIPTS / "monitor.sh", PROBE_BODY='{"instances":[[1]]}')
+    assert result.returncode != 0
+    assert not state.get("marker")
+
+
+def test_rendered_fault_roles_are_scoped_to_their_target_namespaces():
+    resources = list(yaml.safe_load_all(subprocess.check_output(["kustomize", "build", str(CHAOS / "overlays/dev")], text=True)))
+    for namespace in ("mlflow", "kserve", "argocd"):
+        role = next(r for r in resources if r["kind"] == "Role" and r["metadata"]["name"] == f"litmus-pod-{namespace}")
+        assert role["metadata"]["namespace"] == namespace
+        assert not any("nodes" in rule["resources"] or "secrets" in rule["resources"] for rule in role["rules"])
+    for binding in (r for r in resources if r["kind"] == "ClusterRoleBinding"):
+        assert not any(s["name"] in ("litmus-pod-mlflow", "litmus-pod-kserve", "litmus-pod-argocd", "chaos-workflow-mlflow") for s in binding["subjects"])

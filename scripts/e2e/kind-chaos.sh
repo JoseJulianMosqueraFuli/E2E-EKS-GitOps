@@ -26,6 +26,7 @@ for ns in argocd kserve; do
   kc create namespace "$ns" --dry-run=client -o yaml | kc apply -f -
 done
 kc apply -k "$ROOT/gitops/applications/apps/chaos/overlays/dev"
+kc apply -f "$ROOT/gitops/infrastructure/security/chaos-guardrails.yaml"
 kc -n litmus wait --for=condition=Ready helmrelease/litmus-core --timeout=420s
 kc -n litmus wait --for=condition=Ready helmrelease/kubernetes-chaos --timeout=420s
 kc -n litmus get chaosexperiment/pod-delete

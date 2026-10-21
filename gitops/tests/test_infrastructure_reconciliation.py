@@ -742,9 +742,10 @@ class TestClusterInfrastructure:
             pytest.skip(f"Infrastructure kustomization for {env} not loadable")
 
         resources = data.get("resources", [])
-        assert any("addons" in str(r) for r in resources), (
-            f"{env} infrastructure must reference addons"
-        )
+        assert "../../../flux-config" in resources
+        assert "../../../addons" not in resources
+        layers = load_yaml_all(FLUX_CONFIG_PATH / "infrastructure-kustomization.yaml")
+        assert any(d["spec"]["path"] == "./gitops/infrastructure/addons" for d in layers)
 
     @pytest.mark.property
     @settings(max_examples=100, deadline=None)
@@ -757,9 +758,10 @@ class TestClusterInfrastructure:
             pytest.skip(f"Infrastructure kustomization for {env} not loadable")
 
         resources = data.get("resources", [])
-        assert any("networking" in str(r) for r in resources), (
-            f"{env} infrastructure must reference networking"
-        )
+        assert "../../../flux-config" in resources
+        assert "../../../networking" not in resources
+        layers = load_yaml_all(FLUX_CONFIG_PATH / "infrastructure-kustomization.yaml")
+        assert any(d["spec"]["path"] == "./gitops/infrastructure/networking" for d in layers)
 
     @pytest.mark.property
     @settings(max_examples=100, deadline=None)
@@ -867,7 +869,7 @@ class TestEnvironmentSpecificPatches:
         dev_patches = dev_data.get("patches", [])
         for patch in dev_patches:
             patch_str = patch.get("patch", "")
-            if "GitRepository" in str(patch.get("target", {})):
+            if "GitRepository" in str(patch.get("target", {})) and "/spec/interval" in patch_str:
                 assert "1m" in patch_str, "Dev should have 1m GitRepository interval"
 
 

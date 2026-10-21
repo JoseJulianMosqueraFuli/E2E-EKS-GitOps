@@ -1,0 +1,68 @@
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingAdmissionPolicy
+metadata:
+  name: chaos-mlflow-engine-scope
+spec:
+  failurePolicy: Fail
+  matchConstraints:
+    resourceRules:
+      - apiGroups: [litmuschaos.io]
+        apiVersions: [v1alpha1]
+        operations: [CREATE, UPDATE]
+        resources: [chaosengines]
+  matchConditions:
+    - name: workflow-account
+      expression: "request.userInfo.username == 'system:serviceaccount:argo-workflows:chaos-workflow-mlflow'"
+  validations:
+    - expression: "object.spec.chaosServiceAccount == 'litmus-pod-mlflow' && object.spec.appinfo.appns == 'mlflow' && object.spec.appinfo.applabel == 'app=mlflow-server' && object.spec.appinfo.appkind == 'deployment' && object.spec.experiments.size() == 1 && object.spec.experiments[0].name == 'pod-delete'"
+      message: The MLflow workflow may only delete MLflow server pods with its dedicated fault account.
+---
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingAdmissionPolicyBinding
+metadata:
+  name: chaos-mlflow-engine-scope
+spec:
+  policyName: chaos-mlflow-engine-scope
+  validationActions: [Deny]
+---
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingAdmissionPolicy
+metadata:
+  name: chaos-runner-account-scope
+spec:
+  failurePolicy: Fail
+  matchConstraints:
+    resourceRules:
+      - apiGroups: ['']
+        apiVersions: [v1]
+        operations: [CREATE, UPDATE]
+        resources: [pods]
+      - apiGroups: [batch]
+        apiVersions: [v1]
+        operations: [CREATE, UPDATE]
+        resources: [jobs]
+      - apiGroups: [litmuschaos.io]
+        apiVersions: [v1alpha1]
+        operations: [CREATE, UPDATE]
+        resources: [chaosengines]
+  matchConditions:
+    - name: fault-accounts
+      expression: "request.userInfo.username.startsWith('system:serviceaccount:litmus:litmus-') && request.userInfo.username != 'system:serviceaccount:litmus:litmus-chaos-exporter'"
+  variables:
+    - name: account
+      expression: "request.userInfo.username.split(':')[3]"
+  validations:
+    - expression: "request.resource.resource != 'pods' || object.spec.serviceAccountName == variables.account"
+      message: Chaos runner pods must use the requesting fault account.
+    - expression: "request.resource.resource != 'jobs' || object.spec.template.spec.serviceAccountName == variables.account"
+      message: Chaos runner jobs must use the requesting fault account.
+    - expression: "request.resource.resource != 'chaosengines' || object.spec.chaosServiceAccount == variables.account"
+      message: Chaos runners cannot select a more privileged fault account.
+---
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingAdmissionPolicyBinding
+metadata:
+  name: chaos-runner-account-scope
+spec:
+  policyName: chaos-runner-account-scope
+  validationActions: [Deny]
