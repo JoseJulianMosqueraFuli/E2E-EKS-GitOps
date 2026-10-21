@@ -13,7 +13,7 @@ spec:
   chart:
     spec:
       chart: cluster-autoscaler
-      version: "9.37.x"
+      version: 9.37.x
       sourceRef:
         kind: HelmRepository
         name: cluster-autoscaler
@@ -31,7 +31,7 @@ spec:
     rbac:
       create: true
       serviceAccount:
-        create: true
+        create: false
         name: cluster-autoscaler
         annotations:
           eks.amazonaws.com/role-arn: ${ca_irsa_role}
@@ -42,7 +42,7 @@ spec:
       balance-similar-node-groups: true
       scale-down-enabled: ${ca_scale_down}
       scale-down-unneeded-time: ${ca_scale_down_time}
-      scale-down-utilization-threshold: "0.5"
+      scale-down-utilization-threshold: '0.5'
     resources:
       requests:
         cpu: ${ca_cpu_request}

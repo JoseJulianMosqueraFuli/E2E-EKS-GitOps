@@ -51,7 +51,7 @@ def test_backup_rejects_invalid_output(monkeypatch, s3, failure):
         backup.backup_database('backups', client=s3)
 
 
-@pytest.mark.parametrize('source,target', [('mlflow','mlflow'), (None,'recovery'), ('mlflow','')])
+@pytest.mark.parametrize('source,target', [('mlflow','mlflow'), (None,'recovery'), ('mlflow',''), ('mlflow','postgresql://another-host/database')])
 def test_restore_never_overwrites_source(monkeypatch, s3, source, target):
     monkeypatch.delenv('PGDATABASE', raising=False)
     command = Mock()

@@ -13,7 +13,7 @@ spec:
   chart:
     spec:
       chart: aws-load-balancer-controller
-      version: "1.7.x"
+      version: 1.7.x
       sourceRef:
         kind: HelmRepository
         name: aws-load-balancer-controller
@@ -32,7 +32,7 @@ spec:
     vpcId: ${vpc_id}
     replicaCount: ${alb_replicas}
     serviceAccount:
-      create: true
+      create: false
       name: aws-load-balancer-controller
       annotations:
         eks.amazonaws.com/role-arn: ${alb_irsa_role}
@@ -44,7 +44,7 @@ spec:
         cpu: ${alb_cpu_limit}
         memory: ${alb_memory_limit}
   valuesFrom:
-    - kind: ConfigMap
-      name: cluster-config
-      valuesKey: environment
-      targetPath: env
+  - kind: ConfigMap
+    name: cluster-config
+    valuesKey: environment
+    targetPath: env

@@ -42,6 +42,7 @@ spec:
   wait: true
   dependsOn:
   - name: infrastructure-controllers
+  - name: infrastructure-security
   healthChecks:
   - apiVersion: apps/v1
     kind: Deployment

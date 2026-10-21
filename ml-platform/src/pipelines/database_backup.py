@@ -1,5 +1,6 @@
 import hashlib
 import os
+import re
 import subprocess
 import tempfile
 from datetime import datetime, timezone
@@ -45,7 +46,9 @@ def restore_database(
     bucket: str, key: str, database: str, client=None, source_database: Optional[str] = None
 ) -> None:
     source_database = source_database or os.environ.get("PGDATABASE")
-    if not database or not source_database or database == source_database:
+    if not re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]{0,62}", database or ""):
+        raise ValueError("Restore target must be a plain PostgreSQL database name")
+    if not source_database or database == source_database:
         raise ValueError("Restore requires a separate, empty database and the source PGDATABASE")
     client = client or boto3.client("s3")
     env = {**os.environ, "PGDATABASE": database}
