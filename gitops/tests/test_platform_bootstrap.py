@@ -5,12 +5,14 @@ from pathlib import Path
 
 import pytest
 import yaml
+from kubernetes.utils.quantity import parse_quantity
 
 ROOT = Path(__file__).resolve().parents[2]
 
 
 @pytest.mark.parametrize(
-    "environment,prefix", [("dev", "dev"), ("staging", "staging"), ("production", "prod")]
+    "environment,prefix",
+    [("dev", "dev"), ("staging", "staging"), ("production", "prod")],
 )
 def test_rendered_platform_identity_storage_and_images_agree(environment, prefix):
     config = dict(
@@ -122,3 +124,52 @@ def test_mlflow_server_matches_the_locked_client():
     container = deployment["spec"]["template"]["spec"]["containers"][0]
     assert container["image"] == f"mlflow-server:{version}"
     assert any(e["name"] == "MLFLOW_SERVER_ALLOWED_HOSTS" for e in container["env"])
+
+
+@pytest.mark.parametrize(
+    "overlay",
+    [
+        "gitops/applications/apps/mlflow/overlays/dev",
+        "gitops/applications/apps/mlflow/overlays/staging",
+        "gitops/applications/apps/mlflow/overlays/production",
+        "scripts/e2e/kind/mlflow",
+    ],
+)
+def test_mlflow_startup_contract_in_rendered_overlays(overlay):
+    output = subprocess.check_output(["kustomize", "build", str(ROOT / overlay)], text=True)
+    docs = list(yaml.safe_load_all(output))
+    deployment = next(
+        d
+        for d in docs
+        if d["kind"] == "Deployment" and d["metadata"]["name"].endswith("mlflow-server")
+    )
+    pod = deployment["spec"]["template"]["spec"]
+    server = next(c for c in pod["containers"] if c["name"] == "mlflow")
+    bootstrap = next(c for c in pod["initContainers"] if c["name"] == "initialize-mlflow-database")
+    assert bootstrap["image"] == server["image"]
+    assert "AWS_ACCOUNT_ID" not in bootstrap["image"]
+    assert "AWS_REGION" not in bootstrap["image"]
+    assert bootstrap["command"] == ["python", "/opt/mlflow/mlflow_bootstrap.py"]
+    backend = next(e for e in bootstrap["env"] if e["name"] == "MLFLOW_BACKEND_STORE_URI")
+    server_backend = next(e for e in server["env"] if e["name"] == "MLFLOW_BACKEND_STORE_URI")
+    assert backend["valueFrom"] == server_backend["valueFrom"]
+    assert "--workers=1" in server["args"]
+    assert (
+        next(e["value"] for e in server["env"] if e["name"] == "MLFLOW_SERVER_ENABLE_JOB_EXECUTION")
+        == "false"
+    )
+    memory = server["resources"]["requests"]["memory"]
+    assert memory == server["resources"]["limits"]["memory"]
+    assert parse_quantity(memory) >= parse_quantity("1536Mi")
+    assert deployment["spec"]["replicas"] >= 2
+    for probe in ("startupProbe", "readinessProbe", "livenessProbe"):
+        assert server[probe]["timeoutSeconds"] >= 5
+    quota = next(d for d in docs if d["kind"] == "ResourceQuota")["spec"]["hard"]
+    rollout_memory = (deployment["spec"]["replicas"] + 1) * parse_quantity(memory)
+    for d in docs:
+        if d["kind"] in ("Deployment", "StatefulSet") and d is not deployment:
+            rollout_memory += d["spec"].get("replicas", 1) * sum(
+                parse_quantity(c.get("resources", {}).get("requests", {}).get("memory", "0"))
+                for c in d["spec"]["template"]["spec"]["containers"]
+            )
+    assert parse_quantity(quota["requests.memory"]) >= rollout_memory

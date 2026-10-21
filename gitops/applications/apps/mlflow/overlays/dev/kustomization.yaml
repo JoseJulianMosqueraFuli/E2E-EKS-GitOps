@@ -153,6 +153,7 @@ replacements:
       name: mlflow-server
     fieldPaths:
     - spec.template.spec.containers.[name=mlflow].image
+    - spec.template.spec.initContainers.[name=initialize-mlflow-database].image
     options:
       delimiter: .
       index: 0
@@ -181,6 +182,7 @@ replacements:
       name: mlflow-server
     fieldPaths:
     - spec.template.spec.containers.[name=mlflow].image
+    - spec.template.spec.initContainers.[name=initialize-mlflow-database].image
     options:
       delimiter: .
       index: 3

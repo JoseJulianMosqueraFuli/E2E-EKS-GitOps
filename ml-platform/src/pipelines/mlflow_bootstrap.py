@@ -15,15 +15,13 @@ def initialize_database(database_uri: str) -> None:
     if make_url(database_uri).get_backend_name() != "postgresql":
         raise ValueError("MLflow database bootstrap requires PostgreSQL")
 
-    engine = create_engine(
-        database_uri, poolclass=NullPool, connect_args={"connect_timeout": 10}
-    )
+    engine = create_engine(database_uri, poolclass=NullPool, connect_args={"connect_timeout": 10})
     try:
         with engine.connect() as connection:
             connection.exec_driver_sql("SET statement_timeout = '120s'")
             connection.exec_driver_sql("SELECT pg_advisory_lock(1296844364, 1)")
 
-            from mlflow import MlflowClient
+            from mlflow.server.handlers import initialize_backend_stores
             from mlflow.store.db import utils
 
             if inspect(engine).get_table_names():
@@ -31,9 +29,11 @@ def initialize_database(database_uri: str) -> None:
             else:
                 utils._initialize_tables(engine)
 
-            client = MlflowClient(tracking_uri=database_uri, registry_uri=database_uri)
-            client.search_experiments(max_results=1)
-            client.search_registered_models(max_results=1)
+            initialize_backend_stores(
+                backend_store_uri=database_uri,
+                registry_store_uri=database_uri,
+                default_artifact_root="mlflow-artifacts:/",
+            )
             logger.info("MLflow database schema and default experiment are ready")
     finally:
         engine.dispose()

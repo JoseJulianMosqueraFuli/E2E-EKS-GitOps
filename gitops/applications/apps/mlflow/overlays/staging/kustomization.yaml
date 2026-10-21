@@ -15,9 +15,9 @@ patches:
     name: mlflow-server
 - patch: "- op: replace\n  path: /spec/template/spec/containers/0/resources/requests/cpu\n\
     \  value: 200m\n- op: replace\n  path: /spec/template/spec/containers/0/resources/requests/memory\n\
-    \  value: 512Mi\n- op: replace\n  path: /spec/template/spec/containers/0/resources/limits/cpu\n\
+    \  value: 1536Mi\n- op: replace\n  path: /spec/template/spec/containers/0/resources/limits/cpu\n\
     \  value: 1000m\n- op: replace\n  path: /spec/template/spec/containers/0/resources/limits/memory\n\
-    \  value: 1Gi\n"
+    \  value: 1536Mi\n"
   target:
     kind: Deployment
     name: mlflow-server
@@ -168,6 +168,7 @@ replacements:
       name: mlflow-server
     fieldPaths:
     - spec.template.spec.containers.[name=mlflow].image
+    - spec.template.spec.initContainers.[name=initialize-mlflow-database].image
     options:
       delimiter: .
       index: 0
@@ -196,6 +197,7 @@ replacements:
       name: mlflow-server
     fieldPaths:
     - spec.template.spec.containers.[name=mlflow].image
+    - spec.template.spec.initContainers.[name=initialize-mlflow-database].image
     options:
       delimiter: .
       index: 3

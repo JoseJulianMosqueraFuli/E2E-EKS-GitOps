@@ -37,6 +37,13 @@ The training CLI writes `model-uri.txt` and `run-id.txt` only after model loggin
 reports missing output files, inspect the preceding training exception: the previous client 3.17.1 /
 server 2.22.5 mismatch returned 404 on `/api/2.0/mlflow/logged-models`. Both now use 3.17.1.
 
+The server image also includes `src/pipelines/mlflow_bootstrap.py`, invoked by a Kubernetes init
+container. It serializes fresh PostgreSQL schema initialization across replicas with an advisory lock
+and rejects outdated existing schemas until an explicit, backed-up migration is performed. The server
+uses one HTTP worker per pod; MLflow's internal job execution is disabled because pipelines run in Argo.
+Resource budgets and the recovery procedure are in the
+[platform runtime contract](../docs/architecture/platform-runtime-config.md#backup-and-recovery).
+
 Feast uses entity-key serialization version 3. Existing local SQLite snapshots contain older keys and
 timestamp storage: back them up and rematerialize current validated source data into a new online
 database before switching. Updating the YAML alone does not migrate stored data. The tests create fresh

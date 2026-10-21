@@ -15,7 +15,7 @@ patches:
     name: mlflow-server
 - patch: "- op: replace\n  path: /spec/template/spec/containers/0/resources/requests/cpu\n\
     \  value: 500m\n- op: replace\n  path: /spec/template/spec/containers/0/resources/requests/memory\n\
-    \  value: 1Gi\n- op: replace\n  path: /spec/template/spec/containers/0/resources/limits/cpu\n\
+    \  value: 2Gi\n- op: replace\n  path: /spec/template/spec/containers/0/resources/limits/cpu\n\
     \  value: 2000m\n- op: replace\n  path: /spec/template/spec/containers/0/resources/limits/memory\n\
     \  value: 2Gi\n"
   target:
@@ -88,6 +88,20 @@ patches:
     spec:\n  template:\n    spec:\n      containers:\n        - name: mlflow\n   \
     \       env:\n            - name: AWS_ACCESS_KEY_ID\n              $patch: delete\n\
     \            - name: AWS_SECRET_ACCESS_KEY\n              $patch: delete\n"
+- target:
+    kind: ResourceQuota
+    name: mlflow-quota
+  patch: |-
+    apiVersion: v1
+    kind: ResourceQuota
+    metadata:
+      name: mlflow-quota
+    spec:
+      hard:
+        requests.cpu: "8"
+        requests.memory: 16Gi
+        limits.cpu: "16"
+        limits.memory: 24Gi
 images:
 - name: mlflow-server
   newName: AWS_ACCOUNT_ID.dkr.ecr.AWS_REGION.amazonaws.com/mlops-prod-mlflow-server
@@ -182,6 +196,7 @@ replacements:
       name: mlflow-server
     fieldPaths:
     - spec.template.spec.containers.[name=mlflow].image
+    - spec.template.spec.initContainers.[name=initialize-mlflow-database].image
     options:
       delimiter: .
       index: 0
@@ -210,6 +225,7 @@ replacements:
       name: mlflow-server
     fieldPaths:
     - spec.template.spec.containers.[name=mlflow].image
+    - spec.template.spec.initContainers.[name=initialize-mlflow-database].image
     options:
       delimiter: .
       index: 3
