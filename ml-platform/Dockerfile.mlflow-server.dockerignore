@@ -1,1 +1,6 @@
 *
+!src
+src/**
+!src/pipelines
+src/pipelines/**
+!src/pipelines/mlflow_bootstrap.py

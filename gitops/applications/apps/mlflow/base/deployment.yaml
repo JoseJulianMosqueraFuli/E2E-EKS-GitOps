@@ -53,6 +53,35 @@ spec:
             runAsNonRoot: true
             seccompProfile:
               type: RuntimeDefault
+        - name: initialize-mlflow-database
+          image: mlflow-server:3.17.1
+          imagePullPolicy: IfNotPresent
+          command: [python, /opt/mlflow/mlflow_bootstrap.py]
+          env:
+            - name: MLFLOW_BACKEND_STORE_URI
+              valueFrom:
+                secretKeyRef:
+                  name: mlflow-secrets
+                  key: backend_store_uri
+          resources:
+            requests:
+              cpu: 100m
+              memory: 1Gi
+            limits:
+              cpu: 1000m
+              memory: 1Gi
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+            readOnlyRootFilesystem: true
+            runAsNonRoot: true
+            seccompProfile:
+              type: RuntimeDefault
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
         - name: wait-for-minio
           image: busybox:1.36
           env:
@@ -122,6 +151,8 @@ spec:
                   key: aws-secret-access-key
             - name: MLFLOW_SERVICE_NAME
               value: mlflow-server
+            - name: MLFLOW_SERVER_ENABLE_JOB_EXECUTION
+              value: "false"
             - name: MLFLOW_SERVER_ALLOWED_HOSTS
               value: localhost,localhost:*,127.0.0.1,127.0.0.1:*,[::1],[::1]:*,$(MLFLOW_SERVICE_NAME),$(MLFLOW_SERVICE_NAME):*,$(MLFLOW_SERVICE_NAME).mlflow,$(MLFLOW_SERVICE_NAME).mlflow:*,$(MLFLOW_SERVICE_NAME).mlflow.svc,$(MLFLOW_SERVICE_NAME).mlflow.svc:*,$(MLFLOW_SERVICE_NAME).mlflow.svc.cluster.local,$(MLFLOW_SERVICE_NAME).mlflow.svc.cluster.local:*
           args:
@@ -132,14 +163,14 @@ spec:
             - --default-artifact-root=mlflow-artifacts:/
             - --serve-artifacts
             - --artifacts-destination=$(MLFLOW_DEFAULT_ARTIFACT_ROOT)
-            - --workers=2
+            - --workers=1
           resources:
             requests:
-              cpu: 100m
-              memory: 512Mi
+              cpu: 250m
+              memory: 1536Mi
             limits:
-              cpu: 500m
-              memory: 1Gi
+              cpu: 1000m
+              memory: 1536Mi
           startupProbe:
             httpGet:
               path: /health
@@ -149,6 +180,7 @@ spec:
                   value: localhost
             periodSeconds: 10
             failureThreshold: 30
+            timeoutSeconds: 5
           livenessProbe:
             httpGet:
               path: /health
@@ -157,6 +189,7 @@ spec:
                 - name: Host
                   value: localhost
             periodSeconds: 10
+            timeoutSeconds: 5
           readinessProbe:
             httpGet:
               path: /health
@@ -166,6 +199,7 @@ spec:
                   value: localhost
             initialDelaySeconds: 10
             periodSeconds: 5
+            timeoutSeconds: 5
           securityContext:
             allowPrivilegeEscalation: false
             capabilities:

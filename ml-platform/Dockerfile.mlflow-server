@@ -16,6 +16,8 @@ RUN pip install \
     && mlflow --version \
     && python -c "import mlflow.store.tracking.sqlalchemy_store, mlflow.server, psycopg2, boto3"
 
+COPY src/pipelines/mlflow_bootstrap.py /opt/mlflow/mlflow_bootstrap.py
+
 WORKDIR /tmp
 USER 1000
 EXPOSE 5000
