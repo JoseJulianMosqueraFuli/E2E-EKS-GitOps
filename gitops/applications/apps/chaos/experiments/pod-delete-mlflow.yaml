@@ -9,28 +9,26 @@ metadata:
     environment: dev
 spec:
   appinfo:
-    appns: "mlflow"
-    applabel: "app=mlflow-server"
-    appkind: "deployment"
-  engineState: "active"
-  jobCleanUpPolicy: "delete"
-  chaosServiceAccount: litmus-admin
+    appns: mlflow
+    applabel: app=mlflow-server
+    appkind: deployment
+  engineState: active
+  jobCleanUpPolicy: delete
+  chaosServiceAccount: litmus-pod-mlflow
   experiments:
-    - name: pod-delete
-      spec:
-        components:
-          env:
-            - name: TOTAL_CHAOS_DURATION
-              value: "60"
-            - name: CHAOS_INTERVAL
-              value: "10"
-            - name: FORCE
-              value: "false"
-            # Affect only one pod so the Deployment remains available during chaos.
-            # MLflow runs with 2 replicas; losing 1 should not cause downtime.
-            - name: PODS_AFFECTED_PERC
-              value: "50"
-          experimentAnnotations:
-            environment: dev
-            target-service: mlflow
-            phase: "phase-1-pod-chaos"
+  - name: pod-delete
+    spec:
+      components:
+        env:
+        - name: TOTAL_CHAOS_DURATION
+          value: '60'
+        - name: CHAOS_INTERVAL
+          value: '10'
+        - name: FORCE
+          value: 'false'
+        - name: PODS_AFFECTED_PERC
+          value: '50'
+        experimentAnnotations:
+          environment: dev
+          target-service: mlflow
+          phase: phase-1-pod-chaos

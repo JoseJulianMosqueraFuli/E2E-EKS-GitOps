@@ -9,25 +9,25 @@ metadata:
     environment: dev
 spec:
   appinfo:
-    appns: "models"
-    applabel: "serving.kserve.io/inferenceservice=REPLACE_WITH_MODEL_NAME"
-    appkind: "deployment"
-  engineState: "stop"
-  jobCleanUpPolicy: "delete"
-  chaosServiceAccount: litmus-admin
+    appns: models
+    applabel: serving.kserve.io/inferenceservice=REPLACE_WITH_MODEL_NAME
+    appkind: deployment
+  engineState: stop
+  jobCleanUpPolicy: delete
+  chaosServiceAccount: litmus-network
   experiments:
-    - name: pod-network-partition
-      spec:
-        components:
-          env:
-            - name: TOTAL_CHAOS_DURATION
-              value: "300"
-            - name: POLICY_TYPES
-              value: "egress"
-            - name: NAMESPACE_SELECTOR
-              value: "kubernetes.io/metadata.name=kube-system"
-          experimentAnnotations:
-            environment: dev
-            target-service: kserve
-            phase: "phase-2-network-chaos"
-            note: "inference-independent-of-mlflow"
+  - name: pod-network-partition
+    spec:
+      components:
+        env:
+        - name: TOTAL_CHAOS_DURATION
+          value: '300'
+        - name: POLICY_TYPES
+          value: egress
+        - name: NAMESPACE_SELECTOR
+          value: kubernetes.io/metadata.name=kube-system
+        experimentAnnotations:
+          environment: dev
+          target-service: kserve
+          phase: phase-2-network-chaos
+          note: inference-independent-of-mlflow

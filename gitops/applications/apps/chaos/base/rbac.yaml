@@ -1,97 +1,380 @@
-apiVersion: rbac.authorization.k8s.io/v1
-kind: ClusterRole
+apiVersion: v1
+kind: ServiceAccount
 metadata:
-  name: litmus-cluster-role
-  labels:
-    app.kubernetes.io/name: litmus
-    app.kubernetes.io/component: rbac
-rules:
-  # Core API access required by Litmus experiments
-  - apiGroups: [""]
-    resources: ["pods", "pods/exec", "pods/log", "events", "services", "configmaps"]
-    verbs: ["get", "list", "watch", "create", "update", "patch", "delete", "deletecollection"]
-  - apiGroups: [""]
-    resources: ["pods/eviction"]
-    verbs: ["create"]
-  - apiGroups: [""]
-    resources: ["nodes"]
-    verbs: ["get", "list", "watch", "patch", "update"]
-  - apiGroups: [""]
-    resources: ["namespaces"]
-    verbs: ["get", "list", "watch"]
-  - apiGroups: ["apps"]
-    resources: ["deployments", "statefulsets", "daemonsets", "replicasets"]
-    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
-  - apiGroups: ["batch"]
-    resources: ["jobs", "cronjobs"]
-    verbs: ["get", "list", "watch", "create", "update", "patch", "delete", "deletecollection"]
-  # pod-network-partition creates and removes a temporary NetworkPolicy
-  - apiGroups: ["networking.k8s.io"]
-    resources: ["networkpolicies"]
-    verbs: ["get", "list", "create", "update", "patch", "delete"]
-  # Litmus CRDs
-  - apiGroups: ["litmuschaos.io"]
-    resources: ["chaosengines", "chaosexperiments", "chaosresults"]
-    verbs: ["get", "list", "watch", "create", "update", "patch", "delete", "deletecollection"]
-  # ArgoCD/Flux access for GitOps-related experiments
-  - apiGroups: ["argoproj.io"]
-    resources: ["applications", "appprojects", "rollouts"]
-    verbs: ["get", "list", "watch"]
----
-apiVersion: rbac.authorization.k8s.io/v1
-kind: ClusterRoleBinding
-metadata:
-  name: litmus-cluster-role-binding
-  labels:
-    app.kubernetes.io/name: litmus
-    app.kubernetes.io/component: rbac
-roleRef:
-  apiGroup: rbac.authorization.k8s.io
-  kind: ClusterRole
-  name: litmus-cluster-role
-subjects:
-  - kind: ServiceAccount
-    name: litmus-admin
-    namespace: litmus
----
-apiVersion: rbac.authorization.k8s.io/v1
-kind: Role
-metadata:
-  name: litmus-admin-secrets
+  name: litmus-pod-mlflow
   namespace: litmus
-  labels:
-    app.kubernetes.io/name: litmus
-    app.kubernetes.io/component: rbac
-rules:
-  - apiGroups: [""]
-    resources: ["secrets"]
-    verbs: ["get", "list"]
----
-apiVersion: rbac.authorization.k8s.io/v1
-kind: RoleBinding
-metadata:
-  name: litmus-admin-secrets
-  namespace: litmus
-  labels:
-    app.kubernetes.io/name: litmus
-    app.kubernetes.io/component: rbac
-roleRef:
-  apiGroup: rbac.authorization.k8s.io
-  kind: Role
-  name: litmus-admin-secrets
-subjects:
-  - kind: ServiceAccount
-    name: litmus-admin
-    namespace: litmus
-  - kind: ServiceAccount
-    name: litmus
-    namespace: litmus
 ---
 apiVersion: v1
 kind: ServiceAccount
 metadata:
-  name: litmus-admin
+  name: litmus-pod-kserve
   namespace: litmus
-  labels:
-    app.kubernetes.io/name: litmus
-    app.kubernetes.io/component: rbac
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: litmus-pod-argocd
+  namespace: litmus
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: litmus-stress-mlflow
+  namespace: litmus
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: litmus-node
+  namespace: litmus
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: litmus-network
+  namespace: litmus
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: litmus-runner
+  namespace: litmus
+rules:
+- apiGroups:
+  - ''
+  resources:
+  - pods
+  - pods/log
+  - events
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - update
+  - patch
+  - delete
+  - deletecollection
+- apiGroups:
+  - ''
+  resources:
+  - configmaps
+  verbs:
+  - get
+  - list
+- apiGroups:
+  - batch
+  resources:
+  - jobs
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - patch
+  - update
+  - delete
+  - deletecollection
+- apiGroups:
+  - litmuschaos.io
+  resources:
+  - chaosengines
+  - chaosexperiments
+  - chaosresults
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - patch
+  - update
+  - delete
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: litmus-runner
+  namespace: litmus
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: litmus-runner
+subjects:
+- kind: ServiceAccount
+  name: litmus-pod-mlflow
+  namespace: litmus
+- kind: ServiceAccount
+  name: litmus-pod-kserve
+  namespace: litmus
+- kind: ServiceAccount
+  name: litmus-pod-argocd
+  namespace: litmus
+- kind: ServiceAccount
+  name: litmus-stress-mlflow
+  namespace: litmus
+- kind: ServiceAccount
+  name: litmus-node
+  namespace: litmus
+- kind: ServiceAccount
+  name: litmus-network
+  namespace: litmus
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: litmus-pod-mlflow
+  namespace: mlflow
+rules:
+- apiGroups:
+  - ''
+  resources:
+  - pods
+  verbs:
+  - get
+  - list
+  - watch
+  - delete
+- apiGroups:
+  - apps
+  resources:
+  - deployments
+  - statefulsets
+  - replicasets
+  - daemonsets
+  verbs:
+  - get
+  - list
+  - watch
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: litmus-pod-mlflow
+  namespace: mlflow
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: litmus-pod-mlflow
+subjects:
+- kind: ServiceAccount
+  name: litmus-pod-mlflow
+  namespace: litmus
+- kind: ServiceAccount
+  name: litmus-stress-mlflow
+  namespace: litmus
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: litmus-pod-kserve
+  namespace: kserve
+rules:
+- apiGroups:
+  - ''
+  resources:
+  - pods
+  verbs:
+  - get
+  - list
+  - watch
+  - delete
+- apiGroups:
+  - apps
+  resources:
+  - deployments
+  - statefulsets
+  - replicasets
+  - daemonsets
+  verbs:
+  - get
+  - list
+  - watch
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: litmus-pod-kserve
+  namespace: kserve
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: litmus-pod-kserve
+subjects:
+- kind: ServiceAccount
+  name: litmus-pod-kserve
+  namespace: litmus
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: litmus-pod-argocd
+  namespace: argocd
+rules:
+- apiGroups:
+  - ''
+  resources:
+  - pods
+  verbs:
+  - get
+  - list
+  - watch
+  - delete
+- apiGroups:
+  - apps
+  resources:
+  - deployments
+  - statefulsets
+  - replicasets
+  - daemonsets
+  verbs:
+  - get
+  - list
+  - watch
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: litmus-pod-argocd
+  namespace: argocd
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: litmus-pod-argocd
+subjects:
+- kind: ServiceAccount
+  name: litmus-pod-argocd
+  namespace: litmus
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: litmus-stress
+  namespace: mlflow
+rules:
+- apiGroups:
+  - ''
+  resources:
+  - pods/exec
+  verbs:
+  - create
+  - get
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: litmus-stress
+  namespace: mlflow
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: litmus-stress
+subjects:
+- kind: ServiceAccount
+  name: litmus-stress-mlflow
+  namespace: litmus
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: litmus-operator-secrets
+  namespace: litmus
+rules:
+- apiGroups:
+  - ''
+  resources:
+  - secrets
+  verbs:
+  - get
+  - list
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: litmus-operator-secrets
+  namespace: litmus
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: litmus-operator-secrets
+subjects:
+- kind: ServiceAccount
+  name: litmus
+  namespace: litmus
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: litmus-node
+rules:
+- apiGroups:
+  - ''
+  resources:
+  - nodes
+  verbs:
+  - get
+  - list
+  - watch
+  - patch
+  - update
+- apiGroups:
+  - ''
+  resources:
+  - pods
+  - namespaces
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - ''
+  resources:
+  - pods/eviction
+  verbs:
+  - create
+- apiGroups:
+  - apps
+  resources:
+  - daemonsets
+  verbs:
+  - get
+  - list
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: litmus-node
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: litmus-node
+subjects:
+- kind: ServiceAccount
+  name: litmus-node
+  namespace: litmus
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: litmus-stress-nodes
+rules:
+- apiGroups:
+  - ''
+  resources:
+  - nodes
+  verbs:
+  - get
+  - list
+  - watch
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: litmus-stress-nodes
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: litmus-stress-nodes
+subjects:
+- kind: ServiceAccount
+  name: litmus-stress-mlflow
+  namespace: litmus

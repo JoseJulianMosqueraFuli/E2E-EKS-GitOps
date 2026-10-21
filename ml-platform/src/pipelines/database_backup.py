@@ -10,6 +10,14 @@ from uuid import uuid4
 import boto3
 
 
+def _checksum(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as stream:
+        for block in iter(lambda: stream.read(1024 * 1024), b""):
+            digest.update(block)
+    return digest.hexdigest()
+
+
 def backup_database(bucket: str, prefix: str = "mlflow-backups", client=None) -> str:
     client = client or boto3.client("s3")
     timestamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
@@ -23,7 +31,7 @@ def backup_database(bucket: str, prefix: str = "mlflow-backups", client=None) ->
         )
         if not dump.stat().st_size:
             raise ValueError("Database backup is empty")
-        checksum = hashlib.sha256(dump.read_bytes()).hexdigest()
+        checksum = _checksum(dump)
         client.upload_file(str(dump), bucket, key, ExtraArgs={"Metadata": {"sha256": checksum}})
         metadata = client.head_object(Bucket=bucket, Key=key)
         if metadata["ContentLength"] != dump.stat().st_size:
@@ -56,7 +64,7 @@ def restore_database(
         if not checksum:
             raise ValueError("Backup has no checksum metadata")
         client.download_file(bucket, key, str(dump))
-        if hashlib.sha256(dump.read_bytes()).hexdigest() != checksum:
+        if _checksum(dump) != checksum:
             raise ValueError("Backup checksum verification failed")
         subprocess.run(
             ["pg_restore", "--exit-on-error", "--single-transaction", "--no-owner",

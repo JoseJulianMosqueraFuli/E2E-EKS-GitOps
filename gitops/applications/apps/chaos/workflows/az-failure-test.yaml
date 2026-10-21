@@ -183,7 +183,7 @@ spec:
         spec:
           engineState: "active"
           jobCleanUpPolicy: "delete"
-          chaosServiceAccount: litmus-admin
+          chaosServiceAccount: litmus-node
           components:
             runner:
               tolerations:

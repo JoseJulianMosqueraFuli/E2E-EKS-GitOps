@@ -144,7 +144,7 @@ spec:
             appkind: "deployment"
           engineState: "active"
           jobCleanUpPolicy: "delete"
-          chaosServiceAccount: litmus-admin
+          chaosServiceAccount: litmus-pod-mlflow
           experiments:
             - name: pod-delete
               spec:

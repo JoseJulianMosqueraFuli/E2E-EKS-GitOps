@@ -288,5 +288,23 @@ def step_restore_db_cmd(bucket, key, database):
     click.echo("Backup restored and checksum verified")
 
 
+@step.command("chaos-canary")
+@click.option("--phase", type=click.Choice(["prepare", "verify"]), required=True)
+@click.option("--workflow", required=True)
+@click.option("--run-id")
+@OUTPUTS_DIR_OPTION
+def step_chaos_canary_cmd(phase, workflow, run_id, outputs_dir):
+    from src.pipelines.chaos_probe import prepare_canary, verify_canary
+
+    if phase == "prepare":
+        run_id = prepare_canary(workflow)
+        steps.write_outputs(outputs_dir, {"canary-run-id.txt": run_id})
+    elif run_id:
+        verify_canary(run_id, workflow)
+    else:
+        raise click.ClickException("--run-id is required for verification")
+    click.echo(f"Canary {phase} succeeded")
+
+
 if __name__ == "__main__":
     main()
