@@ -34,6 +34,27 @@ kc -n litmus get chaosexperiment/pod-delete
 if kc auth can-i patch nodes --as=system:serviceaccount:litmus:litmus-pod-mlflow; then exit 1; fi
 if kc auth can-i get secrets -A --as=system:serviceaccount:litmus:litmus-pod-mlflow; then exit 1; fi
 if kc auth can-i patch nodes --as=system:serviceaccount:argo-workflows:chaos-workflow-mlflow; then exit 1; fi
+if kc --as=system:serviceaccount:argo-workflows:chaos-workflow-mlflow create --dry-run=server -f - > "$artifacts/admission-denial.txt" 2>&1 <<'EOF'
+apiVersion: litmuschaos.io/v1alpha1
+kind: ChaosEngine
+metadata:
+  name: e2e-denied
+  namespace: litmus
+spec:
+  engineState: active
+  chaosServiceAccount: litmus-node
+  appinfo:
+    appns: mlflow
+    applabel: app=mlflow-server
+    appkind: deployment
+  experiments:
+    - name: pod-delete
+EOF
+then
+  echo "Admission allowed the MLflow workflow to use the node fault account" >&2
+  exit 1
+fi
+grep -q chaos-mlflow-engine-scope "$artifacts/admission-denial.txt"
 submit() {
   kc create -o jsonpath='{.metadata.name}' -f - <<EOF
 apiVersion: argoproj.io/v1alpha1
