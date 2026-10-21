@@ -25,6 +25,16 @@ poetry run pytest tests/ -v
 
 `DataValidator` and `TrainingPipeline` are imported lazily, so the core install can run the pipeline steps
 without the optional extras.
+SQLAlchemy stays on 2.0 and Tenacity below 9 so the core and all extras resolve to a single compatible
+version of each dependency, including Feast's Tenacity requirement.
+MLflow models use the `skops` serialization format. Logging allows only the internal
+`sklearn.tree._tree.Tree` type needed by the models fitted in this process; arbitrary types discovered in
+external artifacts are not automatically trusted.
+Feast uses entity-key serialization version 3. Existing local SQLite snapshots contain older keys and
+timestamp storage: back them up and rematerialize current validated source data into a new online
+database before switching. Updating the YAML alone does not migrate stored data. The tests create fresh
+temporary stores and verify actual historical and online feature values. See
+[Feast's key migration guide](https://github.com/feast-dev/feast/blob/master/docs/how-to-guides/entity-reserialization-of-from-v2-to-v3.md).
 
 ## Pipeline steps (`src.cli step`)
 
@@ -37,6 +47,11 @@ Each Argo task runs one step inside the `mlops-platform` image. Inputs and outpu
 | `step train` | Fits preprocessing + model as one sklearn pipeline, logs it to MLflow | `model-uri.txt`, `run-id.txt` |
 | `step evaluate` | Scores the candidate on held-out data; approves only if it reaches `--min-score` and beats `@champion` by `--min-improvement` | `model-approved.txt`, `evaluation-metrics.json` |
 | `step register` | Registers the approved model and points `@champion` to it | `model-version.txt` |
+| `step validate-data` | Checks the input dataset and writes the validated dataset | `validated-data.txt`, `validation-report.json` |
+| `step validate-deployment` | Sends sample rows to the deployed model and checks predictions | Validation status |
+| `step chaos-canary` | Creates or verifies an MLflow parameter and artifact across a fault | `canary-run-id.txt` during preparation |
+| `step backup-db` / `step restore-db` | Backs up PostgreSQL to S3 or restores into a separate empty database | Backup key or restore status |
+| `step notify` | Logs the deployment outcome and optionally sends the configured webhook | Notification status |
 
 The same code runs locally, on kind with MinIO (`AWS_ENDPOINT_URL`, `MLFLOW_S3_ENDPOINT_URL`) and on EKS
 with IRSA. Implementation: `src/pipelines/steps.py`; tests: `tests/test_steps.py`.
@@ -46,11 +61,14 @@ with IRSA. Implementation: `src/pipelines/steps.py`; tests: `tests/test_steps.py
 | File | Image | Notes |
 |------|-------|-------|
 | `Dockerfile` | `mlops-platform` | Stages `builder` (core deps from `poetry.lock`), `test` (all extras + pytest), `runtime` (non-root UID 8737, read-only root filesystem compatible) |
-| `Dockerfile.mlflow-server` | `mlflow-server` | MLflow 2.22.5 + psycopg2 + boto3 (the official image has no PostgreSQL/S3 drivers), UID 1000 |
-| `Dockerfile.monitoring` | monitoring service | Out of date (missing `requirements.txt`, old Evidently pin); tracked in `docs/project/backlog.md` |
+| `Dockerfile.mlflow-server` | `mlflow-server` | MLflow 3.17.1 + psycopg2 + boto3, UID 1000; matches the locked client |
+| `Dockerfile.monitoring` | monitoring service | Monitoring extra from `poetry.lock`, UID 8737, import and HTTP health checks |
 
 CI (`.github/workflows/ml-platform-image.yml`) runs the `test` stage and publishes `runtime` to GHCR for
 `linux/amd64` with `sha-` tags. On EKS the manifests pull from ECR (`mlops-<env>-trainer`).
+The manual `publish-ecr.yml` workflow publishes the initial dev images through GitHub OIDC.
+See the [configuration and recovery contract](../docs/architecture/platform-runtime-config.md) before
+upgrading an existing MLflow database or running backup/restore.
 
 See [the ML platform guide](../docs/ml-platform-guide.md) for configuration and pipeline usage.
 Infrastructure and cluster deployment are managed from the repository root.

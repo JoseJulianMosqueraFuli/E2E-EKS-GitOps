@@ -113,6 +113,9 @@ class TestTrainEvaluateRegister:
             train_uri, "clf", "exp", "target", "classification", params={"n_estimators": 20}
         )
         assert model_uri == f"runs:/{run_id}/model"
+        flavor = mlflow.models.get_model_info(model_uri).flavors["sklearn"]
+        assert flavor["serialization_format"] == "skops"
+        assert flavor["skops_trusted_types"] == ["sklearn.tree._tree.Tree"]
 
         raw = steps.read_table(test_uri).drop(columns=["target"])
         assert raw["segment"].dtype == object

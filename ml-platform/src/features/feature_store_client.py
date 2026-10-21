@@ -235,7 +235,7 @@ online_store:
     path: {os.path.join(tmpdir, "online_store.db")}
 offline_store:
     type: file
-entity_key_serialization_version: 2
+entity_key_serialization_version: 3
 """
         with open(os.path.join(repo_path, "feature_store.yaml"), "w") as f:
             f.write(config)

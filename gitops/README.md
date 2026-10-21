@@ -72,11 +72,15 @@ gitops/
 curl -sSL https://install.python-poetry.org | python3 -
 
 # Install project dependencies
-poetry install
+poetry install --with test,dev
 
 # Or use pip (alternative)
 pip install -r tests/requirements.txt
 ```
+
+Poetry manages this directory's dependencies with `package-mode = false`; there is no Python package
+to install from the repository root. Keep `poetry.lock` in Git so local installs and GitHub Actions use
+the same dependency versions.
 
 ### 1. Install GitOps Controllers
 
@@ -157,7 +161,7 @@ Property-based tests verify GitOps controller health and deployment consistency:
 cd tests
 
 # Install dependencies (Poetry recommended)
-poetry install
+poetry install --with test,dev
 
 # Run all tests
 poetry run pytest

@@ -269,7 +269,7 @@ installs all of them plus tooling) and heavy modules are imported lazily.
 
 **Namespaces**:
 
-- `mlflow`: MLflow tracking server + PostgreSQL + MinIO (S3-compatible artifacts). Runs the project's own `mlflow-server` image (MLflow 2.22.5 + psycopg2 + boto3; the official image has neither driver); init containers derive hosts from the backend URI / S3 endpoint, so they work with any overlay prefix
+- `mlflow`: MLflow tracking server + PostgreSQL + MinIO (S3-compatible artifacts). Runs the project's own `mlflow-server` image (MLflow 3.17.1 + psycopg2 + boto3; the official image has neither driver); init containers derive hosts from the backend URI / S3 endpoint, so they work with any overlay prefix
 - `kubeflow`: Kubeflow Pipelines UI (deployed via manifests in `gitops/applications/apps/kubeflow/`)
 - `kserve`: KServe inference controller (manifests ready in `gitops/applications/apps/kserve/`, deploy via `MLOPS_TOOLS=kserve make mlops-install`)
 - `monitoring`: Prometheus + Grafana + Alertmanager + ArgoCD Notifications + Evidently drift detection

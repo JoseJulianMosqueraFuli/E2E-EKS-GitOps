@@ -95,7 +95,10 @@ The job pins kind 0.30.0 and the Kubernetes 1.34.0 node digest from the
 [official kind release](https://github.com/kubernetes-sigs/kind/releases/tag/v0.30.0), satisfying the Flux
 controller and stable admission-policy API requirements.
 
-Local checks cover manifests, policy configuration and failure behavior with doubles. They do not prove
+Local checks cover manifests, policy configuration and failure behavior with doubles. A temporary
+MLflow 3.17.1 HTTP server with SQLite and local artifact storage also passed the Chaos canary round trip
+and allowed/denied hostname checks. Dependency installation from the corrected lock passed its
+compatibility check. These checks do not prove
 CNI enforcement, IAM access, EBS recovery, GPU rescheduling or EKS availability. The zone preflight rejects
 PVC-backed target workloads and insufficient aggregate CPU/memory/GPU capacity; it does not solve
 stateful HA or prove per-pod affinity/taint feasibility. PostgreSQL and the dev/staging artifact gateway

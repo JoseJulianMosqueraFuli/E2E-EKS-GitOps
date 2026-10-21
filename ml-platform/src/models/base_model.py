@@ -134,7 +134,13 @@ class BaseModel(ABC):
             mlflow.log_metrics(metrics)
 
             # Log model
-            mlflow.sklearn.log_model(self.model, "model", registered_model_name=self.model_name)
+            mlflow.sklearn.log_model(
+                self.model,
+                name="model",
+                registered_model_name=self.model_name,
+                serialization_format=mlflow.sklearn.SERIALIZATION_FORMAT_SKOPS,
+                skops_trusted_types=["sklearn.tree._tree.Tree"],
+            )
 
             logger.info(f"Model training completed. Metrics: {metrics}")
 

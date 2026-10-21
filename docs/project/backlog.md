@@ -13,18 +13,23 @@ Para detalles técnicos de issues CRÍTICOS y ALTOS (CVSS, fix concreto), ver: [
 
 ### Correcciones implementadas
 
+- CI GitOps: Poetry usa `package-mode = false` y un lock versionado; la instalacion ya no intenta instalar un paquete inexistente. El formato actual de todos los archivos `ml-platform/src` y `ml-platform/tests` pasa los comandos `flake8` y `black --check` del workflow.
 - Bootstrap completo de Flux 2.7.5, APIs estables, rutas reales del repositorio y reconciliacion por capas sin doble propiedad. ArgoCD espera el application-controller como StatefulSet. El plugin `platform-kustomize` inyecta la configuracion fuera de Git y rechaza valores ficticios.
 - Roles IRSA separados para Argo, MLflow, secretos de MLflow y backup. Buckets con sufijo de cuenta/region, backend bootstrap con nombre unico y publicacion inicial dev en ECR por OIDC. La activacion y el plan AWS siguen pendientes.
 - Backup con cliente PostgreSQL/boto3, host correcto por overlay, ejecucion sin root, checksum y restore a una base vacia distinta. MLflow usa proxy de artefactos; en produccion usa IRSA y no las credenciales del gateway de desarrollo.
 - Roles de Chaos separados, guardas de admision, canarios de datos/artefactos, predicciones con asercion y preflight AZ que bloquea PVCs y capacidad insuficiente. Los engines declaran `annotationCheck: "false"` para no depender de una anotacion ausente.
 - GitHub Actions kind incluye validacion de datos, entrenamiento/gate, backup/restore, Flux/Litmus, pod-delete, cancelacion `Stop`, limpieza y evidencia retenida. Aun no se ha verificado un run verde de esta ampliacion.
 - Eliminadas las imagenes inexistentes de validacion, deployment y notificacion del pipeline principal. Monitoring usa dependencias bloqueadas y una imagen versionada. El despliegue KServe requiere todavia prueba real.
+- Cliente y servidor MLflow alineados en 3.17.1; hosts internos permitidos explicitamente y modelos guardados con `skops`, autorizando solo el tipo interno de arboles entrenados. El lock actualizado elimina versiones simultaneas incompatibles de SQLAlchemy y Tenacity. Una base existente requiere backup y migracion de esquema antes del upgrade.
+- Feast actualizado a serializacion de claves v3. Sus pruebas usan datos recientes en almacenes temporales y verifican valores; los errores ya no se convierten en omisiones. Los snapshots SQLite antiguos necesitan rematerializacion en una base nueva antes de usarlos con la version actual.
 
 ### Evidencia local
 
-- 417 pruebas GitOps aprobadas, incluidas las 32 de Chaos, el bootstrap del backend y la paridad de versiones cliente/servidor MLflow. Se excluyen las pruebas que requieren un cluster real.
-- Suite ML: 166 aprobadas, una omitida y un xpass; 28 pruebas de backup, canarios y validacion del pipeline aprobadas tras las ultimas incorporaciones.
+- 417 pruebas GitOps aprobadas con el lock actual, incluidas las 32 de Chaos, el bootstrap del backend y la paridad de versiones cliente/servidor MLflow; siete pruebas que requieren cluster excluidas por `-m "not integration"`.
+- Instalacion limpia `poetry install --with test,dev` aprobada con Python 3.12 y Poetry 2.5.1; lock validado y 64 paquetes instalados compatibles. Flake8 y Black aprobados sobre los 46 archivos de `ml-platform/src/` y `ml-platform/tests/`.
+- Suite ML con MLflow 3.17.1/NumPy 2: 178 aprobadas y dos omisiones de Feast detectadas. Tras corregir Feast, sus 12 pruebas pasaron sin omisiones, incluidas esas dos: los 180 casos quedan comprobados entre ambas ejecuciones. Se retiro un `xfail` obsoleto de configuracion.
 - 30 overlays autorizados por el AppProject; seis overlays Argo/MLflow sin placeholders; render del plugin desde un checkout sin `aws.env`; lint offline de Argo aprobado.
+- MLflow 3.17.1 probado por HTTP con SQLite temporal: canario de parametro/artefacto conservado y hosts no autorizados rechazados. Las 190 dependencias instaladas pasaron la comprobacion de compatibilidad.
 - Terraform dev/staging/prod validado sin backend ni llamadas de aprovisionamiento. `make test-terraform-plan` valida; no genera un plan real. Las pruebas de cluster siguen excluidas localmente.
 
 ### Orden de cierre operativo
@@ -36,6 +41,7 @@ Para detalles técnicos de issues CRÍTICOS y ALTOS (CVSS, fix concreto), ver: [
 | P0 antes de fallos de zona | Recuperacion de almacenamiento y afinidades (#64) | Restore/HA entre zonas y capacidad de reubicacion demostrados; el preflight rechaza PVCs por defecto |
 | P1 | Confirmar permisos, SLO/RTO/RPO y evidencia en EKS (#60/#63) | Permisos efectivos, predicciones/datos conservados, panel de resultados y tiempos medidos |
 | P1 | Promocion del mismo digest ECR y ciclo completo (#65/#52/#53) | dev → staging → prod sin reconstruir; train → register → serve → monitor comprobado |
+| P1 antes de actualizar datos existentes | Migrar bases MLflow/Feast | Backup verificado, upgrade del esquema MLflow y rematerializacion de Feast v3 en una nueva base online |
 | P2 | Particion de red (#59), EC2 stop (#58), mTLS/Gatekeeper y Feast productivo (#34) | Aislamiento CNI, recuperacion y servicios de produccion verificados |
 
 Detalles y comandos: [contrato de configuracion y recuperacion](../architecture/platform-runtime-config.md).

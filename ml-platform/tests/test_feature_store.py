@@ -5,6 +5,7 @@ These tests verify the MLOpsFeatureStore client and local factory
 without requiring external Redis/DynamoDB backends.
 """
 
+import importlib.util
 import os
 import shutil
 
@@ -64,6 +65,7 @@ class TestMLOpsFeatureStore:
         repo_path, store = LocalFeatureStoreFactory.create_temp_store()
         assert os.path.exists(os.path.join(repo_path, "feature_store.yaml"))
         assert store.store.project == "test_feature_store"
+        assert store.store.config.entity_key_serialization_version == 3
         # Cleanup
         if os.path.isdir(repo_path):
             shutil.rmtree(os.path.dirname(repo_path), ignore_errors=True)
@@ -79,15 +81,40 @@ class TestFeatureStoreWithDefinitions:
         repo_path = os.path.join(current_dir, "..", "feature_repo")
         repo_path = os.path.abspath(repo_path)
 
-        if not os.path.exists(repo_path):
-            pytest.skip("feature_repo directory not found")
-
         temporary_repo = tmp_path_factory.mktemp("feast") / "feature_repo"
-        shutil.copytree(repo_path, temporary_repo)
+        temporary_repo.mkdir()
+        for filename in ("feature_store.yaml", "feature_definitions.py"):
+            shutil.copy2(os.path.join(repo_path, filename), temporary_repo / filename)
+        data_dir = temporary_repo / "data"
+        data_dir.mkdir()
+        timestamp = pd.Timestamp.now(tz="UTC") - pd.Timedelta(minutes=1)
+        datasets = {
+            "model_features": {
+                f"feature_{i}": [float(i + j) for j in range(3)] for i in range(1, 6)
+            },
+            "transaction_stats": {
+                "amount_mean": [10.0, 20.0, 30.0],
+                "amount_std": [1.0, 2.0, 3.0],
+                "transaction_count": [1, 2, 3],
+                "days_since_last": [1.0, 2.0, 3.0],
+            },
+            "user_profile": {
+                "age_group": ["adult", "adult", "adult"],
+                "account_tenure_days": [10, 20, 30],
+                "has_premium": [0, 1, 0],
+                "engagement_score": [0.1, 0.2, 0.3],
+            },
+        }
+        for name, features in datasets.items():
+            pd.DataFrame(
+                {"user_id": [1, 2, 3], "event_timestamp": [timestamp] * 3, **features}
+            ).to_parquet(data_dir / f"{name}.parquet", index=False)
+        spec = importlib.util.spec_from_file_location(
+            "test_feature_definitions", temporary_repo / "feature_definitions.py"
+        )
+        feature_definitions = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(feature_definitions)
         store = MLOpsFeatureStore(repo_path=str(temporary_repo))
-
-        # Apply feature definitions to populate the registry
-        from feature_repo import feature_definitions
 
         store.store.apply(
             [
@@ -136,24 +163,19 @@ class TestFeatureStoreWithDefinitions:
         entity_df = pd.DataFrame(
             {
                 "user_id": [1, 2, 3],
-                "event_timestamp": pd.Timestamp.now(),
+                "event_timestamp": pd.Timestamp.now(tz="UTC"),
             }
         )
         feature_refs = [
             "model_features:feature_1",
             "model_features:feature_2",
         ]
-        try:
-            df = project_store.get_historical_features(
-                feature_refs=feature_refs,
-                entity_df=entity_df,
-            )
-            assert isinstance(df, pd.DataFrame)
-            assert len(df) > 0
-        except Exception as e:
-            # Historical features may fail if parquet data doesn't match timestamps,
-            # but the API should not crash
-            pytest.skip(f"Historical features retrieval failed: {e}")
+        df = project_store.get_historical_features(
+            feature_refs=feature_refs,
+            entity_df=entity_df,
+        )
+        assert isinstance(df, pd.DataFrame)
+        assert df.sort_values("user_id")["feature_1"].tolist() == [1.0, 2.0, 3.0]
 
     def test_online_features(self, project_store):
         """Test retrieving online features."""
@@ -164,14 +186,12 @@ class TestFeatureStoreWithDefinitions:
             "model_features:feature_1",
             "model_features:feature_2",
         ]
-        try:
-            df = project_store.get_online_features(
-                feature_refs=feature_refs,
-                entity_rows=entity_rows,
-            )
-            assert isinstance(df, pd.DataFrame)
-        except Exception as e:
-            pytest.skip(f"Online features retrieval failed: {e}")
+        df = project_store.get_online_features(
+            feature_refs=feature_refs,
+            entity_rows=entity_rows,
+        )
+        assert isinstance(df, pd.DataFrame)
+        assert df.sort_values("user_id")["feature_1"].tolist() == [1.0, 2.0]
 
 
 if __name__ == "__main__":

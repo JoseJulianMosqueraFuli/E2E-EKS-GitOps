@@ -233,7 +233,12 @@ def train(
         sample = X.head(5)
         signature = infer_signature(sample, pipeline.predict(sample))
         mlflow.sklearn.log_model(
-            pipeline, artifact_path="model", signature=signature, input_example=sample
+            pipeline,
+            name="model",
+            signature=signature,
+            input_example=sample,
+            serialization_format=mlflow.sklearn.SERIALIZATION_FORMAT_SKOPS,
+            skops_trusted_types=["sklearn.tree._tree.Tree"],
         )
         run_id = run.info.run_id
 
