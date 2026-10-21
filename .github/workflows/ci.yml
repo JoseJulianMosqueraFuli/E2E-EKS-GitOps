@@ -98,20 +98,25 @@ jobs:
         with:
           python-version: "3.12"
 
-      - name: Install validation dependencies
-        run: pip install -r gitops/tests/requirements.txt
+      - name: Install Poetry
+        uses: snok/install-poetry@v1
+        with:
+          version: "2.5.1"
+
+      - name: Install GitOps dependencies
+        run: cd gitops && poetry install --with test,dev
 
       - name: Create platform config from example
         run: make platform-config
 
       - name: Validate all canonical application overlays
-        run: python gitops/scripts/validate_applications.py
+        run: cd gitops && poetry run python scripts/validate_applications.py
 
       - name: Check AWS account/region placeholders are resolved
         run: make validate-platform-config
 
       - name: Run GitOps regression tests
-        run: python -m pytest gitops/tests/ -m "not integration" -q
+        run: cd gitops && poetry run pytest tests/ -m "not integration" -q
 
   # ML Platform Tests
   ml-platform-test:
