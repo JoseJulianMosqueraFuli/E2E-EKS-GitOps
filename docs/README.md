@@ -22,9 +22,9 @@ Guides are available in English or Spanish, depending on the topic.
 |---|---|
 | ML models, pipelines, and CLI | [ML platform guide](ml-platform-guide.md) |
 | Training orchestration | [Argo Workflows](../k8s/mlops-stack/argo-workflows/README.md) |
-| E2E training test in CI | [Workflow](../.github/workflows/e2e-kind.yml) · [Smoke test script](../scripts/e2e/kind-smoke.sh) |
+| Data validation, training, backup and Chaos tests in CI | [Workflow](../.github/workflows/e2e-kind.yml) · [Smoke test script](../scripts/e2e/kind-smoke.sh) |
 | GitOps | [Overview](../gitops/README.md) · [Installation](../gitops/SETUP.md) |
-| AWS account and region | [Platform configuration](../gitops/platform/README.md) |
+| AWS account, roles, bootstrap and recovery | [Platform configuration](../gitops/platform/README.md) · [Runtime contract](architecture/platform-runtime-config.md) |
 | Monitoring and drift detection | [Monitoring guide](model-monitoring-guide.md) |
 | Security | [Hardening guide](security-best-practices.md) · [Vulnerability reporting](../SECURITY.md) |
 | AWS costs | [Cost estimates](cost-estimation.md) |

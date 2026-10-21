@@ -10,30 +10,36 @@
 
 ## Review status (2026-10-20)
 
-Phase 1 and the node-eviction workflows are implemented and checked statically; they have not run on EKS.
-Start with `mlflow-resilience-test` in dev after the platform deployment is healthy.
+The implementation has local regression coverage and a GitHub Actions kind scenario. A green run of the
+new scenario and execution in EKS remain required; neither is implied by a successful local render.
 
-Local review passed 23 chaos safety tests, all three chaos overlays, and rendering of the cached pinned
-Helm charts with their real post-renderers. These checks do not execute Litmus in a cluster. The current
-kind E2E covers training/registration, not chaos; a dedicated chaos smoke and abort/cleanup test remain
-pending (#62). See the [current priorities](../../../../docs/project/backlog.md#revision-operativa--2026-10-20).
+- Bootstrap uses the complete pinned Flux distribution, including CRDs and controller RBAC. The ArgoCD
+  installer waits for the actual application-controller StatefulSet.
+- MLflow canaries write a parameter and artifact before injection, verify run continuity while the fault
+  is active, and read the same artifact afterwards. MLflow proxies artifacts through the tracking server.
+- Zone tests require a JSON prediction request and a jq response assertion. Preflight rejects PVC-backed
+  workloads in the target zone and insufficient surviving CPU/memory/GPU capacity. It also checks node
+  readiness, taints and placement of Litmus/Argo control pods. Aggregate capacity does not prove affinity
+  compatibility or storage HA; the current PostgreSQL/gateway design is not zone resilient.
+- Pod, stress and node faults use separate accounts. Flux admission policies prevent the MLflow workflow
+  from selecting a node account and constrain runner account selection. Their effective enforcement is
+  included in the kind scenario and must also be verified in EKS.
+- Kind CI covers a PostgreSQL backup/restore, real Litmus pod deletion and cancellation using Argo `Stop`,
+  with evidence retained for 14 days. The default MLflow downtime budget is 5 seconds; the CI scenario
+  explicitly uses 15 seconds. These budgets are test parameters, not a measured production SLO.
 
-- Complete the controller bootstrap before a fresh deployment (#61): the local Flux installation lacks CRDs and permissions needed for leader election and the Litmus catalog.
-- Repair and test MLflow backup/restore before node, zone, or database faults (#54). The backup job currently targets `postgres`, while the service is named `<env>-mlflow-postgresql`.
-- Check storage topology and spare workload capacity before zone eviction (#64). PostgreSQL and the dev/staging S3 gateway each have one replica backed by gp3 storage. A surviving Ready node does not prove data can move to it.
-- Define service SLOs and data/inference probes (#63). The current MLflow test checks `/health` and writes a run after the fault; it does not prove artifact integrity or run continuity during the fault. The example AZ URL checks model metadata, not a prediction.
+Both workflows use a shared mutex and a probe readiness barrier. Missing data, malformed prediction
+responses, API errors, exceeded downtime and unfinished engines fail the workflow. Exit handlers stop
+engines and verify completion. `argo terminate` or a failed workflow controller can bypass cleanup; manual
+recovery remains necessary in those cases. `annotationCheck: "false"` is explicit because these manual
+workflows select their targets and do not depend on an absent workload opt-in annotation.
 
-An EBS volume must be in the same Availability Zone as its attached instance ([AWS documentation](https://docs.aws.amazon.com/ebs/latest/userguide/ebs-volumes.html)). Given the current single-replica stores, zone recovery needs a storage strategy as well as spare nodes.
+Network partition remains disabled (#59); EC2 stop/termination is not enabled (#58). See the
+[current backlog](../../../../docs/project/backlog.md#revision-operativa--2026-10-20) and the
+[bootstrap/recovery contract](../../../../docs/architecture/platform-runtime-config.md).
 
-Current safeguards:
-
-- Both workflows share a mutex, validate duration limits (1–300 seconds), and wait for the availability probe before injecting faults.
-- Monitoring measures elapsed seconds, includes request timeouts, and continues until all expected ChaosEngines complete. Missing probes, API errors, exceeded downtime, and unfinished engines fail the workflow.
-- Cleanup requests a stop and waits for completion. Failures are reported; an Argo controller outage or `argo terminate` can prevent the exit handler from running, so manual recovery is still required in those cases.
-- Helm post-renderers remove the unused catalog administrator and restrict direct secret reads by the operator to `litmus`. Experiment accounts still have node and pod mutation privileges; further role separation is tracked in backlog #60.
-- Network partition is disabled pending a real isolation check (backlog #59). An experiment verdict alone does not prove traffic was blocked.
-
-Regression checks: [`test_chaos_safety.py`](../../../tests/test_chaos_safety.py), run by the existing GitHub Actions Kubernetes validation job.
+Regression checks: [`test_chaos_safety.py`](../../../tests/test_chaos_safety.py) and
+[`kind-chaos.sh`](../../../../scripts/e2e/kind-chaos.sh).
 
 ## What this directory contains
 
@@ -43,14 +49,14 @@ gitops/applications/apps/chaos/
 │   ├── kustomization.yaml      # Base Kustomize manifest
 │   ├── namespace.yaml          # litmus namespace (privileged PSS)
 │   ├── litmus.yaml             # HelmRepository + HelmReleases (litmus-core, kubernetes-chaos)
-│   ├── rbac.yaml               # litmus-admin ServiceAccount used by every ChaosEngine
+│   ├── rbac.yaml               # Separate pod, stress and node fault accounts
 │   ├── exporter.yaml           # chaos-exporter Deployment + read-only RBAC
 │   └── metrics-service.yaml    # litmus-chaos-exporter Service scraped by Prometheus
 ├── workflows/                  # Deployed in dev and staging only
 │   ├── kustomization.yaml
-│   ├── rbac.yaml               # chaos-workflow ServiceAccount (argo-workflows)
+│   ├── rbac.yaml               # Separate MLflow and node workflow accounts
 │   ├── scripts/                # Shared readiness barrier, monitoring and cleanup scripts
-│   ├── mlflow-resilience-test.yaml  # Phase 1: pod-delete MLflow + health checks
+│   ├── mlflow-resilience-test.yaml  # Phase 1: pod-delete MLflow + data/artifact checks
 │   └── az-failure-test.yaml         # Phase 2: taint every node in one AZ
 ├── overlays/
 │   ├── dev/                    # base + workflows, MLflow names with dev- prefix
@@ -104,14 +110,15 @@ There is no ChaosCenter portal and no MongoDB: experiments are submitted with `k
 
 ### 3. RBAC
 
-- `litmus-admin` (`litmus` namespace) is the `chaosServiceAccount` of every ChaosEngine. Its ClusterRole covers pods, evictions, nodes (drain/taint), workloads, jobs, NetworkPolicies (network partition) and the Litmus CRDs. Its direct secret reads are limited to `litmus`; this is not a security boundary against a principal that can create privileged pods.
-- `litmus-chaos-exporter` has read-only access to the Litmus CRDs, pods and events.
-- `chaos-workflow` (`argo-workflows` namespace) runs the validation workflows: it can create/stop ChaosEngines and read ChaosResults in `litmus`, read Deployments/StatefulSets and control pods, manage probe readiness ConfigMaps, and list/patch nodes for cleanup.
-- The catalog's unused `k8s-chaos-admin` account and cluster bindings are removed by the HelmRelease post-renderer. The `litmus` operator receives secret read access through the namespace Role only (HIGH-014).
-
-⚠️ `litmus-admin` is a powerful role. Do not change it without a security review.
-
----
+- `litmus-pod-mlflow`, `litmus-pod-kserve` and `litmus-pod-argocd` can delete pods only in their target namespace.
+- `litmus-stress-mlflow` adds MLflow exec and read-only node access. Stress helpers remain privileged.
+- `litmus-node` can patch nodes and evict pods; it is reserved for node/zone experiments.
+- `chaos-workflow-mlflow` can inspect MLflow and manage its experiment; `chaos-workflow-node` has the
+  cluster read and node cleanup permissions needed by the AZ workflow.
+- `litmus-chaos-exporter` is read-only. The operator's direct secret reads are confined to `litmus`.
+- `gitops/infrastructure/security/chaos-guardrails.yaml` constrains engine and runner account selection.
+  Install these Flux-owned policies before allowing untrusted workflow submissions. The privileged Litmus
+  namespace and operator are still administrative components, not tenant isolation boundaries.
 
 ## How to run an experiment
 
@@ -220,7 +227,9 @@ kubectl get nodes -L topology.kubernetes.io/zone
 argo submit --from workflowtemplate/az-failure-test -n argo-workflows --watch \
   -p zone=<zone> \
   -p confirm-zone-failure=true \
-  -p probe-url=http://<inference-service-host>/v1/models/<model>
+  -p probe-url=http://<inference-service-host>/invocations \
+  -p 'probe-body={"dataframe_split":{"columns":["feature"],"data":[[1.0]]}}' \
+  -p 'probe-response-filter=.predictions | type == "array" and length == 1'
 ```
 
 The workflow requires a non-empty probe URL and explicit confirmation. Preflight refuses a target
@@ -260,7 +269,7 @@ and [Kubernetes NetworkPolicies](https://kubernetes.io/docs/concepts/services-ne
 
 #### EC2 instance stop (deferred)
 
-The proposal's original 2.1 (`ec2-terminate-by-tag`) needs an IRSA role for `litmus-admin` with `ec2:StopInstances`/`ec2:TerminateInstances` on the node group instances, created in Terraform. Tracked as backlog #58. Until then, the node drain experiment covers pod rescheduling.
+The proposal's original 2.1 (`ec2-terminate-by-tag`) needs an IRSA dedicated fault role with `ec2:StopInstances`/`ec2:TerminateInstances` on the node group instances, created in Terraform. Tracked as backlog #58. Until then, the node drain experiment covers pod rescheduling.
 
 ---
 
@@ -268,7 +277,7 @@ The proposal's original 2.1 (`ec2-terminate-by-tag`) needs an IRSA role for `lit
 
 1. Create a new file under `experiments/` (e.g., `experiments/node-memory-hog.yaml`).
 2. Use an experiment name from the `kubernetes-chaos` chart (`kubectl get chaosexperiments -n litmus`).
-3. Set `chaosServiceAccount: litmus-admin` and `jobCleanUpPolicy: delete`.
+3. Select the dedicated account with permissions for that fault and set `jobCleanUpPolicy: delete`.
 4. Restrict the target with `appinfo` (namespace, label selector, kind) or `TARGET_NODE`.
 5. If the experiment needs new API permissions, extend `base/rbac.yaml` and get a security review.
 6. Run it manually in `dev` first.
@@ -289,7 +298,7 @@ spec:
     appkind: "<deployment|statefulset|daemonset>"
   engineState: "active"
   jobCleanUpPolicy: "delete"
-  chaosServiceAccount: litmus-admin
+  chaosServiceAccount: litmus-pod-mlflow
   experiments:
     - name: <experiment-name>
       spec:
