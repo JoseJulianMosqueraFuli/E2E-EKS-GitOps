@@ -8,10 +8,24 @@
 
 ---
 
-## Review status (2026-10-17)
+## Review status (2026-10-20)
 
 Phase 1 and the node-eviction workflows are implemented and checked statically; they have not run on EKS.
 Start with `mlflow-resilience-test` in dev after the platform deployment is healthy.
+
+Local review passed 23 chaos safety tests, all three chaos overlays, and rendering of the cached pinned
+Helm charts with their real post-renderers. These checks do not execute Litmus in a cluster. The current
+kind E2E covers training/registration, not chaos; a dedicated chaos smoke and abort/cleanup test remain
+pending (#62). See the [current priorities](../../../../docs/project/backlog.md#revision-operativa--2026-10-20).
+
+- Complete the controller bootstrap before a fresh deployment (#61): the local Flux installation lacks CRDs and permissions needed for leader election and the Litmus catalog.
+- Repair and test MLflow backup/restore before node, zone, or database faults (#54). The backup job currently targets `postgres`, while the service is named `<env>-mlflow-postgresql`.
+- Check storage topology and spare workload capacity before zone eviction (#64). PostgreSQL and the dev/staging S3 gateway each have one replica backed by gp3 storage. A surviving Ready node does not prove data can move to it.
+- Define service SLOs and data/inference probes (#63). The current MLflow test checks `/health` and writes a run after the fault; it does not prove artifact integrity or run continuity during the fault. The example AZ URL checks model metadata, not a prediction.
+
+An EBS volume must be in the same Availability Zone as its attached instance ([AWS documentation](https://docs.aws.amazon.com/ebs/latest/userguide/ebs-volumes.html)). Given the current single-replica stores, zone recovery needs a storage strategy as well as spare nodes.
+
+Current safeguards:
 
 - Both workflows share a mutex, validate duration limits (1–300 seconds), and wait for the availability probe before injecting faults.
 - Monitoring measures elapsed seconds, includes request timeouts, and continues until all expected ChaosEngines complete. Missing probes, API errors, exceeded downtime, and unfinished engines fail the workflow.

@@ -130,11 +130,11 @@ These references replace per-tool rule files. MCP servers are read-only by polic
 
 ## Known open work (see `docs/project/critical.md` / `docs/project/backlog.md`)
 
-- CRIT-004: ArgoCD `mlops-core` AppProject is permissive (`sourceRepos: "*"`, `destinations: namespace: "*"`) — restrict.
+- CRIT-004: ArgoCD `mlops-core` AppProject is restricted in current manifests (verified 2026-10-20); effective permissions in EKS still need verification.
 - HIGH-006 / HIGH-007: `:latest` in the Evidently image and in the non-training Argo templates (training template already pinned).
 - HIGH-001: Terraform S3 backend activation (account available; run `scripts/bootstrap-terraform-backend.sh <env> us-east-1`).
 - HIGH-013: CI hides failures (intentional, do not touch unless asked).
-- Before the first AWS deployment (`docs/project/backlog.md`): ArgoCD injection of `aws.env` (#48), IRSA roles for Argo/MLflow (#50), globally unique S3 bucket names (#51), images still missing in templates (#52), ECR publishing via OIDC (#55), first green `e2e-kind.yml` run (#56).
+- Before the first AWS deployment (`docs/project/backlog.md`): ArgoCD injection of `aws.env` (#48), IRSA roles for Argo/MLflow (#50), globally unique S3 bucket names (#51), images still missing in templates (#52), ECR publishing via OIDC (#55), complete controller bootstrap (#61). The first green `e2e-kind.yml` run (#56) is recorded; Chaos E2E (#62), functional probes (#63), backup/restore (#54), and zone recovery (#64) remain pending.
 - Many MEDIUM/LOW items in `docs/project/backlog.md` (Istio mTLS gaps, Gatekeeper coverage, Helm chart hardening, ML platform debt).
 
 ## When adding a new MLOps app
@@ -155,4 +155,4 @@ These references replace per-tool rule files. MCP servers are read-only by polic
 - `.agents/` — source of truth for AI agent rules (`rules/`) and MCP servers (`mcp/servers.json`). See `.agents/README.md`.
 - `CLAUDE.md`, `.github/copilot-instructions.md`, `.kiro/settings/mcp.json`, `.vscode/mcp.json`, `.mcp.json` — **generated** by `make agents-sync`; do not edit by hand. Shared rules stay in `.agents/`; per-tool rule copies are not generated.
 
-*Last updated: 2026-10-17*
+*Last updated: 2026-10-20*

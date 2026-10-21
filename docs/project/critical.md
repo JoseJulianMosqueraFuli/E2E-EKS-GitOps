@@ -3,7 +3,7 @@
 [← Documentation index](../README.md)
 
 **Report Date**: 2026-06-06
-**Last Updated**: 2026-10-17
+**Last Updated**: 2026-10-20
 **Project**: E2E MLOps Platform on Amazon EKS
 **Reviewer**: OpenCode AI
 **Status**: OPEN - Requires immediate action before production deployment
@@ -16,7 +16,7 @@ This document lists all **CRITICAL** and **HIGH** severity findings identified d
 
 | Severity | Count | Status |
 |----------|-------|--------|
-| CRITICAL | 4 | 3 Fixed, 1 Open (CRIT-004) |
+| CRITICAL | 4 | 4 corrected in code/manifests; CRIT-004 effective permissions still require EKS verification |
 | HIGH | 14 | 9 Fixed, 4 Open, 1 mitigated in manifests (HIGH-014; EKS verification pending) |
 
 ---
@@ -83,7 +83,8 @@ This document lists all **CRITICAL** and **HIGH** severity findings identified d
 ### CRIT-004: ArgoCD AppProject Excessively Permissive
 
 - **File**: `gitops/applications/projects/mlops-core.yaml`
-- **Issue**: The `mlops-core` AppProject allows:
+- **Status (2026-10-20)**: Corrected in the current manifests. The project restricts the source repository, enumerates cluster/namespace destinations, and lists permitted resource types. The remaining kind wildcard is scoped to `constraints.gatekeeper.sh`, not all API groups. All 30 application overlays pass the repository's AppProject validation. Effective permissions in EKS remain unverified.
+- **Original issue**: The `mlops-core` AppProject allowed:
   - `sourceRepos: "*"` (any Git repository)
   - `destinations: namespace: "*"` (any namespace)
   - `clusterResourceWhitelist: group: "*", kind: "*"` (any cluster-scoped resource)
@@ -281,7 +282,7 @@ This document lists all **CRITICAL** and **HIGH** severity findings identified d
 | Priority | Issue | Estimated Effort | Assignee | Status |
 |----------|-------|-----------------|----------|--------|
 | P0 | CRIT-003: Docker executor & socket | 4h | DevSecOps | ✅ Fixed 2026-06-07 |
-| P0 | CRIT-004: ArgoCD AppProject | 2h | GitOps | Open |
+| P0 | CRIT-004: ArgoCD AppProject | 2h | GitOps | Corrected in manifests; verified locally 2026-10-20; EKS verification pending |
 | P0 | CRIT-001 & CRIT-002: Argo Workflows TLS/Auth | 4h | Platform | ✅ Fixed 2026-06-07 |
 | P1 | HIGH-005 to HIGH-007: Pin all `latest` tags | 3h | ML Platform | Partial (HIGH-005 done 2026-06-26; HIGH-007 training template pinned 2026-10-10; HIGH-006 open) |
 | P1 | HIGH-011 & HIGH-012: Python fixes | 1h | ML Platform | ✅ Fixed 2026-06-08 |
@@ -302,7 +303,7 @@ Before marking this report as resolved:
 - [x] CRIT-001: Argo Workflows `--secure=true` (corregido 2026-06-07)
 - [x] CRIT-002: Argo Workflows `--auth-mode=client` (2026-10-10; el `--auth-mode=sso` de 2026-06-07 no arrancaba sin bloque `sso`)
 - [x] CRIT-003: No `docker.sock` mounts, executor = `emissary` (corregido 2026-06-07)
-- [ ] CRIT-004: AppProject restricted to specific repos/namespaces/resources
+- [x] CRIT-004: AppProject restricted to specific repos/namespaces/resources (current manifests verified 2026-10-20; effective EKS permissions pending)
 - [x] HIGH-009: Grafana `emptyDir` replaced with PVC (corregido 2026-06-08)
 - [x] HIGH-010: Prometheus converted to StatefulSet with PVC (corregido 2026-06-08)
 - [x] HIGH-005: Feast `latest` tag pinned to `0.40.1` (corregido 2026-06-26)
