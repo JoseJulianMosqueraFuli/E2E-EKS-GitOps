@@ -69,16 +69,22 @@ jobs:
         with:
           kustomize-version: "5.3.0"
 
+      - name: Install Poetry
+        uses: snok/install-poetry@v1
+        with:
+          version: "2.5.1"
+
       - name: Install validation dependencies
-        run: pip install pyyaml pytest hypothesis
+        run: cd gitops && poetry install --with test,dev
 
       - name: Validate source and target configurations
         env:
           SOURCE_ENV: ${{ steps.promotion.outputs.source }}
           TARGET_ENV: ${{ steps.promotion.outputs.target }}
         run: |
-          python gitops/scripts/promotion/promote.py "$SOURCE_ENV" "$TARGET_ENV" --dry-run
-          python -m pytest gitops/tests/test_gitops_checkpoint.py gitops/tests/test_application_deployment_consistency.py gitops/tests/test_rendered_applications.py -q
+          cd gitops
+          poetry run python scripts/promotion/promote.py "$SOURCE_ENV" "$TARGET_ENV" --dry-run
+          poetry run pytest tests/test_gitops_checkpoint.py tests/test_application_deployment_consistency.py tests/test_rendered_applications.py -q
 
       - name: Create or reuse promotion pull request
         env:

@@ -20,6 +20,9 @@
     },
     "ghcr.io/devcontainers-contrib/features/kind:1": {
       "version": "latest"
+    },
+    "ghcr.io/devcontainers-contrib/features/poetry:2": {
+      "version": "2.5.1"
     }
   },
   "customizations": {
