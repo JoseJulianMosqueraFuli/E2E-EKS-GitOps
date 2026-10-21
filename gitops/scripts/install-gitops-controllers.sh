@@ -59,7 +59,11 @@ case "${1:-install}" in
   flux) install_flux ;;
   argocd) install_argocd ;;
   reconcile)
-    kc -n flux-system get configmap platform-runtime-config >/dev/null
+    if [ -n "${FLUX_CONFIG_FILE:-}" ]; then
+      python3 "$SCRIPT_DIR/validate-flux-config.py" "$FLUX_CONFIG_FILE"
+      kc -n flux-system create configmap platform-runtime-config --from-env-file="$FLUX_CONFIG_FILE" --dry-run=client -o yaml | kc apply -f -
+    fi
+    kc -n flux-system get configmap platform-runtime-config -o json | python3 "$SCRIPT_DIR/validate-flux-config.py" --json
     kc apply -k "$GITOPS_DIR/infrastructure/clusters/$ENVIRONMENT/flux-system"
     kc -n flux-system wait --for=condition=Ready gitrepository/flux-system --timeout=180s
     kc -n flux-system wait --for=condition=Ready kustomization/flux-system --timeout=900s

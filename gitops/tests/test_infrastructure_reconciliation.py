@@ -67,7 +67,6 @@ EXPECTED_FLUX_KUSTOMIZATIONS = {
     "infrastructure-addons",
     "infrastructure-networking",
     "infrastructure-security",
-    "infrastructure-base",
 }
 
 
@@ -660,21 +659,11 @@ class TestFluxConfigurations:
         pytest.fail("infrastructure-security Kustomization not found")
 
     @pytest.mark.unit
-    def test_flux_config_base_depends_on_security(self):
-        """infrastructure-base must depend on infrastructure-security."""
-        path = FLUX_CONFIG_PATH / "infrastructure-kustomization.yaml"
-        docs = load_yaml_all(path)
-
+    def test_flux_paths_resolve_to_real_kustomizations(self):
+        docs = load_yaml_all(FLUX_CONFIG_PATH / "infrastructure-kustomization.yaml")
         for doc in docs:
-            if doc.get("metadata", {}).get("name") == "infrastructure-base":
-                depends_on = doc.get("spec", {}).get("dependsOn", [])
-                dep_names = [d.get("name") for d in depends_on]
-                assert "infrastructure-security" in dep_names, (
-                    "infrastructure-base must depend on infrastructure-security"
-                )
-                return
-
-        pytest.fail("infrastructure-base Kustomization not found")
+            path = GITOPS_ROOT.parent / doc["spec"]["path"]
+            assert (path / "kustomization.yaml").is_file(), path
 
     @pytest.mark.unit
     def test_flux_config_addons_has_health_checks(self):

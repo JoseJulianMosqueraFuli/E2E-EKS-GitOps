@@ -5,11 +5,9 @@ metadata:
   namespace: flux-system
 spec:
   interval: 5m
-  url: https://github.com/org/gitops-infrastructure
+  url: https://github.com/JoseJulianMosqueraFuli/E2E-EKS-GitOps.git
   ref:
     branch: main
-  secretRef:
-    name: git-credentials
   ignore: |
     # Exclude files not needed for deployment
     /**/README.md
@@ -23,11 +21,9 @@ metadata:
   namespace: flux-system
 spec:
   interval: 5m
-  url: https://github.com/org/gitops-applications
+  url: https://github.com/JoseJulianMosqueraFuli/E2E-EKS-GitOps.git
   ref:
     branch: main
-  secretRef:
-    name: git-credentials
   ignore: |
     # Exclude files not needed for deployment
     /**/README.md
@@ -41,8 +37,6 @@ metadata:
   namespace: flux-system
 spec:
   interval: 10m
-  url: https://github.com/org/mlops-helm-charts
+  url: https://github.com/JoseJulianMosqueraFuli/E2E-EKS-GitOps.git
   ref:
     branch: main
-  secretRef:
-    name: git-credentials

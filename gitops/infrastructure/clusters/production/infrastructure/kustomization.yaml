@@ -3,48 +3,28 @@ kind: Kustomization
 metadata:
   name: production-infrastructure
   namespace: flux-system
-
 resources:
-  - ../../../sources
-  - ../../../flux-config
-  - ../../../addons
-  - ../../../networking
-
+- ../../../sources
+- ../../../flux-config
 patches:
-  - patch: |
-      - op: replace
-        path: /spec/interval
-        value: 10m
-    target:
-      kind: GitRepository
-  - patch: |
-      - op: replace
-        path: /spec/interval
-        value: 10m
-    target:
-      kind: Kustomization
-      namespace: flux-system
-  - patch: |
-      - op: replace
-        path: /spec/postBuild/substitute/cluster_name
-        value: mlops-production-cluster
-    target:
-      kind: Kustomization
-      name: infrastructure-addons
-  - patch: |
-      - op: replace
-        path: /spec/postBuild/substitute/region
-        value: us-east-1
-    target:
-      kind: Kustomization
-      name: infrastructure-addons
-  - patch: |
-      - op: replace
-        path: /spec/postBuild/substitute/environment
-        value: production
-    target:
-      kind: Kustomization
-      name: infrastructure-addons
-
+- patch: |
+    - op: replace
+      path: /spec/interval
+      value: 10m
+  target:
+    kind: GitRepository
+- patch: |
+    - op: replace
+      path: /spec/interval
+      value: 10m
+  target:
+    kind: Kustomization
+    namespace: flux-system
+- target:
+    kind: GitRepository
+  patch: |
+    - op: replace
+      path: /spec/ref/branch
+      value: main
 commonLabels:
   environment: production
