@@ -9,29 +9,36 @@ Para detalles técnicos de issues CRÍTICOS y ALTOS (CVSS, fix concreto), ver: [
 
 ## Revision operativa — 2026-10-20
 
-**Chaos esta implementado y pasa las comprobaciones locales; falta demostrar su funcionamiento y recuperacion en EKS.** El kubeconfig disponible en esta revision solo contiene `docker-desktop`. No se desplegaron recursos ni se inyectaron fallos.
+**Se corrigieron los bloqueos de implementacion de Chaos y varios contratos del despliegue. Falta ejecutar la nueva cobertura de CI y validar el entorno AWS real.** No se aplico Terraform ni se inyectaron fallos en EKS.
 
-### Evidencia comprobada
+### Correcciones implementadas
 
-- 23 pruebas de seguridad de Chaos aprobadas y 376 pruebas adicionales de GitOps aprobadas. Se excluyo el modulo de integracion con cluster; se usaron entornos Python locales existentes, no una instalacion nueva del lock de Poetry.
-- Los 30 overlays de aplicaciones renderizan y cumplen los permisos declarados del AppProject. Los seis overlays de Argo Workflows/MLflow resuelven los placeholders con la configuracion local; esto no resuelve la inyeccion de configuracion en ArgoCD (#48).
-- Los charts reales en cache `litmus-core` 3.31.1 y `kubernetes-chaos` 3.31.0 renderizan con los valores y post-renderers del repositorio. Se comprobo la eliminacion del administrador del catalogo, la ausencia de acceso directo a secretos en sus ClusterRoles, la tolerancia del operador y el runtime containerd del experimento CPU.
-- `terraform fmt -check -recursive infra`, validacion Terraform de dev y sincronizacion de instrucciones de agentes aprobadas. `make test-terraform-plan` es un alias de validacion: no genera un plan ni prueba el despliegue.
-- CRIT-004 ya esta corregido en los manifiestos: repositorio y destinos restringidos, tipos de recursos enumerados; queda comprobar los permisos efectivos del despliegue. El primer E2E de kind (#56) ya figura verde en el historial del repositorio; no se consulto un nuevo resultado de GitHub Actions en esta revision.
+- Bootstrap completo de Flux 2.7.5, APIs estables, rutas reales del repositorio y reconciliacion por capas sin doble propiedad. ArgoCD espera el application-controller como StatefulSet. El plugin `platform-kustomize` inyecta la configuracion fuera de Git y rechaza valores ficticios.
+- Roles IRSA separados para Argo, MLflow, secretos de MLflow y backup. Buckets con sufijo de cuenta/region, backend bootstrap con nombre unico y publicacion inicial dev en ECR por OIDC. La activacion y el plan AWS siguen pendientes.
+- Backup con cliente PostgreSQL/boto3, host correcto por overlay, ejecucion sin root, checksum y restore a una base vacia distinta. MLflow usa proxy de artefactos; en produccion usa IRSA y no las credenciales del gateway de desarrollo.
+- Roles de Chaos separados, guardas de admision, canarios de datos/artefactos, predicciones con asercion y preflight AZ que bloquea PVCs y capacidad insuficiente. Los engines declaran `annotationCheck: "false"` para no depender de una anotacion ausente.
+- GitHub Actions kind incluye validacion de datos, entrenamiento/gate, backup/restore, Flux/Litmus, pod-delete, cancelacion `Stop`, limpieza y evidencia retenida. Aun no se ha verificado un run verde de esta ampliacion.
+- Eliminadas las imagenes inexistentes de validacion, deployment y notificacion del pipeline principal. Monitoring usa dependencias bloqueadas y una imagen versionada. El despliegue KServe requiere todavia prueba real.
 
-### Orden de cierre
+### Evidencia local
 
-| Prioridad | Trabajo pendiente | Evidencia necesaria para cerrarlo |
-|-----------|-------------------|----------------------------------|
-| P0 | Completar el bootstrap de Flux/ArgoCD (#61) | Instalacion desde cluster vacio en CI, CRDs presentes, controladores Ready y los dos HelmReleases de Litmus reconciliados |
-| P0 | Habilitar el despliegue AWS: configuracion de ArgoCD (#48/#49), IRSA (#50), nombres de buckets (#51), publicacion ECR por OIDC (#55) y backend remoto (HIGH-001) | Plan inicial revisado, imagenes accesibles con los nombres/tags usados por los overlays y despliegue dev saludable |
-| P0 antes de fallos de nodos/zonas | Reparar y probar backup/restore de MLflow (#54); revisar almacenamiento y capacidad fuera de la zona (#64) | Backup verificable, restauracion ensayada y recuperacion de datos/pods con tiempos medidos |
-| P1 | E2E especifico de Chaos (#62), empezando por `mlflow-resilience-test` en dev | Litmus Pass, disponibilidad dentro del umbral, escritura MLflow exitosa y limpieza comprobada tanto al finalizar como al abortar |
-| P1 | Separar privilegios (#60), definir SLOs y ampliar sondas de inferencia/datos (#63) | Permisos efectivos acotados, inferencia real y persistencia verificadas antes/durante/despues; resultados y metricas conservados |
-| P2 | Particion de red (#59) y EC2 stop (#58) | Aislamiento real demostrado, rol AWS acotado y recuperacion probada; mantener la particion desactivada hasta entonces |
-| P2 | Completar el ciclo ML: imagenes de validacion/deployment/notificacion (#52, HIGH-007), imagen de monitoring (#53, HIGH-006), mTLS/Gatekeeper y backend productivo de Feast (#34) | Pipeline completo train → register → serve → monitor y promocion dev → staging → prod comprobados |
+- 32 pruebas de Chaos aprobadas; la suite GitOps ampliada contiene 412 pruebas. La primera ejecucion detecto dos supuestos antiguos sobre un YAML de ServiceAccount; se separo el nuevo recurso y las 102 pruebas afectadas pasaron.
+- Suite ML: 166 aprobadas, una omitida y un xpass; 28 pruebas de backup, canarios y validacion del pipeline aprobadas tras las ultimas incorporaciones.
+- 30 overlays autorizados por el AppProject; seis overlays Argo/MLflow sin placeholders; render del plugin desde un checkout sin `aws.env`; lint offline de Argo aprobado.
+- Terraform dev/staging/prod validado sin backend ni llamadas de aprovisionamiento. `make test-terraform-plan` valida; no genera un plan real. Las pruebas de cluster siguen excluidas localmente.
 
-HIGH-013 sigue pendiente: los `|| true` existentes requieren una solicitud explicita para cambiarlos. Las fases 3–4 de Chaos (S3/ECR/DB, drift, Feast y modelos corruptos) siguen siendo propuestas.
+### Orden de cierre operativo
+
+| Prioridad | Pendiente | Evidencia necesaria |
+|-----------|-----------|---------------------|
+| P0 | Ejecutar la ampliacion de GitHub Actions (#54/#61/#62) | Charts reales reconciliados, backup restaurado, Litmus Pass y limpieza tras Stop |
+| P0 | Configurar/aplicar AWS (#48/#50/#51/#55, HIGH-001) y completar contratos de otras apps (#49) | Plan revisado, backend activo, secretos disponibles, imagenes publicadas y ArgoCD saludable |
+| P0 antes de fallos de zona | Recuperacion de almacenamiento y afinidades (#64) | Restore/HA entre zonas y capacidad de reubicacion demostrados; el preflight rechaza PVCs por defecto |
+| P1 | Confirmar permisos, SLO/RTO/RPO y evidencia en EKS (#60/#63) | Permisos efectivos, predicciones/datos conservados, panel de resultados y tiempos medidos |
+| P1 | Promocion del mismo digest ECR y ciclo completo (#65/#52/#53) | dev → staging → prod sin reconstruir; train → register → serve → monitor comprobado |
+| P2 | Particion de red (#59), EC2 stop (#58), mTLS/Gatekeeper y Feast productivo (#34) | Aislamiento CNI, recuperacion y servicios de produccion verificados |
+
+Detalles y comandos: [contrato de configuracion y recuperacion](../architecture/platform-runtime-config.md).
 
 ---
 
@@ -70,10 +77,10 @@ HIGH-013 sigue pendiente: los `|| true` existentes requieren una solicitud expli
 | Area | Estado verificable al 2026-10-20 |
 |------|--------------------------------|
 | CRITICAL historicos | 4 corregidos en codigo/manifiestos; permisos efectivos de CRIT-004 pendientes de comprobar en EKS |
-| HIGH historicos | 9 corregidos; HIGH-001, HIGH-006, HIGH-007 y HIGH-013 abiertos o parciales; HIGH-014 mitigado en manifiestos |
-| GitOps / Chaos | Renderizado y pruebas locales aprobados; bootstrap desde cero, E2E Chaos y ejecucion EKS pendientes |
-| Proceso ML | E2E de entrenamiento/registro registrado como verde; despliegue de modelos y monitoring aun tienen bloqueos |
-| AWS / recuperacion | Validacion local de dev aprobada; plan real, despliegue, backup/restore y resiliencia por zona pendientes |
+| HIGH historicos | 11 corregidos en codigo; HIGH-001 y HIGH-013 abiertos; HIGH-014 mitigado en manifiestos |
+| GitOps / Chaos | Bootstrap y E2E Chaos implementados; render/pruebas locales aprobados; ejecucion de CI/EKS pendiente |
+| Proceso ML | Pipeline principal y monitoring corregidos; validar la ampliacion data → train → serve y publicacion |
+| AWS / recuperacion | Validacion dev/staging/prod aprobada; plan real, despliegue, restore y resiliencia por zona pendientes |
 
 Los estados por ID y la evidencia de la revision sustituyen los antiguos totales y puntuaciones estimadas, que mezclaban trabajo resuelto, duplicados y validacion funcional pendiente.
 
@@ -101,8 +108,8 @@ Los estados por ID y la evidencia de la revision sustituyen los antiguos totales
 | HIGH-003 | Node egress sin restriccion | `infra/environments/dev/main.tf`, `infra/environments/staging/main.tf` | ✅ Restringido a `var.vpc_cidr` (2026-07-13) |
 | HIGH-004 | CIDR hardcoded en prod | `infra/environments/prod/main.tf` | ✅ Parametrizado con `var.vpc_cidr` + `var.node_egress_cidrs` (2026-07-13) |
 | HIGH-005 | Feast `latest` tag | `k8s/mlops-stack/feast/feast-server.yaml` | ✅ Pineado a `0.40.1` en `gitops/applications/apps/feast/base/kustomization.yaml` (2026-06-26) |
-| HIGH-006 | Evidently `latest` tag | `gitops/charts/monitoring-stack/values.yaml` | Pinear version |
-| HIGH-007 | Workflow templates `latest` tags | `argo-workflows/workflow-templates/*.yaml` | Pinear version |
+| HIGH-006 | Imagenes de monitoring versionadas | `Dockerfile.monitoring`, `monitoring/base/` | Corregido en codigo; build/publicacion CI pendiente |
+| HIGH-007 | Imagenes del pipeline principal versionadas | `argo-workflows/workflow-templates/*.yaml` | Corregido en codigo; serving E2E pendiente (#52) |
 | HIGH-008 | KServe HTTP sin HTTPS redirect | `gitops/applications/apps/kserve/base/istio-config.yaml` | ✅ Agregado `tls.httpsRedirect: true` (2026-07-13) |
 | HIGH-014 | Charts Litmus concedian acceso directo a secretos de todo el cluster | `gitops/applications/apps/chaos/base/litmus.yaml`, `rbac.yaml` | Corregido en manifiestos: eliminado administrador del catalogo; operador solo lee secretos de `litmus`. Verificar RBAC efectivo en EKS; roles de fallos aun amplios (#60). |
 
@@ -145,15 +152,15 @@ Los estados por ID y la evidencia de la revision sustituyen los antiguos totales
 |---|-------|------------|
 | 45 | Argo `instanceID: argo-workflows` exige el label `workflows.argoproj.io/controller-instanceid` en cada Workflow; las WorkflowTemplates y KFP no lo ponen, por lo que el controller las ignora (confirmado en kind 2026-10-10) | `gitops/applications/apps/argo-workflows/base/configmap.yaml` | ✅ `instanceID` eliminado (un solo controller) 2026-10-10 |
 | 46 | Archivo de workflows deshabilitado: requiere Postgres/MySQL (bloque `persistence` removido porque sin DB el controller no arranca) | `gitops/applications/apps/argo-workflows/base/configmap.yaml` |
-| 48 | ArgoCD no puede leer `gitops/platform/aws.env` (esta en `.gitignore`): inyectar cuenta/region al renderizar (anotaciones del cluster en el ApplicationSet + `kustomize.patches` sobre `platform-config`, o un Config Management Plugin) | `gitops/applications/projects/mlops-applicationset.yaml`, `gitops/platform/` |
+| 48 | Plugin `platform-kustomize` implementado y probado desde checkout sin `aws.env`; configurar `platform-aws-config` y verificar render/sync real de ArgoCD. Una cuenta/region por instalacion | `gitops/applications/projects/mlops-applicationset.yaml`, `gitops/platform/` |
 | 49 | Migrar kserve, monitoring, kubeflow y external-secrets al mecanismo `gitops/platform` (aun tienen region literal o placeholders `ACCOUNT_ID`) | `gitops/applications/apps/{kserve,monitoring,kubeflow,external-secrets}/` |
-| 50 | Roles IRSA referenciados (`mlflow-irsa-role`, `mlops-backup-role`) no se crean en Terraform; la SA `argo-workflow` no tiene anotacion IRSA, asi que en EKS los pasos no tendrian acceso a S3 | `infra/`, `gitops/applications/apps/argo-workflows/base/rbac.yaml` |
+| 50 | Roles IRSA de Argo, MLflow, backup y lectura de secretos implementados en `workload-identity`; verificar trust, acceso S3/KMS/Secrets Manager y ECR tras aplicar Terraform | `infra/`, `gitops/applications/apps/argo-workflows/base/rbac.yaml` |
 | 57 | MinIO dejo de publicar imagenes (Docker Hub y quay.io responden 401; repo archivado): reemplazado por Versity Gateway `versity/versitygw:v1.8.0` (S3 compatible, Apache-2). Quedan los nombres `mlflow-minio*` (Service, Secret, PVC) y menciones en docs/diagramas; renombrar a `mlflow-s3` y evaluar S3 real en dev | `gitops/applications/apps/mlflow/base/minio-*.yaml`, `docs/` |
-| 58 | Chaos Phase 2.1 `ec2-terminate-by-tag` (Litmus `kube-aws`) requiere rol IRSA para `litmus-admin` con `ec2:StopInstances`/`TerminateInstances` acotado a las instancias del node group (tag) + chart `kube-aws`; hoy se cubre con `node-drain` | `infra/modules/eks/`, `gitops/applications/apps/chaos/base/` |
+| 58 | EC2 stop/termination sigue diferido: requiere catalogo `kube-aws`, una identidad exclusiva con alcance por tags y recuperacion demostrada. El rol de nodos actual solo modifica recursos Kubernetes | `infra/modules/eks/`, `gitops/applications/apps/chaos/base/` |
 | 59 | Particion KServe→MLflow desactivada: `NAMESPACE_SELECTOR` era una allow list y las NetworkPolicies son aditivas; verificar enforcement del CNI, aislar un workload desechable y probar conectividad antes/durante/despues junto con disponibilidad de inferencia | `gitops/applications/apps/chaos/experiments/pod-network-partition-kserve-mlflow.yaml`, `infra/modules/eks/` |
-| 60 | Separar ServiceAccounts/RBAC de Chaos por tipo de fallo y namespaces destino; `litmus-admin` conserva mutacion de pods/nodos a nivel cluster y namespace privilegiado. Validar permisos efectivos y recuperacion tras abortos en EKS antes de ampliar alcance | `gitops/applications/apps/chaos/base/`, `workflows/` |
-| 61 | Bootstrap desde cero incompleto: `install-gitops-controllers.sh` aplica los Deployments de Flux sin instalar sus CRDs; el RBAC local no concede `coordination.k8s.io/leases` para leader election ni `litmuschaos.io` para instalar el catalogo. El script espera `deployment/argocd-application-controller`, pero el install de ArgoCD usa StatefulSet. Adoptar una instalacion completa y versionada, validar permisos efectivos y orden CRDs → controllers → releases en CI | `gitops/scripts/install-gitops-controllers.sh`, `gitops/infrastructure/controllers/` |
-| 64 | Resiliencia por zona de MLflow sin demostrar: PostgreSQL tiene una replica y PVC gp3; el gateway S3 de dev/staging tambien tiene una replica y PVC gp3. El preflight AZ cuenta nodos Ready pero no comprueba capacidad para reubicar workloads ni topologia de volumenes. Decidir HA/restore, comprobar afinidad y probar recuperacion antes de afirmar tolerancia a la perdida de una zona | `gitops/applications/apps/mlflow/`, `gitops/applications/apps/chaos/workflows/az-failure-test.yaml` |
+| 60 | Roles separados por fallo/namespace y workflows MLflow/nodo; politicas de admision restringen seleccion de cuentas y pods del fallo de borrado. Validacion efectiva y abort/cleanup incluidos en kind CI; EKS y frontera del operador privilegiado pendientes | `gitops/applications/apps/chaos/base/`, `workflows/` |
+| 61 | Bootstrap completo/versionado de Flux, APIs v1/v2, rutas corregidas y espera StatefulSet de ArgoCD implementados. Runtime config obligatorio y dependencias de capas corregidas. Falta instalacion/sync desde cluster vacio verificados | `gitops/scripts/install-gitops-controllers.sh`, `gitops/infrastructure/controllers/` |
+| 64 | Preflight AZ bloquea workloads con PVC en la zona objetivo y falta de CPU/memoria/GPU fuera de ella. Sigue pendiente HA/restore entre zonas y viabilidad por afinidades; PostgreSQL/gateway siguen con una replica y gp3 | `gitops/applications/apps/mlflow/`, `gitops/applications/apps/chaos/workflows/az-failure-test.yaml` |
 | 47 | argo-server usa `--auth-mode=sso` pero el ConfigMap no define bloque `sso` (issuer, clientId, clientSecret): el server entra en CrashLoopBackOff con `Error: issuer empty` (confirmado en kind 2026-10-10) | `gitops/applications/apps/argo-workflows/base/server-deployment.yaml` | ✅ Cambiado a `--auth-mode=client` (token de Kubernetes + RBAC) 2026-10-10. SSO/OIDC pendiente de proveedor |
 | 10 | `monitoring` en `k8s/` no apunta a `gitops/applications/apps/monitoring/` | `k8s/mlops-stack/monitoring/kustomization.yaml` | ✅ Corregido 2026-06-26 |
 | 11 | `argo-workflows` en `k8s/` no apunta a gitops | `k8s/mlops-stack/argo-workflows/kustomization.yaml` | ✅ Corregido 2026-06-26 |
@@ -183,7 +190,7 @@ Los estados por ID y la evidencia de la revision sustituyen los antiguos totales
 | 25 | `node_group_desired_size` sin validacion vs min/max | `infra/modules/eks/variables.tf` |
 | 26 | Glue table schema hardcodeado | `infra/environments/*/main.tf` |
 | 27 | Glue crawlers schedule hardcodeado en los 3 ambientes | `infra/environments/*/main.tf` |
-| 51 | Nombres de buckets S3 globales y genericos (`mlops-curated-data`, `mlops-artifacts-bucket`, `mlflow-artifacts-<env>`, `mlops-terraform-state-<env>`): probable colision en S3; agregar sufijo de cuenta/region | `infra/`, `gitops/applications/apps/*`, `scripts/bootstrap-terraform-backend.sh` |
+| 51 | Nombres de buckets de datos, artefactos, backups y state incluyen cuenta/region. Revisar replacements/migracion en un plan real si existen buckets previos; otros contratos de apps siguen en #49 | `infra/`, `gitops/applications/apps/*`, `scripts/bootstrap-terraform-backend.sh` |
 
 ### Python / ML Platform (7)
 
@@ -196,8 +203,8 @@ Los estados por ID y la evidencia de la revision sustituyen los antiguos totales
 | 32 | `dvc`, `awscli`, `kubernetes` en deps sin uso evidente | `ml-platform/pyproject.toml` | ✅ Corregido 2026-07-13 |
 | 33 | `awscli` como dependencia de libreria (deberia ser dev/extra) | `ml-platform/pyproject.toml` | ✅ Corregido 2026-07-13 |
 | 34 | Feast feature repo: falta backend productivo (Redis/DynamoDB) y deployment server K8s | `ml-platform/feature_repo/`, `k8s/mlops-stack/feast/` |
-| 52 | Imagenes inexistentes en plantillas: `mlops/data-validator`, `kserve-deployer`, `deployment-validator`, `notifier` (y `feature-transformer` en ejemplos KServe). Migrar a subcomandos de `mlops-platform` o a plantillas `resource` de Argo | `gitops/applications/apps/argo-workflows/base/workflow-templates/` |
-| 53 | `Dockerfile.monitoring` no construye: copia `requirements.txt` inexistente y fija `evidently==0.4.2` mientras el codigo usa `evidently.legacy` (>=0.7) | `ml-platform/Dockerfile.monitoring` |
+| 52 | Pipeline principal migrado a `mlops-platform` (`validate-data`, `validate-deployment`, `notify`) y recurso KServe; corregido tag de inferencia para usar el repo existente. Pendiente E2E de serving y ejemplos `feature-transformer` de KServe | `gitops/applications/apps/argo-workflows/base/workflow-templates/` |
+| 53 | Dockerfile.monitoring usa Poetry/lock y Evidently compatible; imagen del servicio/CronJob versionada y build en CI. Pendiente primer build publicado y servicio saludable | `ml-platform/Dockerfile.monitoring` |
 
 ### Monitoreo (4)
 
@@ -207,8 +214,8 @@ Los estados por ID y la evidencia de la revision sustituyen los antiguos totales
 | 36 | Retencion Prometheus muy corta (200h ~ 8.3 dias) | `k8s/mlops-stack/monitoring/prometheus-stack.yaml` |
 | 37 | Prometheus `web.enable-admin-api` habilitado | `gitops/charts/monitoring-stack/values.yaml` |
 | 38 | Evidently image `latest` en monitoring chart | `gitops/charts/monitoring-stack/values.yaml` |
-| 54 | Backup/restore MLflow no validado: CronJob sin securityContext para `restricted`, `pg_dump -h postgres` no coincide con el Service `<env>-mlflow-postgresql`, e invoca `aws` usando `postgres:15-alpine` sin provisionar AWS CLI. Resolver imagen/herramientas, host por overlay, IRSA (#50), bucket (#51), conectividad y ensayar restauracion antes de chaos de nodos/zonas o DB | `gitops/applications/apps/mlflow/base/backup-cronjob.yaml` |
-| 63 | Criterios funcionales de Chaos incompletos: `/health` y una escritura MLflow posterior no prueban continuidad de runs, recuperacion de datos previos ni artefactos. La sonda AZ solo hace GET al URL configurado; el ejemplo comprueba metadata del modelo, no una prediccion. Definir SLO/RTO/RPO, sondas de inferencia/datos, panel Grafana y almacenamiento de evidencia antes/durante/despues | `gitops/applications/apps/chaos/workflows/`, `gitops/applications/apps/monitoring/` |
+| 54 | Backup/restore reparado: PostgreSQL client + boto3, host por overlay, IRSA/bucket, contexto restricted y checksum; restore bloquea origen/base ocupada. Pruebas locales aprobadas; ensayo real agregado al kind CI y pendiente en EKS | `gitops/applications/apps/mlflow/base/backup-cronjob.yaml` |
+| 63 | Sondas funcionales implementadas: run persistente durante fallo, artefacto antes/despues y prediccion AZ con jq. Falta acordar SLO/RTO/RPO productivos, dashboard y medicion EKS; CI conserva resultados 14 dias | `gitops/applications/apps/chaos/workflows/`, `gitops/applications/apps/monitoring/` |
 
 ### CI/CD (5)
 
@@ -220,9 +227,10 @@ Los estados por ID y la evidencia de la revision sustituyen los antiguos totales
 | 42 | GitLab CI: pytest/flake8/black con `|| true` | `.gitlab-ci.yml` |
 | 43 | CircleCI: pytest/flake8/black con `|| true` | `.circleci/config.yml` |
 | 44 | Falta pipeline automatizada para Terratest Go | `.github/workflows/ci.yml` |
-| 55 | Publicar `mlops-platform` y `mlflow-server` en ECR desde CI: falta rol OIDC de GitHub en Terraform | `.github/workflows/ml-platform-image.yml`, `infra/` |
+| 55 | Rol OIDC por entorno y publicacion inicial dev en `publish-ecr.yml` implementados. Configurar provider/variables del entorno GitHub, aplicar IAM y ejecutar; promocion sin reconstruir en #65 | `.github/workflows/ml-platform-image.yml`, `infra/` |
 | 56 | Primer run verde de `e2e-kind.yml` (entrena, evalua, registra y bloquea por el gate de promocion) | `.github/workflows/e2e-kind.yml`, `scripts/e2e/kind-smoke.sh` | ✅ Verde en `2ca2b2e` (2026-10-11): Secrets sin prefijo en kind, Postgres UID 70, MinIO reemplazado (#57), SQLAlchemy 2.0.49 fijado, `command` explicito para emissary |
-| 62 | Falta E2E de Chaos: `e2e-kind.yml` no incluye paths de Chaos y `kind-smoke.sh` no instala Litmus ni ejecuta estos WorkflowTemplates. Agregar smoke de pod-delete en GitHub Actions con charts reales y prueba de abort/cleanup; reservar nodos/GPU/AZ y permisos efectivos para EKS dev/staging | `.github/workflows/e2e-kind.yml`, `scripts/e2e/`, `gitops/tests/test_chaos_safety.py` |
+| 62 | E2E de Chaos implementado en GitHub Actions: paths, Flux/Litmus reales, pod-delete, canario, Stop/cleanup, comprobacion de permisos/admision y artefactos. Falta primer run verde; nodos/GPU/AZ siguen reservados a EKS | `.github/workflows/e2e-kind.yml`, `scripts/e2e/`, `gitops/tests/test_chaos_safety.py` |
+| 65 | Promover el mismo digest desde ECR dev a staging/prod, actualizar overlays y verificar gate por entorno; `publish-ecr.yml` solo hace la publicacion inicial dev | `.github/workflows/`, `gitops/scripts/promotion/` |
 
 ---
 

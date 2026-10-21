@@ -17,7 +17,7 @@ This document lists all **CRITICAL** and **HIGH** severity findings identified d
 | Severity | Count | Status |
 |----------|-------|--------|
 | CRITICAL | 4 | 4 corrected in code/manifests; CRIT-004 effective permissions still require EKS verification |
-| HIGH | 14 | 9 Fixed, 4 Open, 1 mitigated in manifests (HIGH-014; EKS verification pending) |
+| HIGH | 14 | 11 corrected in code, 2 Open, 1 mitigated in manifests (HIGH-014; EKS verification pending) |
 
 ---
 
@@ -174,24 +174,23 @@ This document lists all **CRITICAL** and **HIGH** severity findings identified d
 
 ---
 
-### HIGH-006: `latest` Image Tags in Monitoring Stack
+### HIGH-006: Unversioned Monitoring Images — CORRECTED IN CODE
 
-- **File**: `gitops/charts/monitoring-stack/values.yaml`
-- **Issue**: Uses `evidentlyai/evidently-service:latest`.
-- **Impact**: Non-reproducible deployments.
-- **Fix**: Pin to a specific version.
-- **Owner**: ML Platform Team
+- **Files**: `ml-platform/Dockerfile.monitoring`, `gitops/applications/apps/monitoring/base/`.
+- **Fix (2026-10-20)**: monitoring builds from Poetry/lock with compatible Evidently dependencies; service
+  and drift job use a versioned image mapped to the environment ECR repository. The drift module path and
+  Service reference were corrected. The Helm values were already pinned.
+- **Remaining validation**: first CI image build/publication and live service check (#53).
 
 ---
 
-### HIGH-007: `latest` Image Tags in Argo Workflow Templates
+### HIGH-007: Unversioned or Missing Pipeline Images — CORRECTED IN CODE
 
-- **Files**: `gitops/applications/apps/argo-workflows/base/workflow-templates/*.yaml`
-- **Issue**: Multiple workflow templates use images like `mlops/feature-engineer:latest`, `mlops/model-trainer:latest`, etc.
-- **Status (2026-10-10)**: Partial. `model-training-template` now runs every step on the pinned `mlops-platform:0.1.0` image (built from `ml-platform/Dockerfile`, mapped to ECR per overlay). Still `:latest` and not built anywhere: `mlops/data-validator`, `mlops/kserve-deployer`, `mlops/deployment-validator`, `mlops/notifier` (backlog MEDIUM #52).
-- **Impact**: Non-reproducible ML pipelines, risk of training/inference inconsistencies.
-- **Fix**: Pin all workflow images to immutable tags (SHA or semantic version).
-- **Owner**: ML Platform / DevOps Team
+- **Files**: `gitops/applications/apps/argo-workflows/base/workflow-templates/*.yaml`.
+- **Fix (2026-10-20)**: validation, deployment verification and notification run on `mlops-platform:0.1.0`;
+  KServe deployment uses an Argo resource template with namespace-scoped permissions. Model images use
+  a tag in the existing inference repository. Data validation returns the actual curated dataset to training.
+- **Remaining validation**: full KServe serving path in EKS, and the separate KServe transformer examples (#52).
 
 ---
 
@@ -284,7 +283,7 @@ This document lists all **CRITICAL** and **HIGH** severity findings identified d
 | P0 | CRIT-003: Docker executor & socket | 4h | DevSecOps | ✅ Fixed 2026-06-07 |
 | P0 | CRIT-004: ArgoCD AppProject | 2h | GitOps | Corrected in manifests; verified locally 2026-10-20; EKS verification pending |
 | P0 | CRIT-001 & CRIT-002: Argo Workflows TLS/Auth | 4h | Platform | ✅ Fixed 2026-06-07 |
-| P1 | HIGH-005 to HIGH-007: Pin all `latest` tags | 3h | ML Platform | Partial (HIGH-005 done 2026-06-26; HIGH-007 training template pinned 2026-10-10; HIGH-006 open) |
+| P1 | HIGH-005 to HIGH-007: Pin all `latest` tags | 3h | ML Platform | Corrected in code; CI/runtime verification pending |
 | P1 | HIGH-011 & HIGH-012: Python fixes | 1h | ML Platform | ✅ Fixed 2026-06-08 |
 | P1 | HIGH-013: Remove `\|\| true` from CI | 1h | DevOps | Open |
 | P2 | HIGH-001: Terraform S3 backend (requires AWS account) | 2h | Infrastructure | Open (needs AWS) |
@@ -307,7 +306,7 @@ Before marking this report as resolved:
 - [x] HIGH-009: Grafana `emptyDir` replaced with PVC (corregido 2026-06-08)
 - [x] HIGH-010: Prometheus converted to StatefulSet with PVC (corregido 2026-06-08)
 - [x] HIGH-005: Feast `latest` tag pinned to `0.40.1` (corregido 2026-06-26)
-- [ ] HIGH-006 to HIGH-007: Zero occurrences of `:latest` in Evidently and Argo workflow templates
+- [x] HIGH-006 to HIGH-007: No `:latest` in canonical monitoring or Argo workflow templates; runtime validation remains tracked in #52/#53
 - [x] HIGH-011: `python -c "import src.main"` succeeds without errors (corregido 2026-06-08)
 - [x] HIGH-012: `poetry install` succeeds and `src.monitoring.monitoring_service` imports correctly (corregido 2026-06-08)
 - [ ] HIGH-013: CI pipeline fails when tests fail (intentionally inject a failing test to verify)

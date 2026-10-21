@@ -112,7 +112,7 @@ These references replace per-tool rule files. MCP servers are read-only by polic
 ## Conventions
 
 - **Python**: `black` (line-length 100), `isort` (profile=black), `flake8`, `mypy`. pytest config in `pyproject.toml`.
-- **Terraform**: `terraform fmt -recursive`. Backend is **local** by default; see `infra/environments/*/main.tf` for the S3 backend activation checklist (requires AWS account).
+- **Terraform**: `terraform fmt -recursive`. Roots declare an unconfigured S3 backend; local validation uses `init -backend=false`. See `docs/architecture/platform-runtime-config.md` for activation.
 - **Kubernetes**: prefer `kustomize build ... | kubectl --dry-run=client apply -f -` for validation.
 - **Commits**: follow the existing conventional-commits style (e.g., `feat(chaos):`, `docs(readme):`, `fix(...)`). Keep messages concise.
 - **Comments**: do NOT add comments unless explicitly requested.
@@ -121,7 +121,7 @@ These references replace per-tool rule files. MCP servers are read-only by polic
 ## Sensitive areas — be careful
 
 - **CI `|| true`**: test/lint steps in `.github/workflows/ci.yml`, `.gitlab-ci.yml`, `.circleci/config.yml` intentionally tolerate failures. **Do not remove `|| true` without explicit request** (tracked as HIGH-013 in `docs/project/critical.md`, owner: DevOps).
-- **Terraform state**: backend blocks are commented out by design. Uncomment only after running `scripts/bootstrap-terraform-backend.sh` (needs AWS account).
+- **Terraform state**: backend configuration is supplied through ignored `backend.hcl` files. Run the bootstrap explicitly with an AWS account; do not initialize or migrate state during validation.
 - **Argo Workflows** (`k8s/mlops-stack/argo-workflows/`): already hardened (TLS + `--auth-mode=client` + emissary executor; SSO pending an OIDC provider). Don't reintroduce `docker.sock` mounts or `containerRuntimeExecutor: docker`.
 - **Gatekeeper**: `no-latest-tag` constraint is active for production namespaces. Pin image tags.
 - **AWS account / region**: never write them literally in manifests or docs. Use the `AWS_ACCOUNT_ID` / `AWS_REGION` placeholders and resolve them with Kustomize `replacements` from `gitops/platform/` (see its README). `gitops/platform/aws.env` is gitignored.
@@ -131,10 +131,10 @@ These references replace per-tool rule files. MCP servers are read-only by polic
 ## Known open work (see `docs/project/critical.md` / `docs/project/backlog.md`)
 
 - CRIT-004: ArgoCD `mlops-core` AppProject is restricted in current manifests (verified 2026-10-20); effective permissions in EKS still need verification.
-- HIGH-006 / HIGH-007: `:latest` in the Evidently image and in the non-training Argo templates (training template already pinned).
-- HIGH-001: Terraform S3 backend activation (account available; run `scripts/bootstrap-terraform-backend.sh <env> us-east-1`).
+- HIGH-006 / HIGH-007 are corrected in code: monitoring and pipeline images are versioned; CI image builds and the full KServe path still need verification (#52/#53).
+- HIGH-001: Terraform S3 backend activation (account available; run `scripts/bootstrap-terraform-backend.sh <env> "$AWS_REGION"`).
 - HIGH-013: CI hides failures (intentional, do not touch unless asked).
-- Before the first AWS deployment (`docs/project/backlog.md`): ArgoCD injection of `aws.env` (#48), IRSA roles for Argo/MLflow (#50), globally unique S3 bucket names (#51), images still missing in templates (#52), ECR publishing via OIDC (#55), complete controller bootstrap (#61). The first green `e2e-kind.yml` run (#56) is recorded; Chaos E2E (#62), functional probes (#63), backup/restore (#54), and zone recovery (#64) remain pending.
+- Before the first AWS deployment: apply/configure the implemented ArgoCD renderer (#48), IRSA roles (#50), unique buckets (#51), ECR OIDC publisher (#55) and controller bootstrap (#61). Other app AWS contracts remain open (#49). Validate the new Chaos/backup kind CI (#54/#62), then EKS data probes (#63) and zone recovery (#64). Promotion of the same ECR digest is tracked in #65.
 - Many MEDIUM/LOW items in `docs/project/backlog.md` (Istio mTLS gaps, Gatekeeper coverage, Helm chart hardening, ML platform debt).
 
 ## When adding a new MLOps app
