@@ -158,7 +158,7 @@ spec:
   arguments:
     parameters:
       - name: data-path
-        value: s3://mlops-curated-data/training/data.csv
+        value: ${VALIDATED_DATA_PATH:-s3://mlops-curated-data/training/data.csv}
       - name: mlflow-tracking-uri
         value: http://dev-mlflow-server.mlflow:5000
       - name: model-name
@@ -213,6 +213,30 @@ expect() {
   fi
   echo "OK: ${what} = ${actual}"
 }
+
+log "Validate source data and publish an immutable curated dataset"
+VALIDATION_WF="$(kc create -o name -f - <<'EOF'
+apiVersion: argoproj.io/v1alpha1
+kind: Workflow
+metadata:
+  generateName: e2e-validate-
+  namespace: argo-workflows
+spec:
+  workflowTemplateRef:
+    name: data-validation-template
+  arguments:
+    parameters:
+      - name: data-source
+        value: s3://mlops-curated-data/training/data.csv
+      - name: output-path
+        value: s3://mlops-curated-data/validated
+      - name: validation-suite
+        value: production
+EOF
+)"
+wait_workflow "$VALIDATION_WF"
+VALIDATED_DATA_PATH="$(kc -n argo-workflows get "$VALIDATION_WF" -o jsonpath='{.status.outputs.parameters[?(@.name=="validated-data")].value}')"
+case "$VALIDATED_DATA_PATH" in s3://mlops-curated-data/validated/*/data.parquet) ;; *) echo "Missing validated dataset URI" >&2; exit 1 ;; esac
 
 log "Run 1: first model must be approved and registered as champion"
 WF1="$(submit_training 0.0)"

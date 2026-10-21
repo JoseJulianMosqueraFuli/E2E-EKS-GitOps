@@ -5,6 +5,7 @@ resources:
   - namespace.yaml
   - resource-limits.yaml
   - serviceaccount.yaml
+  - secrets-serviceaccount.yaml
   - external-secrets.yaml
   - configmap.yaml
   - postgresql-statefulset.yaml
