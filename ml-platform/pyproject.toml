@@ -71,6 +71,8 @@ dev = [
     "flake8>=7.1,<8",
     "isort==5.12.0",
     "mypy==1.5.1",
+    "pre-commit>=3.5,<4",
+    "detect-secrets>=1.4,<2",
 ]
 
 [project.scripts]

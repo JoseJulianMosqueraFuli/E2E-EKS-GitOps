@@ -166,10 +166,11 @@ dev-setup: ## Setup development environment
 	@echo "Setting up development environment..."
 	cd ml-platform && poetry install -E dev
 	cd gitops && poetry install --with test,dev
-	poetry run --directory ml-platform pre-commit install
+	$(eval MLP_VENV := $(shell cd ml-platform && poetry env info --path))
+	"$(MLP_VENV)/bin/pre-commit" install
 	@if [ ! -f .secrets.baseline ]; then \
 		echo "Generating secrets baseline..."; \
-		poetry run --directory ml-platform detect-secrets scan > .secrets.baseline; \
+		"$(MLP_VENV)/bin/detect-secrets" scan > .secrets.baseline; \
 	fi
 
 dev-format: ## Format code
