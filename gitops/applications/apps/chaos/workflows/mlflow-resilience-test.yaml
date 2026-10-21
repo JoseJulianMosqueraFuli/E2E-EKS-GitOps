@@ -343,13 +343,6 @@ spec:
       env:
       - name: MLFLOW_TRACKING_URI
         value: '{{workflow.parameters.mlflow-url}}'
-      - name: MLFLOW_S3_ENDPOINT_URL
-        valueFrom:
-          configMapKeyRef:
-            name: chaos-canary-config
-            key: s3_endpoint_url
-      - name: AWS_DEFAULT_REGION
-        value: AWS_REGION
       resources:
         requests:
           cpu: 100m
@@ -386,13 +379,6 @@ spec:
       env:
       - name: MLFLOW_TRACKING_URI
         value: '{{workflow.parameters.mlflow-url}}'
-      - name: MLFLOW_S3_ENDPOINT_URL
-        valueFrom:
-          configMapKeyRef:
-            name: chaos-canary-config
-            key: s3_endpoint_url
-      - name: AWS_DEFAULT_REGION
-        value: AWS_REGION
       resources:
         requests:
           cpu: 100m

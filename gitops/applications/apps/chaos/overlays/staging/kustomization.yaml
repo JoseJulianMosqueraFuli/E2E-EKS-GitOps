@@ -15,13 +15,6 @@ patches:
 images:
 - name: mlops-platform
   newName: AWS_ACCOUNT_ID.dkr.ecr.AWS_REGION.amazonaws.com/mlops-staging-trainer
-configMapGenerator:
-- name: chaos-canary-config
-  namespace: argo-workflows
-  literals:
-  - s3_endpoint_url=http://staging-mlflow-minio.mlflow:9000
-generatorOptions:
-  disableNameSuffixHash: true
 replacements:
 - source:
     kind: ConfigMap
@@ -51,9 +44,3 @@ replacements:
     options:
       delimiter: .
       index: 3
-  - select:
-      kind: WorkflowTemplate
-      name: mlflow-resilience-test
-    fieldPaths:
-    - spec.templates.[name=prepare-canary].container.env.[name=AWS_DEFAULT_REGION].value
-    - spec.templates.[name=verify-canary].container.env.[name=AWS_DEFAULT_REGION].value
