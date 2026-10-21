@@ -83,7 +83,7 @@ spec:
               type: RuntimeDefault
       containers:
         - name: mlflow
-          image: mlflow-server:2.22.5
+          image: mlflow-server:3.17.1
           imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 5000
@@ -120,6 +120,10 @@ spec:
                 secretKeyRef:
                   name: mlflow-minio-secrets
                   key: aws-secret-access-key
+            - name: MLFLOW_SERVICE_NAME
+              value: mlflow-server
+            - name: MLFLOW_SERVER_ALLOWED_HOSTS
+              value: localhost,localhost:*,127.0.0.1,127.0.0.1:*,[::1],[::1]:*,$(MLFLOW_SERVICE_NAME),$(MLFLOW_SERVICE_NAME):*,$(MLFLOW_SERVICE_NAME).mlflow,$(MLFLOW_SERVICE_NAME).mlflow:*,$(MLFLOW_SERVICE_NAME).mlflow.svc,$(MLFLOW_SERVICE_NAME).mlflow.svc:*,$(MLFLOW_SERVICE_NAME).mlflow.svc.cluster.local,$(MLFLOW_SERVICE_NAME).mlflow.svc.cluster.local:*
           args:
             - server
             - --host=0.0.0.0
@@ -140,17 +144,26 @@ spec:
             httpGet:
               path: /health
               port: http
+              httpHeaders:
+                - name: Host
+                  value: localhost
             periodSeconds: 10
             failureThreshold: 30
           livenessProbe:
             httpGet:
               path: /health
               port: http
+              httpHeaders:
+                - name: Host
+                  value: localhost
             periodSeconds: 10
           readinessProbe:
             httpGet:
               path: /health
               port: http
+              httpHeaders:
+                - name: Host
+                  value: localhost
             initialDelaySeconds: 10
             periodSeconds: 5
           securityContext:

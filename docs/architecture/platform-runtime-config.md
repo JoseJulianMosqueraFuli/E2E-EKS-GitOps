@@ -62,6 +62,16 @@ existing-state migration. HIGH-001 stays open until that operational step succee
 
 ## Backup and recovery
 
+The server image and locked client both use MLflow 3.17.1. Before upgrading an existing database,
+take and verify a backup, then run `mlflow db upgrade` with the existing backend URI during a planned
+maintenance window. No live database migration is performed by these repository changes. Follow the
+[MLflow migration guide](https://mlflow.org/docs/latest/self-hosting/migration/).
+
+New experiments use the MLflow artifact proxy. Existing experiments retain their stored artifact
+locations; review their client access and migration separately. The server permits the rendered internal
+Service names and localhost. Add any intended ingress hostname explicitly to
+`MLFLOW_SERVER_ALLOWED_HOSTS` before exposing it; do not disable the security middleware.
+
 The CronJob uses `mlops-platform` with PostgreSQL 15 client tools and boto3. The rendered host is the
 actual `<env>-mlflow-postgresql` Service. The job runs without root, drops capabilities and uses a temporary
 writable volume. Dumps have unique keys and SHA-256 metadata; restore verifies the downloaded content.
@@ -81,6 +91,9 @@ GitHub Actions kind tests validate data, train/register, enforce the promotion g
 install Flux/Litmus, run pod deletion and stop a second workflow using Argo `Stop`. They retain logs,
 workflows and Litmus results for 14 days. `Terminate` and a failed Argo controller can bypass exit handlers;
 the runbook's manual recovery procedure still applies. Kind tests run only in GitHub Actions.
+The job pins kind 0.30.0 and the Kubernetes 1.34.0 node digest from the
+[official kind release](https://github.com/kubernetes-sigs/kind/releases/tag/v0.30.0), satisfying the Flux
+controller and stable admission-policy API requirements.
 
 Local checks cover manifests, policy configuration and failure behavior with doubles. They do not prove
 CNI enforcement, IAM access, EBS recovery, GPU rescheduling or EKS availability. The zone preflight rejects

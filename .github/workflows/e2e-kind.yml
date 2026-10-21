@@ -68,7 +68,7 @@ jobs:
           context: ml-platform
           file: ml-platform/Dockerfile.mlflow-server
           load: true
-          tags: mlflow-server:2.22.5
+          tags: mlflow-server:3.17.1
           cache-from: type=gha,scope=mlflow-server
           cache-to: type=gha,mode=max,scope=mlflow-server
 
@@ -76,6 +76,9 @@ jobs:
         uses: helm/kind-action@v1
         with:
           cluster_name: mlops-e2e
+          version: v0.30.0
+          kubectl_version: v1.34.0
+          node_image: kindest/node:v1.34.0@sha256:7416a61b42b1662ca6ca89f02028ac133a309a2a30ba309614e8ec94d976dc5a
 
       - name: Create platform config from example
         run: make platform-config
@@ -85,8 +88,8 @@ jobs:
           source gitops/platform/aws.env
           registry="${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com"
           docker tag mlops-platform:0.1.0 "${registry}/mlops-dev-trainer:0.1.0"
-          docker tag mlflow-server:2.22.5 "${registry}/mlops-dev-mlflow-server:2.22.5"
-          kind load docker-image "${registry}/mlops-dev-trainer:0.1.0" "${registry}/mlops-dev-mlflow-server:2.22.5" --name mlops-e2e
+          docker tag mlflow-server:3.17.1 "${registry}/mlops-dev-mlflow-server:3.17.1"
+          kind load docker-image "${registry}/mlops-dev-trainer:0.1.0" "${registry}/mlops-dev-mlflow-server:3.17.1" --name mlops-e2e
 
       - name: Run end-to-end smoke test
         env:

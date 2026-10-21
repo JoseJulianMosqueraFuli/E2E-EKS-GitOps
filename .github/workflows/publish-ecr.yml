@@ -80,7 +80,7 @@ jobs:
           platforms: linux/amd64
           push: true
           tags: |
-            ${{ steps.ecr.outputs.registry }}/mlops-${{ inputs.environment }}-mlflow-server:2.22.5
+            ${{ steps.ecr.outputs.registry }}/mlops-${{ inputs.environment }}-mlflow-server:3.17.1
             ${{ steps.ecr.outputs.registry }}/mlops-${{ inputs.environment }}-mlflow-server:sha-${{ github.sha }}
           cache-from: type=gha,scope=mlflow-server
       - name: Publish monitoring

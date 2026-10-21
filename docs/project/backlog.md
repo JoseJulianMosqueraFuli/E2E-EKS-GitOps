@@ -22,7 +22,7 @@ Para detalles técnicos de issues CRÍTICOS y ALTOS (CVSS, fix concreto), ver: [
 
 ### Evidencia local
 
-- 32 pruebas de Chaos aprobadas; la suite GitOps ampliada contiene 412 pruebas. La primera ejecucion detecto dos supuestos antiguos sobre un YAML de ServiceAccount; se separo el nuevo recurso y las 102 pruebas afectadas pasaron.
+- 417 pruebas GitOps aprobadas, incluidas las 32 de Chaos, el bootstrap del backend y la paridad de versiones cliente/servidor MLflow. Se excluyen las pruebas que requieren un cluster real.
 - Suite ML: 166 aprobadas, una omitida y un xpass; 28 pruebas de backup, canarios y validacion del pipeline aprobadas tras las ultimas incorporaciones.
 - 30 overlays autorizados por el AppProject; seis overlays Argo/MLflow sin placeholders; render del plugin desde un checkout sin `aws.env`; lint offline de Argo aprobado.
 - Terraform dev/staging/prod validado sin backend ni llamadas de aprovisionamiento. `make test-terraform-plan` valida; no genera un plan real. Las pruebas de cluster siguen excluidas localmente.

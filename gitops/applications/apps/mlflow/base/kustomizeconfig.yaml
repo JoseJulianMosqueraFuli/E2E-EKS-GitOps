@@ -25,3 +25,5 @@ nameReference:
   fieldSpecs:
   - kind: CronJob
     path: spec/jobTemplate/spec/template/spec/containers/env/value
+  - kind: Deployment
+    path: spec/template/spec/containers/env/value

@@ -108,3 +108,17 @@ def test_argocd_renders_without_an_ignored_aws_env_file(tmp_path):
     )
     assert result.returncode != 0
     assert not result.stdout
+
+
+def test_mlflow_server_matches_the_locked_client():
+    import re
+
+    lock = (ROOT / "ml-platform/poetry.lock").read_text()
+    version = re.search(r'\[\[package\]\]\nname = "mlflow"\nversion = "([^"]+)"', lock).group(1)
+    assert f'"mlflow=={version}"' in (ROOT / "ml-platform/Dockerfile.mlflow-server").read_text()
+    deployment = yaml.safe_load(
+        (ROOT / "gitops/applications/apps/mlflow/base/deployment.yaml").read_text()
+    )
+    container = deployment["spec"]["template"]["spec"]["containers"][0]
+    assert container["image"] == f"mlflow-server:{version}"
+    assert any(e["name"] == "MLFLOW_SERVER_ALLOWED_HOSTS" for e in container["env"])
