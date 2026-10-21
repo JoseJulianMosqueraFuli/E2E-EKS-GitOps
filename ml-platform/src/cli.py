@@ -316,7 +316,10 @@ def step_validate_data_cmd(source, output_prefix, target, suite, outputs_dir):
     from src.pipelines.validation import validate_data
 
     report = validate_data(source, output_prefix, target, suite)
-    steps.write_outputs(outputs_dir, {"validated-data.txt": report["data_uri"], "validation-report.json": json.dumps(report)})
+    steps.write_outputs(
+        outputs_dir,
+        {"validated-data.txt": report["data_uri"], "validation-report.json": json.dumps(report)},
+    )
     click.echo(json.dumps(report))
 
 

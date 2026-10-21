@@ -1,0 +1,5 @@
+nameReference:
+  - kind: Service
+    fieldSpecs:
+      - kind: CronJob
+        path: spec/jobTemplate/spec/template/spec/containers/env/value

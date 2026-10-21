@@ -53,10 +53,20 @@ def restore_database(
     client = client or boto3.client("s3")
     env = {**os.environ, "PGDATABASE": database}
     result = subprocess.run(
-        ["psql", "--no-psqlrc", "--tuples-only", "--no-align", "--command",
-         "SELECT count(*) FROM information_schema.tables "
-         "WHERE table_schema NOT IN ('pg_catalog', 'information_schema');"],
-        env=env, check=True, capture_output=True, text=True, timeout=30,
+        [
+            "psql",
+            "--no-psqlrc",
+            "--tuples-only",
+            "--no-align",
+            "--command",
+            "SELECT count(*) FROM information_schema.tables "
+            "WHERE table_schema NOT IN ('pg_catalog', 'information_schema');",
+        ],
+        env=env,
+        check=True,
+        capture_output=True,
+        text=True,
+        timeout=30,
     )
     if result.stdout.strip() != "0":
         raise ValueError("Restore target database is not empty")
@@ -70,7 +80,17 @@ def restore_database(
         if _checksum(dump) != checksum:
             raise ValueError("Backup checksum verification failed")
         subprocess.run(
-            ["pg_restore", "--exit-on-error", "--single-transaction", "--no-owner",
-             "--no-privileges", "--dbname", database, str(dump)],
-            env=env, check=True, timeout=1800,
+            [
+                "pg_restore",
+                "--exit-on-error",
+                "--single-transaction",
+                "--no-owner",
+                "--no-privileges",
+                "--dbname",
+                database,
+                str(dump),
+            ],
+            env=env,
+            check=True,
+            timeout=1800,
         )

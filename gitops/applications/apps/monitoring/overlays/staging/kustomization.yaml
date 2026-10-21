@@ -1,31 +1,67 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
-
 resources:
-  - ../../base
-
+- ../../base
+- ../../../../../platform
 namePrefix: staging-
-
 labels:
-  - pairs:
-      environment: staging
-    includeSelectors: false
-
+- pairs:
+    environment: staging
+  includeSelectors: false
 patches:
-  - patch: |
-      - op: replace
-        path: /spec/replicas
-        value: 1
-    target:
-      kind: StatefulSet
-      name: prometheus
-  - patch: |
-      - op: replace
-        path: /spec/template/spec/containers/0/resources/requests/memory
-        value: 512Mi
-      - op: replace
-        path: /spec/template/spec/containers/0/resources/limits/memory
-        value: 2Gi
-    target:
-      kind: StatefulSet
-      name: prometheus
+- patch: "- op: replace\n  path: /spec/replicas\n  value: 1\n"
+  target:
+    kind: StatefulSet
+    name: prometheus
+- patch: "- op: replace\n  path: /spec/template/spec/containers/0/resources/requests/memory\n\
+    \  value: 512Mi\n- op: replace\n  path: /spec/template/spec/containers/0/resources/limits/memory\n\
+    \  value: 2Gi\n"
+  target:
+    kind: StatefulSet
+    name: prometheus
+images:
+- name: ml-monitoring
+  newName: AWS_ACCOUNT_ID.dkr.ecr.AWS_REGION.amazonaws.com/mlops-staging-monitoring
+replacements:
+- source:
+    kind: ConfigMap
+    name: platform-config
+    fieldPath: data.AWS_ACCOUNT_ID
+  targets:
+  - select:
+      kind: Deployment
+      name: evidently-monitoring
+    fieldPaths:
+    - spec.template.spec.containers.[name=evidently-monitoring].image
+    options:
+      delimiter: .
+      index: 0
+  - select:
+      kind: CronJob
+      name: drift-detection-job
+    fieldPaths:
+    - spec.jobTemplate.spec.template.spec.containers.[name=drift-detector].image
+    options:
+      delimiter: .
+      index: 0
+- source:
+    kind: ConfigMap
+    name: platform-config
+    fieldPath: data.AWS_REGION
+  targets:
+  - select:
+      kind: Deployment
+      name: evidently-monitoring
+    fieldPaths:
+    - spec.template.spec.containers.[name=evidently-monitoring].image
+    options:
+      delimiter: .
+      index: 3
+  - select:
+      kind: CronJob
+      name: drift-detection-job
+    fieldPaths:
+    - spec.jobTemplate.spec.template.spec.containers.[name=drift-detector].image
+    options:
+      delimiter: .
+      index: 3

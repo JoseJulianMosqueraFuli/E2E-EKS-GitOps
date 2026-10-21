@@ -76,8 +76,8 @@ spec:
       serviceAccountName: evidently-monitoring
       containers:
         - name: evidently-monitoring
-          image: ${ECR_REGISTRY}/ml-monitoring:latest
-          imagePullPolicy: Always
+          image: ml-monitoring:0.1.0
+          imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 8080
               name: http

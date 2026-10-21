@@ -12,7 +12,7 @@ ROOT = Path(__file__).resolve().parents[2]
 CHAOS = ROOT / "gitops/applications/apps/chaos"
 SCRIPTS = CHAOS / "workflows/scripts"
 
-FAKE_COMMAND = r'''
+FAKE_COMMAND = r"""
 import json
 import os
 import sys
@@ -81,7 +81,7 @@ path.write_text(json.dumps(state))
 if output:
     print(output)
 sys.exit(status)
-'''
+"""
 
 
 @pytest.fixture
@@ -129,9 +129,7 @@ def test_monitor_covers_delayed_fault_completion(shell, tmp_path):
 
 
 def test_slow_failed_requests_count_as_elapsed_seconds_and_stop_chaos(shell, tmp_path):
-    result, state = shell(
-        SCRIPTS / "monitor.sh", {"fail_from": 1002, "fail_until": 1100}
-    )
+    result, state = shell(SCRIPTS / "monitor.sh", {"fail_from": 1002, "fail_until": 1100})
     assert result.returncode != 0
     assert "exceeds" in result.stderr
     assert int((tmp_path / "downtime").read_text()) >= 6
@@ -168,9 +166,7 @@ def test_missing_observation_or_api_failure_cannot_pass(shell, state):
 
 
 def test_monitor_times_out_and_stops_unfinished_fault(shell):
-    result, state = shell(
-        SCRIPTS / "monitor.sh", {"complete_at": 9999, "sleep_step": 60}
-    )
+    result, state = shell(SCRIPTS / "monitor.sh", {"complete_at": 9999, "sleep_step": 60})
     assert result.returncode != 0
     assert "monitoring deadline" in result.stderr
     assert state["stopped"]
@@ -204,11 +200,28 @@ def node(name, zone, ready=True, unschedulable=False):
     return {
         "metadata": {"name": name, "labels": {"topology.kubernetes.io/zone": zone}},
         "spec": {"unschedulable": unschedulable},
-        "status": {"conditions": [{"type": "Ready", "status": "True" if ready else "False"}], "allocatable": {"cpu": "2", "memory": "4Gi"}},
+        "status": {
+            "conditions": [{"type": "Ready", "status": "True" if ready else "False"}],
+            "allocatable": {"cpu": "2", "memory": "4Gi"},
+        },
     }
 
 
-@pytest.mark.parametrize("failure", ["unconfirmed", "unready", "cordoned", "control-pod", "pvc", "cpu", "memory", "gpu", "missing-capacity", None])
+@pytest.mark.parametrize(
+    "failure",
+    [
+        "unconfirmed",
+        "unready",
+        "cordoned",
+        "control-pod",
+        "pvc",
+        "cpu",
+        "memory",
+        "gpu",
+        "missing-capacity",
+        None,
+    ],
+)
 def test_az_preflight_rejects_unsafe_targets(shell, tmp_path, failure):
     workflow = yaml.safe_load((CHAOS / "workflows/az-failure-test.yaml").read_text())
     preflight = next(t for t in workflow["spec"]["templates"] if t["name"] == "select-nodes")
@@ -223,9 +236,27 @@ def test_az_preflight_rejects_unsafe_targets(shell, tmp_path, failure):
         "control_pods": [{"spec": {"nodeName": "target-node"}}] if failure == "control-pod" else [],
     }
     if failure in ("pvc", "cpu", "memory", "gpu"):
-        state["pods"] = [{"spec": {"nodeName": "target-node", "containers": [
-            {"resources": {"requests": {"cpu": "3" if failure == "cpu" else "1", "memory": "5Gi" if failure == "memory" else "1Gi", "nvidia.com/gpu": "1" if failure == "gpu" else "0"}}}],
-            "volumes": [{"persistentVolumeClaim": {"claimName": "database"}}] if failure == "pvc" else []}}]
+        state["pods"] = [
+            {
+                "spec": {
+                    "nodeName": "target-node",
+                    "containers": [
+                        {
+                            "resources": {
+                                "requests": {
+                                    "cpu": "3" if failure == "cpu" else "1",
+                                    "memory": "5Gi" if failure == "memory" else "1Gi",
+                                    "nvidia.com/gpu": "1" if failure == "gpu" else "0",
+                                }
+                            }
+                        }
+                    ],
+                    "volumes": [{"persistentVolumeClaim": {"claimName": "database"}}]
+                    if failure == "pvc"
+                    else [],
+                }
+            }
+        ]
     if failure == "missing-capacity":
         del state["nodes"][1]["status"]["allocatable"]
     result, _ = shell(
@@ -326,7 +357,12 @@ def test_functional_probe_checks_data_not_only_http(shell, kind):
     if kind == "canary":
         result, state = shell(SCRIPTS / "monitor.sh", {"lose_canary_at": 1004}, CANARY_RUN_ID="run")
     else:
-        result, state = shell(SCRIPTS / "monitor.sh", {"prediction": {"metadata": "model"}}, PROBE_BODY='{"instances":[[1]]}', PROBE_RESPONSE_FILTER=".predictions | length == 1")
+        result, state = shell(
+            SCRIPTS / "monitor.sh",
+            {"prediction": {"metadata": "model"}},
+            PROBE_BODY='{"instances":[[1]]}',
+            PROBE_RESPONSE_FILTER=".predictions | length == 1",
+        )
     assert result.returncode != 0
     assert state["stopped"]
 
@@ -338,10 +374,29 @@ def test_prediction_probe_requires_a_response_assertion(shell):
 
 
 def test_rendered_fault_roles_are_scoped_to_their_target_namespaces():
-    resources = list(yaml.safe_load_all(subprocess.check_output(["kustomize", "build", str(CHAOS / "overlays/dev")], text=True)))
+    resources = list(
+        yaml.safe_load_all(
+            subprocess.check_output(["kustomize", "build", str(CHAOS / "overlays/dev")], text=True)
+        )
+    )
     for namespace in ("mlflow", "kserve", "argocd"):
-        role = next(r for r in resources if r["kind"] == "Role" and r["metadata"]["name"] == f"litmus-pod-{namespace}")
+        role = next(
+            r
+            for r in resources
+            if r["kind"] == "Role" and r["metadata"]["name"] == f"litmus-pod-{namespace}"
+        )
         assert role["metadata"]["namespace"] == namespace
-        assert not any("nodes" in rule["resources"] or "secrets" in rule["resources"] for rule in role["rules"])
+        assert not any(
+            "nodes" in rule["resources"] or "secrets" in rule["resources"] for rule in role["rules"]
+        )
     for binding in (r for r in resources if r["kind"] == "ClusterRoleBinding"):
-        assert not any(s["name"] in ("litmus-pod-mlflow", "litmus-pod-kserve", "litmus-pod-argocd", "chaos-workflow-mlflow") for s in binding["subjects"])
+        assert not any(
+            s["name"]
+            in (
+                "litmus-pod-mlflow",
+                "litmus-pod-kserve",
+                "litmus-pod-argocd",
+                "chaos-workflow-mlflow",
+            )
+            for s in binding["subjects"]
+        )

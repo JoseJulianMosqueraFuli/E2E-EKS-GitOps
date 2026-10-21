@@ -29,14 +29,16 @@ spec:
           restartPolicy: OnFailure
           containers:
             - name: drift-detector
-              image: ${ECR_REGISTRY}/ml-monitoring:latest
+              image: ml-monitoring:0.1.0
               command:
                 - python
                 - -m
-                - monitoring.run_drift_check
+                - src.monitoring.run_drift_check
               env:
+                - name: MONITORING_SERVICE_HOST
+                  value: evidently-monitoring
                 - name: MONITORING_SERVICE_URL
-                  value: "http://evidently-monitoring.ml-monitoring:8080"
+                  value: "http://$(MONITORING_SERVICE_HOST):8080"
                 - name: PROMETHEUS_PUSHGATEWAY
                   value: "http://prometheus-pushgateway.monitoring:9091"
                 - name: S3_BUCKET

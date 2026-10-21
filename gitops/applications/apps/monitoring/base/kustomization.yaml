@@ -36,3 +36,6 @@ labels:
       app.kubernetes.io/component: observability
       app.kubernetes.io/part-of: mlops-platform
     includeSelectors: false
+
+configurations:
+  - kustomizeconfig.yaml
