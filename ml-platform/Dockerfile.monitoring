@@ -1,44 +1,33 @@
-FROM python:3.10-slim
+FROM python:3.11.17-slim-bookworm AS builder
 
+ARG POETRY_VERSION=2.5.1
+RUN python -m venv /opt/poetry \
+    && /opt/poetry/bin/pip install "poetry==${POETRY_VERSION}" \
+    && python -m venv /opt/venv
+ENV VIRTUAL_ENV=/opt/venv \
+    PATH=/opt/venv/bin:$PATH \
+    POETRY_NO_INTERACTION=1
+WORKDIR /build
+COPY pyproject.toml poetry.lock README.md ./
+RUN /opt/poetry/bin/poetry check --lock \
+    && /opt/poetry/bin/poetry install --only main --no-root -E monitoring
+
+FROM python:3.11.17-slim-bookworm AS runtime
+RUN useradd --uid 8737 --gid 0 --home-dir /tmp --no-create-home --shell /usr/sbin/nologin monitoring \
+    && mkdir -p /data/reports /data/reference /app/config \
+    && chown -R 8737:0 /data /app
+COPY --from=builder /opt/venv /opt/venv
+COPY src /app/src
+ENV PATH=/opt/venv/bin:$PATH \
+    PYTHONPATH=/app \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    HOME=/tmp \
+    PORT=8080
 WORKDIR /app
-
-# Install system dependencies
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    curl \
-    && rm -rf /var/lib/apt/lists/*
-
-# Copy requirements
-COPY requirements.txt .
-
-# Install Python dependencies
-RUN pip install --no-cache-dir \
-    evidently==0.4.2 \
-    prometheus-client==0.17.1 \
-    fastapi==0.100.0 \
-    uvicorn==0.23.0 \
-    pandas==2.0.3 \
-    numpy==1.24.3 \
-    pyyaml==6.0.1 \
-    requests==2.31.0 \
-    boto3==1.28.25 \
-    pyarrow==12.0.1
-
-# Copy application code
-COPY src/monitoring /app/monitoring
-
-# Create directories
-RUN mkdir -p /data/reports /data/reference /app/config
-
-# Set environment variables
-ENV PYTHONPATH=/app
-ENV PORT=8080
-
-# Expose port
+USER 8737
+RUN python -c "from src.monitoring.monitoring_service import app; assert app"
 EXPOSE 8080
-
-# Health check
-HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-    CMD curl -f http://localhost:8080/health || exit 1
-
-# Run the service
-CMD ["python", "-m", "monitoring.monitoring_service"]
+HEALTHCHECK --interval=30s --timeout=10s --start-period=10s --retries=3 \
+    CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:8080/health', timeout=5)"
+CMD ["python", "-m", "src.monitoring.monitoring_service"]

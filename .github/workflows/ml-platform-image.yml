@@ -45,6 +45,16 @@ jobs:
           cache-from: type=gha,scope=ml-platform-test
           cache-to: type=gha,mode=max,scope=ml-platform-test
 
+      - name: Build and verify monitoring image
+        uses: docker/build-push-action@v6
+        with:
+          context: ml-platform
+          file: ml-platform/Dockerfile.monitoring
+          target: runtime
+          push: false
+          cache-from: type=gha,scope=ml-monitoring
+          cache-to: type=gha,mode=max,scope=ml-monitoring
+
   publish:
     name: Build and publish
     needs: test
