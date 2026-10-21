@@ -110,3 +110,5 @@ gitops/charts/*/charts/
 gitops/platform/aws.env
 
 gitops/platform/flux.env
+
+infra/environments/*/backend.hcl

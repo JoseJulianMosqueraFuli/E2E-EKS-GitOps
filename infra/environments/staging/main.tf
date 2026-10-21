@@ -9,29 +9,7 @@ terraform {
     }
   }
 
-  backend "s3" {
-    # --------------------------------------------------------------------------
-    # HIGH-001: Remote backend is DISABLED until AWS account is configured.
-    # This is intentional for local development, but MUST be activated before
-    # any shared or production deployment.
-    #
-    # Why this matters: Local state = no locking, no collaboration, risk of
-    # state loss if the machine is lost.
-    #
-    # Activation checklist (requires AWS account):
-    #   1. aws configure  (set credentials)
-    #   2. ./scripts/bootstrap-terraform-backend.sh staging us-east-1
-    #   3. Uncomment the block below
-    #   4. cd infra/environments/staging && terraform init -migrate-state
-    #   5. terraform plan  (verify state migrated correctly)
-    # --------------------------------------------------------------------------
-    # bucket         = "mlops-terraform-state-staging"
-    # key            = "staging/terraform.tfstate"
-    # region         = "us-east-1"
-    # dynamodb_table = "mlops-terraform-locks-staging"
-    # encrypt        = true
-    # kms_key_id     = "alias/mlops-staging-key"
-  }
+  backend "s3" {}
 }
 
 provider "aws" {
