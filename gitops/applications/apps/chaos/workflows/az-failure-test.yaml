@@ -124,8 +124,8 @@ spec:
         \  jq -e --slurpfile targets /tmp/nodes.json 'all(.items[] |\n    select(.status.phase != \"Succeeded\"\
         \ and .status.phase != \"Failed\");\n    .spec.nodeName as $node | all($targets[0][]; .node != $node))'\
         \ /tmp/control-pods.json > /dev/null || {\n    echo \"ERROR: $namespace has control or workflow pods in\
-        \ the target zone\" >&2\n    exit 1\n  }\ndone\necho \"$in_zone\" > /tmp/node-count.txt\necho \"Target nodes:\
-        \ $in_zone; surviving Ready nodes: $remaining\"\n"
+        \ the target zone\" >&2\n    exit 1\n  }\ndone\nsh /chaos/az-safety.sh\necho \"$in_zone\" > /tmp/node-count.txt\n\
+        echo \"Target nodes: $in_zone; surviving Ready nodes: $remaining\"\n"
       volumeMounts:
       - name: chaos-scripts
         mountPath: /chaos

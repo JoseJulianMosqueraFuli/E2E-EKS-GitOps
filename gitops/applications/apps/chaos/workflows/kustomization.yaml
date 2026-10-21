@@ -1,24 +1,21 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
-
 resources:
-  - rbac.yaml
-  - mlflow-resilience-test.yaml
-  - az-failure-test.yaml
-
+- rbac.yaml
+- mlflow-resilience-test.yaml
+- az-failure-test.yaml
 configMapGenerator:
-  - name: chaos-workflow-scripts
-    namespace: argo-workflows
-    files:
-      - scripts/common.sh
-      - scripts/monitor.sh
-      - scripts/cleanup.sh
-
+- name: chaos-workflow-scripts
+  namespace: argo-workflows
+  files:
+  - scripts/common.sh
+  - scripts/monitor.sh
+  - scripts/cleanup.sh
+  - scripts/az-safety.sh
 generatorOptions:
   disableNameSuffixHash: true
-
 labels:
-  - pairs:
-      app.kubernetes.io/part-of: mlops-platform
-      app.kubernetes.io/managed-by: argocd
-    includeSelectors: false
+- pairs:
+    app.kubernetes.io/part-of: mlops-platform
+    app.kubernetes.io/managed-by: argocd
+  includeSelectors: false
