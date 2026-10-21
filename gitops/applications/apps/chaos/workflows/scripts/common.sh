@@ -15,6 +15,27 @@ validate_parameters() {
     http://?*|https://?*) ;;
     *) echo "ERROR: a non-empty HTTP(S) probe URL is required" >&2; return 1 ;;
   esac
+  if [ -n "${PROBE_BODY:-}" ]; then
+    printf '%s' "$PROBE_BODY" | jq -e . >/dev/null
+    [ -n "${PROBE_RESPONSE_FILTER:-}" ] || { echo "ERROR: a response assertion is required for prediction probes" >&2; return 1; }
+  fi
+}
+
+probe_service() {
+  if [ -n "${CANARY_RUN_ID:-}" ]; then
+    api="${PROBE_URL%/health}/api/2.0/mlflow"
+    payload=$(jq -nc --arg run "$CANARY_RUN_ID" --argjson timestamp "$(($(date +%s) * 1000))" '{run_id:$run,key:"chaos_probe",value:1,timestamp:$timestamp}')
+    curl -sf --max-time 2 -H 'Content-Type: application/json' -d "$payload" "$api/runs/log-metric" >/dev/null || { echo 000; return; }
+    response=$(curl -sf --max-time 2 "$api/runs/get?run_id=$CANARY_RUN_ID") || { echo 000; return; }
+    printf '%s' "$response" | jq -e --arg workflow "$WORKFLOW_NAME" 'any(.run.data.params[]?; .key == "canary" and .value == $workflow)' >/dev/null || { echo 000; return; }
+    echo 200
+  elif [ -n "${PROBE_BODY:-}" ]; then
+    response=$(curl -sf --max-time 2 -H 'Content-Type: application/json' -d "$PROBE_BODY" "$PROBE_URL") || { echo 000; return; }
+    printf '%s' "$response" | jq -e "$PROBE_RESPONSE_FILTER" >/dev/null || { echo 000; return; }
+    echo 200
+  else
+    curl -s -o /dev/null -w '%{http_code}' --max-time 2 "$PROBE_URL" || echo 000
+  fi
 }
 
 wait_for_probe() {

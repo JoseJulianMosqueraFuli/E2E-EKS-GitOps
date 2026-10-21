@@ -32,6 +32,10 @@ spec:
       value: '10'
     - name: confirm-zone-failure
       value: 'false'
+    - name: probe-body
+      value: ''
+    - name: probe-response-filter
+      value: ''
   templates:
   - name: az-failure
     steps:
@@ -88,6 +92,10 @@ spec:
         value: '{{workflow.parameters.zone}}'
       - name: CONFIRM_ZONE_FAILURE
         value: '{{workflow.parameters.confirm-zone-failure}}'
+      - name: PROBE_BODY
+        value: '{{workflow.parameters.probe-body}}'
+      - name: PROBE_RESPONSE_FILTER
+        value: '{{workflow.parameters.probe-response-filter}}'
       resources:
         requests:
           cpu: 50m
@@ -100,35 +108,24 @@ spec:
         capabilities:
           drop:
           - ALL
-      source: |
-        set -eu
-        . /chaos/common.sh
-        validate_parameters
-        [ "$CONFIRM_ZONE_FAILURE" = true ] || { echo "ERROR: confirm-zone-failure=true is required" >&2; exit 1; }
-        [ -n "$ZONE" ] || { echo "ERROR: zone is required" >&2; exit 1; }
-        kubectl --request-timeout=10s get nodes -o json > /tmp/cluster-nodes.json
-        jq -ec --arg zone "$ZONE" '[.items[] | select(.metadata.labels["topology.kubernetes.io/zone"] == $zone)] |
-          to_entries | map({node: .value.metadata.name, index: (.key | tostring)})' /tmp/cluster-nodes.json > /tmp/nodes.json
-        in_zone=$(jq length /tmp/nodes.json)
-        require_uint target-node-count "$in_zone" 1 20
-        remaining=$(jq --arg zone "$ZONE" '[.items[] |
-          select(.metadata.labels["topology.kubernetes.io/zone"] != null and .metadata.labels["topology.kubernetes.io/zone"] != $zone) |
-          select(.spec.unschedulable != true) |
-          select(any(.status.conditions[]?; .type == "Ready" and .status == "True")) |
-          select(all(.spec.taints[]?; .effect != "NoSchedule" and .effect != "NoExecute"))] | length' /tmp/cluster-nodes.json)
-        [ "$remaining" -gt 0 ] || { echo "ERROR: no Ready schedulable node in another zone" >&2; exit 1; }
-        jq -e 'all(.items[].spec.taints[]?; .key != "chaos.litmuschaos.io/az-failure")' /tmp/cluster-nodes.json > /dev/null
-        for namespace in litmus argo-workflows; do
-          kubectl --request-timeout=10s get pods -n "$namespace" -o json > /tmp/control-pods.json
-          jq -e --slurpfile targets /tmp/nodes.json 'all(.items[] |
-            select(.status.phase != "Succeeded" and .status.phase != "Failed");
-            .spec.nodeName as $node | all($targets[0][]; .node != $node))' /tmp/control-pods.json > /dev/null || {
-            echo "ERROR: $namespace has control or workflow pods in the target zone" >&2
-            exit 1
-          }
-        done
-        echo "$in_zone" > /tmp/node-count.txt
-        echo "Target nodes: $in_zone; surviving Ready nodes: $remaining"
+      source: "set -eu\n. /chaos/common.sh\nvalidate_parameters\n[ \"$CONFIRM_ZONE_FAILURE\" = true ] || { echo\
+        \ \"ERROR: confirm-zone-failure=true is required\" >&2; exit 1; }\n[ -n \"$ZONE\" ] || { echo \"ERROR: zone\
+        \ is required\" >&2; exit 1; }\nkubectl --request-timeout=10s get nodes -o json > /tmp/cluster-nodes.json\n\
+        jq -ec --arg zone \"$ZONE\" '[.items[] | select(.metadata.labels[\"topology.kubernetes.io/zone\"] == $zone)]\
+        \ |\n  to_entries | map({node: .value.metadata.name, index: (.key | tostring)})' /tmp/cluster-nodes.json\
+        \ > /tmp/nodes.json\nin_zone=$(jq length /tmp/nodes.json)\nrequire_uint target-node-count \"$in_zone\" 1\
+        \ 20\nremaining=$(jq --arg zone \"$ZONE\" '[.items[] |\n  select(.metadata.labels[\"topology.kubernetes.io/zone\"\
+        ] != null and .metadata.labels[\"topology.kubernetes.io/zone\"] != $zone) |\n  select(.spec.unschedulable\
+        \ != true) |\n  select(any(.status.conditions[]?; .type == \"Ready\" and .status == \"True\")) |\n  select(all(.spec.taints[]?;\
+        \ .effect != \"NoSchedule\" and .effect != \"NoExecute\"))] | length' /tmp/cluster-nodes.json)\n[ \"$remaining\"\
+        \ -gt 0 ] || { echo \"ERROR: no Ready schedulable node in another zone\" >&2; exit 1; }\njq -e 'all(.items[].spec.taints[]?;\
+        \ .key != \"chaos.litmuschaos.io/az-failure\")' /tmp/cluster-nodes.json > /dev/null\nfor namespace in litmus\
+        \ argo-workflows; do\n  kubectl --request-timeout=10s get pods -n \"$namespace\" -o json > /tmp/control-pods.json\n\
+        \  jq -e --slurpfile targets /tmp/nodes.json 'all(.items[] |\n    select(.status.phase != \"Succeeded\"\
+        \ and .status.phase != \"Failed\");\n    .spec.nodeName as $node | all($targets[0][]; .node != $node))'\
+        \ /tmp/control-pods.json > /dev/null || {\n    echo \"ERROR: $namespace has control or workflow pods in\
+        \ the target zone\" >&2\n    exit 1\n  }\ndone\necho \"$in_zone\" > /tmp/node-count.txt\necho \"Target nodes:\
+        \ $in_zone; surviving Ready nodes: $remaining\"\n"
       volumeMounts:
       - name: chaos-scripts
         mountPath: /chaos
@@ -153,6 +150,10 @@ spec:
         value: '{{workflow.parameters.max-acceptable-downtime-seconds}}'
       - name: PROBE_URL
         value: '{{workflow.parameters.probe-url}}'
+      - name: PROBE_BODY
+        value: '{{workflow.parameters.probe-body}}'
+      - name: PROBE_RESPONSE_FILTER
+        value: '{{workflow.parameters.probe-response-filter}}'
       resources:
         requests:
           cpu: 50m
@@ -165,56 +166,21 @@ spec:
         capabilities:
           drop:
           - ALL
-      source: |
-        set -eu
-        . /chaos/common.sh
-        validate_parameters
-        wait_for_probe
-        engine="{{workflow.name}}-{{inputs.parameters.index}}"
-        cat <<EOF | kubectl --request-timeout=10s create -f -
-        apiVersion: litmuschaos.io/v1alpha1
-        kind: ChaosEngine
-        metadata:
-          name: ${engine}
-          namespace: litmus
-          labels:
-            app.kubernetes.io/component: chaos-experiment
-            chaos.mlops-platform/workflow: "{{workflow.name}}"
-        spec:
-          engineState: "active"
-          jobCleanUpPolicy: "delete"
-          chaosServiceAccount: litmus-node
-          components:
-            runner:
-              tolerations:
-                - key: chaos.litmuschaos.io/az-failure
-                  operator: Exists
-                  effect: NoExecute
-          experiments:
-            - name: node-taint
-              spec:
-                components:
-                  tolerations:
-                    - key: chaos.litmuschaos.io/az-failure
-                      operator: Exists
-                      effect: NoExecute
-                  env:
-                    - name: TARGET_NODE
-                      value: "{{inputs.parameters.node}}"
-                    - name: TAINTS
-                      value: "chaos.litmuschaos.io/az-failure=${WORKFLOW_NAME}:NoExecute"
-                    - name: TOTAL_CHAOS_DURATION
-                      value: "${CHAOS_DURATION}"
-                    - name: DEFAULT_HEALTH_CHECK
-                      value: "false"
-        EOF
-        timeout=$(( ${CHAOS_DURATION} + 240 ))
-        kubectl wait chaosengine/"$engine" -n litmus \
-          --for=jsonpath='{.status.engineStatus}'=completed --timeout="${timeout}s"
-        verdict=$(kubectl get chaosresult "${engine}-node-taint" -n litmus \
-          -o jsonpath='{.status.experimentStatus.verdict}')
-        echo "Litmus verdict for {{inputs.parameters.node}}: $verdict"
-        [ "$verdict" = "Pass" ]
+      source: "set -eu\n. /chaos/common.sh\nvalidate_parameters\nwait_for_probe\nengine=\"{{workflow.name}}-{{inputs.parameters.index}}\"\
+        \ncat <<EOF | kubectl --request-timeout=10s create -f -\napiVersion: litmuschaos.io/v1alpha1\nkind: ChaosEngine\n\
+        metadata:\n  name: ${engine}\n  namespace: litmus\n  labels:\n    app.kubernetes.io/component: chaos-experiment\n\
+        \    chaos.mlops-platform/workflow: \"{{workflow.name}}\"\nspec:\n  engineState: \"active\"\n  jobCleanUpPolicy:\
+        \ \"delete\"\n  chaosServiceAccount: litmus-node\n  components:\n    runner:\n      tolerations:\n     \
+        \   - key: chaos.litmuschaos.io/az-failure\n          operator: Exists\n          effect: NoExecute\n  experiments:\n\
+        \    - name: node-taint\n      spec:\n        components:\n          tolerations:\n            - key: chaos.litmuschaos.io/az-failure\n\
+        \              operator: Exists\n              effect: NoExecute\n          env:\n            - name: TARGET_NODE\n\
+        \              value: \"{{inputs.parameters.node}}\"\n            - name: TAINTS\n              value: \"\
+        chaos.litmuschaos.io/az-failure=${WORKFLOW_NAME}:NoExecute\"\n            - name: TOTAL_CHAOS_DURATION\n\
+        \              value: \"${CHAOS_DURATION}\"\n            - name: DEFAULT_HEALTH_CHECK\n              value:\
+        \ \"false\"\nEOF\ntimeout=$(( ${CHAOS_DURATION} + 240 ))\nkubectl wait chaosengine/\"$engine\" -n litmus\
+        \ \\\n  --for=jsonpath='{.status.engineStatus}'=completed --timeout=\"${timeout}s\"\nverdict=$(kubectl get\
+        \ chaosresult \"${engine}-node-taint\" -n litmus \\\n  -o jsonpath='{.status.experimentStatus.verdict}')\n\
+        echo \"Litmus verdict for {{inputs.parameters.node}}: $verdict\"\n[ \"$verdict\" = \"Pass\" ]\n"
       volumeMounts:
       - name: chaos-scripts
         mountPath: /chaos
@@ -241,8 +207,9 @@ spec:
         capabilities:
           drop:
           - ALL
-      source: |
-        sh /chaos/monitor.sh
+      source: 'sh /chaos/monitor.sh
+
+        '
       env:
       - name: HOME
         value: /tmp
@@ -256,6 +223,10 @@ spec:
         value: '{{workflow.parameters.probe-url}}'
       - name: EXPECTED_ENGINES
         value: '{{inputs.parameters.expected-engines}}'
+      - name: PROBE_BODY
+        value: '{{workflow.parameters.probe-body}}'
+      - name: PROBE_RESPONSE_FILTER
+        value: '{{workflow.parameters.probe-response-filter}}'
       volumeMounts:
       - name: chaos-scripts
         mountPath: /chaos
@@ -279,6 +250,10 @@ spec:
         value: '{{workflow.parameters.max-acceptable-downtime-seconds}}'
       - name: PROBE_URL
         value: '{{workflow.parameters.probe-url}}'
+      - name: PROBE_BODY
+        value: '{{workflow.parameters.probe-body}}'
+      - name: PROBE_RESPONSE_FILTER
+        value: '{{workflow.parameters.probe-response-filter}}'
       resources:
         requests:
           cpu: 50m
@@ -291,15 +266,11 @@ spec:
         capabilities:
           drop:
           - ALL
-      source: |
-        set -eu
-        zone="{{workflow.parameters.zone}}"
-        tainted=$(kubectl get nodes -l "topology.kubernetes.io/zone=$zone" -o json \
-          | jq '[.items[] | select(any(.spec.taints[]?; .key == "chaos.litmuschaos.io/az-failure"))] | length')
-        not_ready=$(kubectl get nodes -o json \
-          | jq '[.items[] | select(any(.status.conditions[]; .type == "Ready" and .status != "True"))] | length')
-        echo "Nodes still tainted in $zone: $tainted; NotReady nodes: $not_ready"
-        [ "$tainted" -eq 0 ] && [ "$not_ready" -eq 0 ]
+      source: "set -eu\nzone=\"{{workflow.parameters.zone}}\"\ntainted=$(kubectl get nodes -l \"topology.kubernetes.io/zone=$zone\"\
+        \ -o json \\\n  | jq '[.items[] | select(any(.spec.taints[]?; .key == \"chaos.litmuschaos.io/az-failure\"\
+        ))] | length')\nnot_ready=$(kubectl get nodes -o json \\\n  | jq '[.items[] | select(any(.status.conditions[];\
+        \ .type == \"Ready\" and .status != \"True\"))] | length')\necho \"Nodes still tainted in $zone: $tainted;\
+        \ NotReady nodes: $not_ready\"\n[ \"$tainted\" -eq 0 ] && [ \"$not_ready\" -eq 0 ]\n"
       volumeMounts:
       - name: chaos-scripts
         mountPath: /chaos
@@ -324,16 +295,11 @@ spec:
         capabilities:
           drop:
           - ALL
-      source: |
-        echo "=== AZ Failure Test Report ==="
-        echo "Workflow: {{workflow.name}}"
-        echo "Zone: {{workflow.parameters.zone}}"
-        echo "Max consecutive probe failures: {{inputs.parameters.downtime}} seconds"
-        if [ "{{inputs.parameters.downtime}}" -gt "{{workflow.parameters.max-acceptable-downtime-seconds}}" ]; then
-          echo "RESULT: FAIL (downtime > {{workflow.parameters.max-acceptable-downtime-seconds}}s)"
-          exit 1
-        fi
-        echo "RESULT: PASS (downtime <= {{workflow.parameters.max-acceptable-downtime-seconds}}s)"
+      source: "echo \"=== AZ Failure Test Report ===\"\necho \"Workflow: {{workflow.name}}\"\necho \"Zone: {{workflow.parameters.zone}}\"\
+        \necho \"Max consecutive probe failures: {{inputs.parameters.downtime}} seconds\"\nif [ \"{{inputs.parameters.downtime}}\"\
+        \ -gt \"{{workflow.parameters.max-acceptable-downtime-seconds}}\" ]; then\n  echo \"RESULT: FAIL (downtime\
+        \ > {{workflow.parameters.max-acceptable-downtime-seconds}}s)\"\n  exit 1\nfi\necho \"RESULT: PASS (downtime\
+        \ <= {{workflow.parameters.max-acceptable-downtime-seconds}}s)\"\n"
       env:
       - name: HOME
         value: /tmp
@@ -345,6 +311,10 @@ spec:
         value: '{{workflow.parameters.max-acceptable-downtime-seconds}}'
       - name: PROBE_URL
         value: '{{workflow.parameters.probe-url}}'
+      - name: PROBE_BODY
+        value: '{{workflow.parameters.probe-body}}'
+      - name: PROBE_RESPONSE_FILTER
+        value: '{{workflow.parameters.probe-response-filter}}'
       volumeMounts:
       - name: chaos-scripts
         mountPath: /chaos
@@ -367,6 +337,10 @@ spec:
         value: '{{workflow.parameters.probe-url}}'
       - name: CLEANUP_NODE_TAINTS
         value: 'true'
+      - name: PROBE_BODY
+        value: '{{workflow.parameters.probe-body}}'
+      - name: PROBE_RESPONSE_FILTER
+        value: '{{workflow.parameters.probe-response-filter}}'
       resources:
         requests:
           cpu: 50m
@@ -379,8 +353,9 @@ spec:
         capabilities:
           drop:
           - ALL
-      source: |
-        sh /chaos/cleanup.sh
+      source: 'sh /chaos/cleanup.sh
+
+        '
       volumeMounts:
       - name: chaos-scripts
         mountPath: /chaos

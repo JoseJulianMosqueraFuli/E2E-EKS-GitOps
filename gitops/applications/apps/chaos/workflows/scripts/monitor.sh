@@ -5,7 +5,7 @@ require_uint expected-engines "$EXPECTED_ENGINES" 1 20
 
 trap 'status=$?; if [ "$status" -ne 0 ]; then stop_engines || echo "ERROR: automatic stop failed; inspect ChaosEngines" >&2; fi; exit "$status"' 0
 
-code=$(curl -s -o /dev/null -w '%{http_code}' --max-time 2 "$PROBE_URL") || code=000
+code=$(probe_service)
 [ "$code" = 200 ] || { echo "ERROR: baseline probe returned $code" >&2; exit 1; }
 kubectl --request-timeout=10s create configmap "$WORKFLOW_NAME-probe-ready" \
   -n argo-workflows --from-literal=ready=true
@@ -17,7 +17,7 @@ observed_active=false
 output_file=${DOWNTIME_FILE:-/tmp/max_downtime.txt}
 while [ "$(date +%s)" -lt "$deadline" ]; do
   request_start=$(date +%s)
-  code=$(curl -s -o /dev/null -w '%{http_code}' --max-time 2 "$PROBE_URL") || code=000
+  code=$(probe_service)
   now=$(date +%s)
   if [ "$code" != 200 ] && [ "$outage_start" -eq 0 ]; then
     outage_start=$request_start

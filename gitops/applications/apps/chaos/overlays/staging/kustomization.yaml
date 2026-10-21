@@ -1,21 +1,59 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
-
 resources:
-  - ../../base
-  - ../../workflows
-
+- ../../base
+- ../../workflows
+- ../../../../../platform
 commonLabels:
   environment: staging
-
 patches:
-  - patch: |
-      - op: replace
-        path: /spec/arguments/parameters/0/value
-        value: http://staging-mlflow-server.mlflow:5000
-      - op: replace
-        path: /spec/arguments/parameters/1/value
-        value: staging-mlflow-server
-    target:
+- patch: "- op: replace\n  path: /spec/arguments/parameters/0/value\n  value: http://staging-mlflow-server.mlflow:5000\n\
+    - op: replace\n  path: /spec/arguments/parameters/1/value\n  value: staging-mlflow-server\n"
+  target:
+    kind: WorkflowTemplate
+    name: mlflow-resilience-test
+images:
+- name: mlops-platform
+  newName: AWS_ACCOUNT_ID.dkr.ecr.AWS_REGION.amazonaws.com/mlops-staging-trainer
+configMapGenerator:
+- name: chaos-canary-config
+  namespace: argo-workflows
+  literals:
+  - s3_endpoint_url=http://staging-mlflow-minio.mlflow:9000
+generatorOptions:
+  disableNameSuffixHash: true
+replacements:
+- source:
+    kind: ConfigMap
+    name: platform-config
+    fieldPath: data.AWS_ACCOUNT_ID
+  targets:
+  - select:
       kind: WorkflowTemplate
       name: mlflow-resilience-test
+    fieldPaths:
+    - spec.templates.[name=prepare-canary].container.image
+    - spec.templates.[name=verify-canary].container.image
+    options:
+      delimiter: .
+      index: 0
+- source:
+    kind: ConfigMap
+    name: platform-config
+    fieldPath: data.AWS_REGION
+  targets:
+  - select:
+      kind: WorkflowTemplate
+      name: mlflow-resilience-test
+    fieldPaths:
+    - spec.templates.[name=prepare-canary].container.image
+    - spec.templates.[name=verify-canary].container.image
+    options:
+      delimiter: .
+      index: 3
+  - select:
+      kind: WorkflowTemplate
+      name: mlflow-resilience-test
+    fieldPaths:
+    - spec.templates.[name=prepare-canary].container.env.[name=AWS_DEFAULT_REGION].value
+    - spec.templates.[name=verify-canary].container.env.[name=AWS_DEFAULT_REGION].value
