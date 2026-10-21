@@ -7,16 +7,53 @@ spec:
   template:
     spec:
       containers:
-        - name: argocd-repo-server
-          resources:
-            limits:
-              cpu: 1000m
-              memory: 1Gi
-            requests:
-              cpu: 100m
-              memory: 256Mi
-          env:
-            - name: ARGOCD_EXEC_TIMEOUT
-              value: "300s"
-            - name: ARGOCD_GIT_ATTEMPTS_COUNT
-              value: "3"
+      - name: argocd-repo-server
+        resources:
+          limits:
+            cpu: 1000m
+            memory: 1Gi
+          requests:
+            cpu: 100m
+            memory: 256Mi
+        env:
+        - name: ARGOCD_EXEC_TIMEOUT
+          value: 300s
+        - name: ARGOCD_GIT_ATTEMPTS_COUNT
+          value: '3'
+      - name: platform-kustomize
+        image: quay.io/argoproj/argocd:v2.9.3
+        command:
+        - /var/run/argocd/argocd-cmp-server
+        securityContext:
+          runAsNonRoot: true
+          runAsUser: 999
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 500m
+            memory: 512Mi
+        envFrom:
+        - configMapRef:
+            name: platform-aws-config
+        volumeMounts:
+        - name: var-files
+          mountPath: /var/run/argocd
+        - name: plugins
+          mountPath: /home/argocd/cmp-server/plugins
+        - name: platform-plugin
+          mountPath: /home/argocd/cmp-server/config/plugin.yaml
+          subPath: plugin.yaml
+        - name: platform-plugin-tmp
+          mountPath: /tmp
+      volumes:
+      - name: platform-plugin
+        configMap:
+          name: platform-kustomize-plugin
+      - name: platform-plugin-tmp
+        emptyDir: {}

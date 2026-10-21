@@ -29,6 +29,10 @@ install_flux() {
 }
 
 install_argocd() {
+  config_file="${AWS_CONFIG_FILE:-$GITOPS_DIR/platform/aws.env}"
+  python3 "$SCRIPT_DIR/validate-aws-config.py" "$config_file"
+  kc create namespace argocd --dry-run=client -o yaml | kc apply -f -
+  kc -n argocd create configmap platform-aws-config --from-env-file="$config_file" --dry-run=client -o yaml | kc apply -f -
   kc apply --server-side -k "$GITOPS_DIR/infrastructure/controllers/argocd"
   for crd in applications.argoproj.io applicationsets.argoproj.io appprojects.argoproj.io; do
     kc wait --for=condition=Established "crd/$crd" --timeout=120s

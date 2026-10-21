@@ -60,3 +60,8 @@ output "flux_runtime_config" {
     ca_irsa_role   = module.eks.cluster_autoscaler_role_arn
   }
 }
+
+output "ecr_publisher_role_arn" {
+  description = "AWS_ROLE_ARN for the GitHub Actions environment"
+  value       = module.ecr_publisher.role_arn
+}

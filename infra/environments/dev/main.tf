@@ -208,6 +208,12 @@ module "ecr" {
       scan_on_push         = true
       tags                 = { Purpose = "feature-processing" }
     }
+    monitoring = {
+      name                 = "${local.name_prefix}-monitoring"
+      image_tag_mutability = "IMMUTABLE"
+      scan_on_push         = true
+      tags                 = { Purpose = "model-monitoring" }
+    }
     mlflow_server = {
       name                 = "${local.name_prefix}-mlflow-server"
       image_tag_mutability = "MUTABLE"
@@ -359,4 +365,15 @@ module "workload_identity" {
   kms_key_arn              = aws_kms_key.main.arn
   inference_repository_arn = module.ecr.repository_arns["inference"]
   tags                     = local.common_tags
+}
+
+module "ecr_publisher" {
+  source               = "../../modules/ecr-publisher"
+  name_prefix          = local.name_prefix
+  environment          = "dev"
+  repository           = var.github_repository
+  oidc_provider_arn    = var.github_oidc_provider_arn
+  create_oidc_provider = true
+  repository_arns      = [for name in ["trainer", "mlflow_server", "monitoring"] : module.ecr.repository_arns[name]]
+  tags                 = local.common_tags
 }

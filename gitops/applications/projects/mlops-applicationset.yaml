@@ -66,6 +66,8 @@ spec:
             repoURL: https://github.com/JoseJulianMosqueraFuli/E2E-EKS-GitOps.git
             targetRevision: '{{branch}}'
             path: gitops/applications/apps/{{app}}/overlays/{{environment}}
+            plugin:
+              name: platform-kustomize
           destination:
             name: '{{clusterName}}'
             namespace: '{{namespace}}'
@@ -147,6 +149,8 @@ spec:
             repoURL: https://github.com/JoseJulianMosqueraFuli/E2E-EKS-GitOps.git
             targetRevision: '{{branch}}'
             path: gitops/applications/apps/{{app}}/overlays/{{environment}}
+            plugin:
+              name: platform-kustomize
           destination:
             name: '{{clusterName}}'
             namespace: '{{namespace}}'
@@ -228,6 +232,8 @@ spec:
             repoURL: https://github.com/JoseJulianMosqueraFuli/E2E-EKS-GitOps.git
             targetRevision: '{{branch}}'
             path: gitops/applications/apps/{{app}}/overlays/{{environment}}
+            plugin:
+              name: platform-kustomize
           destination:
             name: '{{clusterName}}'
             namespace: '{{namespace}}'
@@ -270,6 +276,8 @@ spec:
         repoURL: https://github.com/JoseJulianMosqueraFuli/E2E-EKS-GitOps.git
         targetRevision: '{{branch}}'
         path: gitops/applications/apps/{{app}}/overlays/{{environment}}
+        plugin:
+          name: platform-kustomize
       destination:
         name: '{{clusterName}}'
         namespace: '{{namespace}}'

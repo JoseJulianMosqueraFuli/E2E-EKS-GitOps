@@ -8,17 +8,6 @@ metadata:
     app.kubernetes.io/component: workflow-controller
 data:
   config: |
-    # Workflow controller configuration
-    
-    # Artifact repository configuration for S3
-    artifactRepository:
-      s3:
-        bucket: mlops-artifacts-bucket
-        endpoint: s3.amazonaws.com
-        insecure: false
-        useSDKCreds: true
-    
-    # Executor configuration
     executor:
       imagePullPolicy: IfNotPresent
       resources:
@@ -28,32 +17,23 @@ data:
         limits:
           cpu: 500m
           memory: 512Mi
-
-    
-    # Workflow defaults
     workflowDefaults:
       spec:
         serviceAccountName: argo-workflow
         securityContext:
           runAsNonRoot: true
           runAsUser: 8737
-    
-    # Links for external systems
     links:
-      - name: "MLflow Experiments"
-        scope: "workflow"
-        url: "http://mlflow-server.mlflow:5000/#/experiments"
-      - name: "Workflow Logs"
-        scope: "pod-logs"
-        url: "http://grafana.monitoring:3000/explore"
-    
-    # Metrics configuration
+    - name: MLflow Experiments
+      scope: workflow
+      url: http://mlflow-server.mlflow:5000/#/experiments
+    - name: Workflow Logs
+      scope: pod-logs
+      url: http://grafana.monitoring:3000/explore
     metricsConfig:
       enabled: true
       path: /metrics
       port: 9090
       secure: true
-    
-    # Telemetry (disable for production)
     telemetryConfig:
       enabled: false

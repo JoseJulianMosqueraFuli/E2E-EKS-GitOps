@@ -13,7 +13,9 @@ spec = cron["spec"]["jobTemplate"]["spec"]
 container = spec["template"]["spec"]["containers"][0]
 container["command"] = ["python", "/checks/backup_restore.py"]
 container["args"] = []
+container["env"] = [e for e in container["env"] if e["name"] != "S3_BACKUP_BUCKET"]
 container["env"].extend([
+    {"name": "S3_BACKUP_BUCKET", "value": "mlops-backups"},
     {"name": "AWS_ENDPOINT_URL", "value": "http://dev-mlflow-minio:9000"},
     {"name": "AWS_ACCESS_KEY_ID", "valueFrom": {"secretKeyRef": {"name": "mlflow-minio-secrets", "key": "aws-access-key-id"}}},
     {"name": "AWS_SECRET_ACCESS_KEY", "valueFrom": {"secretKeyRef": {"name": "mlflow-minio-secrets", "key": "aws-secret-access-key"}}},

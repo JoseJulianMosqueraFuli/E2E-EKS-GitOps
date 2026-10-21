@@ -98,3 +98,14 @@ variable "gpu_node_group_min_size" {
   type        = number
   default     = 0
 }
+variable "github_repository" {
+  type        = string
+  description = "GitHub owner/repository allowed to publish platform images"
+  default     = "JoseJulianMosqueraFuli/E2E-EKS-GitOps"
+}
+
+variable "github_oidc_provider_arn" {
+  type        = string
+  description = "Existing account GitHub OIDC provider; null creates it in dev and reuses it in staging/prod"
+  default     = null
+}

@@ -1,112 +1,309 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
-
 resources:
-  - ../../base
-  - ../../../../../platform
-
+- ../../base
+- ../../../../../platform
 labels:
-  - pairs:
-      environment: production
-    includeSelectors: false
-
+- pairs:
+    environment: production
+  includeSelectors: false
 images:
-  - name: mlops-platform
-    newName: AWS_ACCOUNT_ID.dkr.ecr.AWS_REGION.amazonaws.com/mlops-prod-trainer
-
+- name: mlops-platform
+  newName: AWS_ACCOUNT_ID.dkr.ecr.AWS_REGION.amazonaws.com/mlops-prod-trainer
 patches:
-  - target:
+- target:
+    kind: WorkflowTemplate
+    name: model-deployment-template
+  patch: |-
+    - op: test
+      path: /spec/arguments/parameters/4/name
+      value: ecr-repository
+    - op: replace
+      path: /spec/arguments/parameters/4/value
+      value: AWS_ACCOUNT_ID.dkr.ecr.AWS_REGION.amazonaws.com/mlops-prod-inference
+- target:
+    kind: WorkflowTemplate
+    name: ml-pipeline-template
+  patch: |-
+    - op: test
+      path: /spec/arguments/parameters/5/name
+      value: ecr-repository
+    - op: replace
+      path: /spec/arguments/parameters/5/value
+      value: AWS_ACCOUNT_ID.dkr.ecr.AWS_REGION.amazonaws.com/mlops-prod-inference
+- target:
+    kind: ServiceAccount
+    name: argo-workflow
+  patch: |
+    apiVersion: v1
+    kind: ServiceAccount
+    metadata:
+      name: argo-workflow
+      annotations:
+        eks.amazonaws.com/role-arn: arn:aws:iam::AWS_ACCOUNT_ID:role/mlops-prod-argo
+replacements:
+- source:
+    kind: ConfigMap
+    name: platform-config
+    fieldPath: data.AWS_ACCOUNT_ID
+  targets:
+  - select:
+      kind: ConfigMap
+      name: platform-resources
+    fieldPaths:
+    - data.ARTIFACT_BUCKET
+    options:
+      delimiter: '-'
+      index: 4
+- source:
+    kind: ConfigMap
+    name: platform-config
+    fieldPath: data.AWS_REGION
+  targets:
+  - select:
+      kind: ConfigMap
+      name: platform-resources
+    fieldPaths:
+    - data.ARTIFACT_BUCKET
+    options:
+      delimiter: '-'
+      index: 5
+- source:
+    kind: ConfigMap
+    name: platform-config
+    fieldPath: data.AWS_ACCOUNT_ID
+  targets:
+  - select:
+      kind: ConfigMap
+      name: platform-resources
+    fieldPaths:
+    - data.CURATED_BUCKET
+    options:
+      delimiter: '-'
+      index: 4
+- source:
+    kind: ConfigMap
+    name: platform-config
+    fieldPath: data.AWS_REGION
+  targets:
+  - select:
+      kind: ConfigMap
+      name: platform-resources
+    fieldPaths:
+    - data.CURATED_BUCKET
+    options:
+      delimiter: '-'
+      index: 5
+- source:
+    kind: ConfigMap
+    name: platform-config
+    fieldPath: data.AWS_ACCOUNT_ID
+  targets:
+  - select:
+      kind: ConfigMap
+      name: platform-resources
+    fieldPaths:
+    - data.BACKUP_BUCKET
+    options:
+      delimiter: '-'
+      index: 3
+- source:
+    kind: ConfigMap
+    name: platform-config
+    fieldPath: data.AWS_REGION
+  targets:
+  - select:
+      kind: ConfigMap
+      name: platform-resources
+    fieldPaths:
+    - data.BACKUP_BUCKET
+    options:
+      delimiter: '-'
+      index: 4
+- source:
+    kind: ConfigMap
+    name: platform-config
+    fieldPath: data.AWS_ACCOUNT_ID
+  targets:
+  - select:
+      kind: WorkflowTemplate
+      name: model-training-template
+    fieldPaths:
+    - spec.templates.[name=feature-engineering-step].container.image
+    - spec.templates.[name=train-model-step].container.image
+    - spec.templates.[name=evaluate-model-step].container.image
+    - spec.templates.[name=register-model-step].container.image
+    options:
+      delimiter: .
+      index: 0
+  - select:
       kind: WorkflowTemplate
       name: model-deployment-template
-    patch: |-
-      - op: test
-        path: /spec/arguments/parameters/4/name
-        value: ecr-repository
-      - op: replace
-        path: /spec/arguments/parameters/4/value
-        value: AWS_ACCOUNT_ID.dkr.ecr.AWS_REGION.amazonaws.com/mlops-prod-inference
-  - target:
+    fieldPaths:
+    - spec.arguments.parameters.[name=ecr-repository].value
+    options:
+      delimiter: .
+      index: 0
+  - select:
       kind: WorkflowTemplate
       name: ml-pipeline-template
-    patch: |-
-      - op: test
-        path: /spec/arguments/parameters/5/name
-        value: ecr-repository
-      - op: replace
-        path: /spec/arguments/parameters/5/value
-        value: AWS_ACCOUNT_ID.dkr.ecr.AWS_REGION.amazonaws.com/mlops-prod-inference
-
-replacements:
-  - source:
-      kind: ConfigMap
-      name: platform-config
-      fieldPath: data.AWS_ACCOUNT_ID
-    targets:
-      - select:
-          kind: WorkflowTemplate
-          name: model-training-template
-        fieldPaths:
-          - spec.templates.[name=feature-engineering-step].container.image
-          - spec.templates.[name=train-model-step].container.image
-          - spec.templates.[name=evaluate-model-step].container.image
-          - spec.templates.[name=register-model-step].container.image
-        options:
-          delimiter: "."
-          index: 0
-      - select:
-          kind: WorkflowTemplate
-          name: model-deployment-template
-        fieldPaths:
-          - spec.arguments.parameters.[name=ecr-repository].value
-        options:
-          delimiter: "."
-          index: 0
-      - select:
-          kind: WorkflowTemplate
-          name: ml-pipeline-template
-        fieldPaths:
-          - spec.arguments.parameters.[name=ecr-repository].value
-        options:
-          delimiter: "."
-          index: 0
-  - source:
-      kind: ConfigMap
-      name: platform-config
-      fieldPath: data.AWS_REGION
-    targets:
-      - select:
-          kind: WorkflowTemplate
-          name: model-training-template
-        fieldPaths:
-          - spec.templates.[name=feature-engineering-step].container.image
-          - spec.templates.[name=train-model-step].container.image
-          - spec.templates.[name=evaluate-model-step].container.image
-          - spec.templates.[name=register-model-step].container.image
-        options:
-          delimiter: "."
-          index: 3
-      - select:
-          kind: WorkflowTemplate
-          name: model-deployment-template
-        fieldPaths:
-          - spec.arguments.parameters.[name=ecr-repository].value
-        options:
-          delimiter: "."
-          index: 3
-      - select:
-          kind: WorkflowTemplate
-          name: ml-pipeline-template
-        fieldPaths:
-          - spec.arguments.parameters.[name=ecr-repository].value
-        options:
-          delimiter: "."
-          index: 3
-      - select:
-          kind: WorkflowTemplate
-        fieldPaths:
-          - spec.templates.*.container.env.[name=AWS_DEFAULT_REGION].value
-      - select:
-          kind: WorkflowTemplate
-          name: model-deployment-template
-        fieldPaths:
-          - spec.templates.[name=build-inference-image-step].initContainers.[name=registry-login].env.[name=AWS_DEFAULT_REGION].value
+    fieldPaths:
+    - spec.arguments.parameters.[name=ecr-repository].value
+    options:
+      delimiter: .
+      index: 0
+- source:
+    kind: ConfigMap
+    name: platform-config
+    fieldPath: data.AWS_REGION
+  targets:
+  - select:
+      kind: WorkflowTemplate
+      name: model-training-template
+    fieldPaths:
+    - spec.templates.[name=feature-engineering-step].container.image
+    - spec.templates.[name=train-model-step].container.image
+    - spec.templates.[name=evaluate-model-step].container.image
+    - spec.templates.[name=register-model-step].container.image
+    options:
+      delimiter: .
+      index: 3
+  - select:
+      kind: WorkflowTemplate
+      name: model-deployment-template
+    fieldPaths:
+    - spec.arguments.parameters.[name=ecr-repository].value
+    options:
+      delimiter: .
+      index: 3
+  - select:
+      kind: WorkflowTemplate
+      name: ml-pipeline-template
+    fieldPaths:
+    - spec.arguments.parameters.[name=ecr-repository].value
+    options:
+      delimiter: .
+      index: 3
+  - select:
+      kind: WorkflowTemplate
+    fieldPaths:
+    - spec.templates.*.container.env.[name=AWS_DEFAULT_REGION].value
+  - select:
+      kind: WorkflowTemplate
+      name: model-deployment-template
+    fieldPaths:
+    - spec.templates.[name=build-inference-image-step].initContainers.[name=registry-login].env.[name=AWS_DEFAULT_REGION].value
+- source:
+    kind: ConfigMap
+    name: platform-config
+    fieldPath: data.AWS_ACCOUNT_ID
+  targets:
+  - select:
+      kind: ServiceAccount
+      name: argo-workflow
+    fieldPaths:
+    - metadata.annotations.[eks.amazonaws.com/role-arn]
+    options:
+      delimiter: ':'
+      index: 4
+- source:
+    kind: ConfigMap
+    name: platform-resources
+    fieldPath: data.CURATED_BUCKET
+  targets:
+  - select:
+      kind: WorkflowTemplate
+      name: model-training-template
+    fieldPaths:
+    - spec.arguments.parameters.0.value
+    options:
+      delimiter: /
+      index: 2
+- source:
+    kind: ConfigMap
+    name: platform-resources
+    fieldPath: data.ARTIFACT_BUCKET
+  targets:
+  - select:
+      kind: WorkflowTemplate
+      name: model-training-template
+    fieldPaths:
+    - spec.arguments.parameters.1.value
+    options:
+      delimiter: /
+      index: 2
+- source:
+    kind: ConfigMap
+    name: platform-resources
+    fieldPath: data.ARTIFACT_BUCKET
+  targets:
+  - select:
+      kind: WorkflowTemplate
+      name: model-training-template
+    fieldPaths:
+    - spec.templates.0.inputs.parameters.4.value
+    options:
+      delimiter: /
+      index: 2
+- source:
+    kind: ConfigMap
+    name: platform-resources
+    fieldPath: data.CURATED_BUCKET
+  targets:
+  - select:
+      kind: WorkflowTemplate
+      name: ml-pipeline-template
+    fieldPaths:
+    - spec.templates.0.dag.tasks.0.arguments.parameters.2.value
+    options:
+      delimiter: /
+      index: 2
+- source:
+    kind: ConfigMap
+    name: platform-resources
+    fieldPath: data.CURATED_BUCKET
+  targets:
+  - select:
+      kind: WorkflowTemplate
+      name: ml-pipeline-template
+    fieldPaths:
+    - spec.templates.0.dag.tasks.1.arguments.parameters.0.value
+    options:
+      delimiter: /
+      index: 2
+- source:
+    kind: ConfigMap
+    name: platform-resources
+    fieldPath: data.CURATED_BUCKET
+  targets:
+  - select:
+      kind: WorkflowTemplate
+      name: model-retraining-template
+    fieldPaths:
+    - spec.arguments.parameters.2.value
+    options:
+      delimiter: /
+      index: 2
+- source:
+    kind: ConfigMap
+    name: platform-resources
+    fieldPath: data.CURATED_BUCKET
+  targets:
+  - select:
+      kind: WorkflowTemplate
+      name: data-validation-template
+    fieldPaths:
+    - spec.arguments.parameters.2.value
+    options:
+      delimiter: /
+      index: 2
+configMapGenerator:
+- name: platform-resources
+  literals:
+  - ARTIFACT_BUCKET=mlops-prod-model-artifacts-AWS_ACCOUNT_ID-AWS_REGION
+  - CURATED_BUCKET=mlops-prod-curated-data-AWS_ACCOUNT_ID-AWS_REGION
+  - BACKUP_BUCKET=mlops-prod-backups-AWS_ACCOUNT_ID-AWS_REGION
+  options:
+    disableNameSuffixHash: true
+    annotations:
+      config.kubernetes.io/local-config: 'true'

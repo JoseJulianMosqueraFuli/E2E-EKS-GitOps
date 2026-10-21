@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: platform-kustomize-plugin
+  namespace: argocd
+data:
+  plugin.yaml: |
+    apiVersion: argoproj.io/v1alpha1
+    kind: ConfigManagementPlugin
+    metadata:
+      name: platform-kustomize
+    spec:
+      generate:
+        command: [sh]
+        args: [../../../../../scripts/render-platform.sh]
+      discover:
+        fileName: kustomization.yaml

@@ -9,69 +9,221 @@ labels:
     environment: production
   includeSelectors: false
 patches:
-- patch: "- op: replace\n  path: /spec/replicas\n  value: 3\n"
+- patch: |
+    - op: replace
+      path: /spec/replicas
+      value: 3
   target:
     kind: Deployment
     name: mlflow-server
-- patch: "- op: replace\n  path: /spec/template/spec/containers/0/resources/requests/cpu\n\
-    \  value: 500m\n- op: replace\n  path: /spec/template/spec/containers/0/resources/requests/memory\n\
-    \  value: 1Gi\n- op: replace\n  path: /spec/template/spec/containers/0/resources/limits/cpu\n\
-    \  value: 2000m\n- op: replace\n  path: /spec/template/spec/containers/0/resources/limits/memory\n\
-    \  value: 2Gi\n"
+- patch: |
+    - op: replace
+      path: /spec/template/spec/containers/0/resources/requests/cpu
+      value: 500m
+    - op: replace
+      path: /spec/template/spec/containers/0/resources/requests/memory
+      value: 1Gi
+    - op: replace
+      path: /spec/template/spec/containers/0/resources/limits/cpu
+      value: 2000m
+    - op: replace
+      path: /spec/template/spec/containers/0/resources/limits/memory
+      value: 2Gi
   target:
     kind: Deployment
     name: mlflow-server
-- patch: "- op: replace\n  path: /data/artifact_root\n  value: s3://mlflow-artifacts-production\n\
-    - op: replace\n  path: /data/s3_endpoint_url\n  value: https://s3.AWS_REGION.amazonaws.com\n"
+- patch: |
+    - op: replace
+      path: /data/artifact_root
+      value: s3://mlflow-artifacts-production
+    - op: replace
+      path: /data/s3_endpoint_url
+      value: https://s3.AWS_REGION.amazonaws.com
   target:
     kind: ConfigMap
     name: mlflow-config
-- patch: "- op: replace\n  path: /spec/volumeClaimTemplates/0/spec/resources/requests/storage\n\
-    \  value: 100Gi\n- op: replace\n  path: /spec/template/spec/containers/0/resources/requests/cpu\n\
-    \  value: 1000m\n- op: replace\n  path: /spec/template/spec/containers/0/resources/requests/memory\n\
-    \  value: 2Gi\n- op: replace\n  path: /spec/template/spec/containers/0/resources/limits/cpu\n\
-    \  value: 2000m\n- op: replace\n  path: /spec/template/spec/containers/0/resources/limits/memory\n\
-    \  value: 4Gi\n"
+- patch: |
+    - op: replace
+      path: /spec/volumeClaimTemplates/0/spec/resources/requests/storage
+      value: 100Gi
+    - op: replace
+      path: /spec/template/spec/containers/0/resources/requests/cpu
+      value: 1000m
+    - op: replace
+      path: /spec/template/spec/containers/0/resources/requests/memory
+      value: 2Gi
+    - op: replace
+      path: /spec/template/spec/containers/0/resources/limits/cpu
+      value: 2000m
+    - op: replace
+      path: /spec/template/spec/containers/0/resources/limits/memory
+      value: 4Gi
   target:
     kind: StatefulSet
     name: mlflow-postgresql
-- patch: "- op: replace\n  path: /spec/resources/requests/storage\n  value: 200Gi\n"
+- patch: |
+    - op: replace
+      path: /spec/resources/requests/storage
+      value: 200Gi
   target:
     kind: PersistentVolumeClaim
     name: mlflow-minio-pvc
-- patch: "- op: replace\n  path: /spec/template/spec/containers/0/resources/requests/cpu\n\
-    \  value: 500m\n- op: replace\n  path: /spec/template/spec/containers/0/resources/requests/memory\n\
-    \  value: 1Gi\n- op: replace\n  path: /spec/template/spec/containers/0/resources/limits/cpu\n\
-    \  value: 2000m\n- op: replace\n  path: /spec/template/spec/containers/0/resources/limits/memory\n\
-    \  value: 2Gi\n"
+- patch: |
+    - op: replace
+      path: /spec/template/spec/containers/0/resources/requests/cpu
+      value: 500m
+    - op: replace
+      path: /spec/template/spec/containers/0/resources/requests/memory
+      value: 1Gi
+    - op: replace
+      path: /spec/template/spec/containers/0/resources/limits/cpu
+      value: 2000m
+    - op: replace
+      path: /spec/template/spec/containers/0/resources/limits/memory
+      value: 2Gi
   target:
     kind: Deployment
     name: mlflow-minio
-- patch: "- op: replace\n  path: /spec/refreshInterval\n  value: 30m\n- op: replace\n\
-    \  path: /spec/data/0/remoteRef/key\n  value: mlops/production/mlflow/database\n\
-    - op: replace\n  path: /spec/data/1/remoteRef/key\n  value: mlops/production/mlflow/database\n\
-    - op: replace\n  path: /spec/data/2/remoteRef/key\n  value: mlops/production/mlflow/database\n"
+- patch: |
+    - op: replace
+      path: /spec/refreshInterval
+      value: 30m
+    - op: replace
+      path: /spec/data/0/remoteRef/key
+      value: mlops/production/mlflow/database
+    - op: replace
+      path: /spec/data/1/remoteRef/key
+      value: mlops/production/mlflow/database
+    - op: replace
+      path: /spec/data/2/remoteRef/key
+      value: mlops/production/mlflow/database
   target:
     kind: ExternalSecret
     name: mlflow-secrets
-- patch: "- op: replace\n  path: /spec/refreshInterval\n  value: 30m\n- op: replace\n\
-    \  path: /spec/data/0/remoteRef/key\n  value: mlops/production/mlflow/s3\n- op:\
-    \ replace\n  path: /spec/data/1/remoteRef/key\n  value: mlops/production/mlflow/s3\n"
+- patch: |
+    - op: replace
+      path: /spec/refreshInterval
+      value: 30m
+    - op: replace
+      path: /spec/data/0/remoteRef/key
+      value: mlops/production/mlflow/s3
+    - op: replace
+      path: /spec/data/1/remoteRef/key
+      value: mlops/production/mlflow/s3
   target:
     kind: ExternalSecret
     name: mlflow-minio-secrets
-- patch: "- op: replace\n  path: /spec/target/template/data/backend_store_uri\n  value:\
-    \ \"postgresql://{{ .username | urlquery }}:{{ .password | urlquery }}@prod-mlflow-postgresql:5432/{{\
-    \ .database | urlquery }}\"\n"
+- patch: |
+    - op: replace
+      path: /spec/target/template/data/backend_store_uri
+      value: "postgresql://{{ .username | urlquery }}:{{ .password | urlquery }}@prod-mlflow-postgresql:5432/{{ .database | urlquery }}"
   target:
     kind: ExternalSecret
     name: mlflow-secrets
+- target:
+    kind: ServiceAccount
+    name: mlflow
+  patch: |
+    apiVersion: v1
+    kind: ServiceAccount
+    metadata:
+      name: mlflow
+      annotations:
+        eks.amazonaws.com/role-arn: arn:aws:iam::AWS_ACCOUNT_ID:role/mlops-prod-mlflow
+- target:
+    kind: ServiceAccount
+    name: mlflow-backup-sa
+  patch: |
+    apiVersion: v1
+    kind: ServiceAccount
+    metadata:
+      name: mlflow-backup-sa
+      annotations:
+        eks.amazonaws.com/role-arn: arn:aws:iam::AWS_ACCOUNT_ID:role/mlops-prod-backup
 images:
 - name: mlflow-server
   newName: AWS_ACCOUNT_ID.dkr.ecr.AWS_REGION.amazonaws.com/mlops-prod-mlflow-server
 - name: mlops-platform
   newName: AWS_ACCOUNT_ID.dkr.ecr.AWS_REGION.amazonaws.com/mlops-prod-trainer
 replacements:
+- source:
+    kind: ConfigMap
+    name: platform-config
+    fieldPath: data.AWS_ACCOUNT_ID
+  targets:
+  - select:
+      kind: ConfigMap
+      name: platform-resources
+    fieldPaths:
+    - data.ARTIFACT_BUCKET
+    options:
+      delimiter: '-'
+      index: 4
+- source:
+    kind: ConfigMap
+    name: platform-config
+    fieldPath: data.AWS_REGION
+  targets:
+  - select:
+      kind: ConfigMap
+      name: platform-resources
+    fieldPaths:
+    - data.ARTIFACT_BUCKET
+    options:
+      delimiter: '-'
+      index: 5
+- source:
+    kind: ConfigMap
+    name: platform-config
+    fieldPath: data.AWS_ACCOUNT_ID
+  targets:
+  - select:
+      kind: ConfigMap
+      name: platform-resources
+    fieldPaths:
+    - data.CURATED_BUCKET
+    options:
+      delimiter: '-'
+      index: 4
+- source:
+    kind: ConfigMap
+    name: platform-config
+    fieldPath: data.AWS_REGION
+  targets:
+  - select:
+      kind: ConfigMap
+      name: platform-resources
+    fieldPaths:
+    - data.CURATED_BUCKET
+    options:
+      delimiter: '-'
+      index: 5
+- source:
+    kind: ConfigMap
+    name: platform-config
+    fieldPath: data.AWS_ACCOUNT_ID
+  targets:
+  - select:
+      kind: ConfigMap
+      name: platform-resources
+    fieldPaths:
+    - data.BACKUP_BUCKET
+    options:
+      delimiter: '-'
+      index: 3
+- source:
+    kind: ConfigMap
+    name: platform-config
+    fieldPath: data.AWS_REGION
+  targets:
+  - select:
+      kind: ConfigMap
+      name: platform-resources
+    fieldPaths:
+    - data.BACKUP_BUCKET
+    options:
+      delimiter: '-'
+      index: 4
 - source:
     kind: ConfigMap
     name: platform-config
@@ -137,3 +289,36 @@ replacements:
     options:
       delimiter: .
       index: 3
+- source:
+    kind: ConfigMap
+    name: platform-resources
+    fieldPath: data.BACKUP_BUCKET
+  targets:
+  - select:
+      kind: CronJob
+      name: postgres-backup
+    fieldPaths:
+    - spec.jobTemplate.spec.template.spec.containers.[name=postgres-backup].env.[name=S3_BACKUP_BUCKET].value
+- source:
+    kind: ConfigMap
+    name: platform-resources
+    fieldPath: data.ARTIFACT_BUCKET
+  targets:
+  - select:
+      kind: ConfigMap
+      name: mlflow-config
+    fieldPaths:
+    - data.artifact_root
+    options:
+      delimiter: /
+      index: 2
+configMapGenerator:
+- name: platform-resources
+  literals:
+  - ARTIFACT_BUCKET=mlops-prod-model-artifacts-AWS_ACCOUNT_ID-AWS_REGION
+  - CURATED_BUCKET=mlops-prod-curated-data-AWS_ACCOUNT_ID-AWS_REGION
+  - BACKUP_BUCKET=mlops-prod-backups-AWS_ACCOUNT_ID-AWS_REGION
+  options:
+    disableNameSuffixHash: true
+    annotations:
+      config.kubernetes.io/local-config: 'true'

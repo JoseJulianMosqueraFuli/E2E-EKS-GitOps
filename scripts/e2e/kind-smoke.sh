@@ -118,7 +118,7 @@ spec:
           import pandas as pd
           from sklearn.datasets import make_classification
           s3 = boto3.client("s3")
-          for bucket in ("mlflow-artifacts-dev", "mlops-curated-data", "mlops-artifacts-bucket"):
+          for bucket in ("mlflow-artifacts-dev", "mlops-curated-data", "mlops-artifacts-bucket", "mlops-dev-model-artifacts-${AWS_ACCOUNT_ID}-${AWS_REGION}"):
               try:
                   s3.create_bucket(Bucket=bucket)
               except s3.exceptions.BucketAlreadyOwnedByYou:
