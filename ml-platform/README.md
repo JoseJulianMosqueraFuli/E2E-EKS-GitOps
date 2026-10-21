@@ -30,6 +30,13 @@ version of each dependency, including Feast's Tenacity requirement.
 MLflow models use the `skops` serialization format. Logging allows only the internal
 `sklearn.tree._tree.Tree` type needed by the models fitted in this process; arbitrary types discovered in
 external artifacts are not automatically trusted.
+
+Keep the MLflow server image and deployment tags aligned with the client version in `poetry.lock`.
+`MLFLOW_TRACKING_URI` must point to the tracking server root URL, without an `/api/2.0` suffix.
+The training CLI writes `model-uri.txt` and `run-id.txt` only after model logging succeeds. If Argo
+reports missing output files, inspect the preceding training exception: the previous client 3.17.1 /
+server 2.22.5 mismatch returned 404 on `/api/2.0/mlflow/logged-models`. Both now use 3.17.1.
+
 Feast uses entity-key serialization version 3. Existing local SQLite snapshots contain older keys and
 timestamp storage: back them up and rematerialize current validated source data into a new online
 database before switching. Updating the YAML alone does not migrate stored data. The tests create fresh

@@ -7,9 +7,9 @@ Para detalles técnicos de issues CRÍTICOS y ALTOS (CVSS, fix concreto), ver: [
 
 ---
 
-## Revision operativa — 2026-10-20
+## Revision operativa — 2026-10-21
 
-**Se corrigieron los bloqueos de implementacion de Chaos y varios contratos del despliegue. Falta ejecutar la nueva cobertura de CI y validar el entorno AWS real.** No se aplico Terraform ni se inyectaron fallos en EKS.
+**Se corrigieron los bloqueos de implementacion de Chaos y varios contratos del despliegue. CI Pipeline ya pasa; falta confirmar el E2E de backup/Chaos y validar el entorno AWS real.** No se aplico Terraform ni se inyectaron fallos en EKS.
 
 ### Correcciones implementadas
 
@@ -22,14 +22,23 @@ Para detalles técnicos de issues CRÍTICOS y ALTOS (CVSS, fix concreto), ver: [
 - Eliminadas las imagenes inexistentes de validacion, deployment y notificacion del pipeline principal. Monitoring usa dependencias bloqueadas y una imagen versionada. El despliegue KServe requiere todavia prueba real.
 - Cliente y servidor MLflow alineados en 3.17.1; hosts internos permitidos explicitamente y modelos guardados con `skops`, autorizando solo el tipo interno de arboles entrenados. El lock actualizado elimina versiones simultaneas incompatibles de SQLAlchemy y Tenacity. Una base existente requiere backup y migracion de esquema antes del upgrade.
 - Feast actualizado a serializacion de claves v3. Sus pruebas usan datos recientes en almacenes temporales y verifican valores; los errores ya no se convierten en omisiones. Los snapshots SQLite antiguos necesitan rematerializacion en una base nueva antes de usarlos con la version actual.
+- La etapa `test` del Dockerfile incluye `feature_store.yaml` y `feature_definitions.py`; el filtro del contexto permite ambos archivos. Sin ellos, las siete pruebas con definiciones de Feast fallaban con `FileNotFoundError`. Los datos de prueba se generan en directorios temporales.
+
+### Evidencia en GitHub Actions
+
+- [CI Pipeline #127](https://github.com/JoseJulianMosqueraFuli/E2E-EKS-GitOps/actions/runs/39692710670), commit `25f0683`, aprobado el 2026-10-21: Kubernetes Validate, ML Platform Tests, Terraform Validate en tres entornos, Helm Lint, MLOps Stack Validation y Security Scan. Terraform Tests contra AWS no se ejecutaron.
+- El [build de imagen de `25f0683`](https://github.com/JoseJulianMosqueraFuli/E2E-EKS-GitOps/actions/runs/39692711347) fallo en la etapa de tests. La correccion del contexto de Feast esta en `104e203`; falta verificar un build que incluya ese commit.
+- El [E2E anterior](https://github.com/JoseJulianMosqueraFuli/E2E-EKS-GitOps/actions/runs/39523282574), commit `f9da9d6`, tenia cliente MLflow 3.17.1 y servidor 2.22.5. El endpoint `/api/2.0/mlflow/logged-models` devolvia 404 y el entrenamiento no producia `model-uri.txt`/`run-id.txt`; backup y Chaos no llegaron a ejecutarse. El nuevo E2E y el build con la correccion del contexto de Feast siguen pendientes de confirmacion.
 
 ### Evidencia local
 
 - 417 pruebas GitOps aprobadas con el lock actual, incluidas las 32 de Chaos, el bootstrap del backend y la paridad de versiones cliente/servidor MLflow; siete pruebas que requieren cluster excluidas por `-m "not integration"`.
 - Instalacion limpia `poetry install --with test,dev` aprobada con Python 3.12 y Poetry 2.5.1; lock validado y 64 paquetes instalados compatibles. Flake8 y Black aprobados sobre los 46 archivos de `ml-platform/src/` y `ml-platform/tests/`.
-- Suite ML con MLflow 3.17.1/NumPy 2: 178 aprobadas y dos omisiones de Feast detectadas. Tras corregir Feast, sus 12 pruebas pasaron sin omisiones, incluidas esas dos: los 180 casos quedan comprobados entre ambas ejecuciones. Se retiro un `xfail` obsoleto de configuracion.
+- Suite ML con MLflow 3.17.1/NumPy 2: 180 pruebas aprobadas en una sola ejecucion con Python 3.12 y el conjunto de archivos copiados por la etapa Docker `test`, sin omisiones ni `xfail`. Esto verifica el contexto de pruebas; la construccion del contenedor con Python 3.11 se comprueba por separado.
+- Contexto exportado con Docker: las reglas incluyen las dos definiciones Feast exactas y excluyen las bases locales. El build completo local se detuvo durante la descarga de la imagen base; no cuenta como una ejecucion aprobada de los tests en contenedor.
 - 30 overlays autorizados por el AppProject; seis overlays Argo/MLflow sin placeholders; render del plugin desde un checkout sin `aws.env`; lint offline de Argo aprobado.
 - MLflow 3.17.1 probado por HTTP con SQLite temporal: canario de parametro/artefacto conservado y hosts no autorizados rechazados. Las 190 dependencias instaladas pasaron la comprobacion de compatibilidad.
+- Entrenamiento `src.cli step train` verificado contra un servidor HTTP MLflow 3.17.1: `POST /api/2.0/mlflow/logged-models` responde 200, ambos outputs de Argo se crean con valores validos, el modelo se recarga y predice, y el registro con alias `champion` funciona. El overlay kind renderizado usa la misma version. Esta prueba usa SQLite y almacenamiento temporal, no sustituye el E2E de Kubernetes/PostgreSQL/S3.
 - Terraform dev/staging/prod validado sin backend ni llamadas de aprovisionamiento. `make test-terraform-plan` valida; no genera un plan real. Las pruebas de cluster siguen excluidas localmente.
 
 ### Orden de cierre operativo
