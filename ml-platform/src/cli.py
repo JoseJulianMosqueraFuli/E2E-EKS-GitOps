@@ -268,5 +268,25 @@ def step_register_cmd(model_uri, model_name, alias, outputs_dir):
     click.echo(f"version={version}")
 
 
+@step.command("backup-db")
+@click.option("--bucket", required=True, envvar="S3_BACKUP_BUCKET")
+@click.option("--prefix", default="mlflow-backups")
+def step_backup_db_cmd(bucket, prefix):
+    from src.pipelines.database_backup import backup_database
+
+    click.echo(backup_database(bucket, prefix))
+
+
+@step.command("restore-db")
+@click.option("--bucket", required=True, envvar="S3_BACKUP_BUCKET")
+@click.option("--key", required=True)
+@click.option("--database", required=True)
+def step_restore_db_cmd(bucket, key, database):
+    from src.pipelines.database_backup import restore_database
+
+    restore_database(bucket, key, database)
+    click.echo("Backup restored and checksum verified")
+
+
 if __name__ == "__main__":
     main()

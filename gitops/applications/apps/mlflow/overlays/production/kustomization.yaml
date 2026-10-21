@@ -1,187 +1,139 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
-
 resources:
-  - ../../base
-  - ../../../../../platform
-
+- ../../base
+- ../../../../../platform
 namePrefix: prod-
-
 labels:
-  - pairs:
-      environment: production
-    includeSelectors: false
-
+- pairs:
+    environment: production
+  includeSelectors: false
 patches:
-  # MLflow server: 3 replicas with production resources
-  - patch: |
-      - op: replace
-        path: /spec/replicas
-        value: 3
-    target:
+- patch: "- op: replace\n  path: /spec/replicas\n  value: 3\n"
+  target:
+    kind: Deployment
+    name: mlflow-server
+- patch: "- op: replace\n  path: /spec/template/spec/containers/0/resources/requests/cpu\n\
+    \  value: 500m\n- op: replace\n  path: /spec/template/spec/containers/0/resources/requests/memory\n\
+    \  value: 1Gi\n- op: replace\n  path: /spec/template/spec/containers/0/resources/limits/cpu\n\
+    \  value: 2000m\n- op: replace\n  path: /spec/template/spec/containers/0/resources/limits/memory\n\
+    \  value: 2Gi\n"
+  target:
+    kind: Deployment
+    name: mlflow-server
+- patch: "- op: replace\n  path: /data/artifact_root\n  value: s3://mlflow-artifacts-production\n\
+    - op: replace\n  path: /data/s3_endpoint_url\n  value: https://s3.AWS_REGION.amazonaws.com\n"
+  target:
+    kind: ConfigMap
+    name: mlflow-config
+- patch: "- op: replace\n  path: /spec/volumeClaimTemplates/0/spec/resources/requests/storage\n\
+    \  value: 100Gi\n- op: replace\n  path: /spec/template/spec/containers/0/resources/requests/cpu\n\
+    \  value: 1000m\n- op: replace\n  path: /spec/template/spec/containers/0/resources/requests/memory\n\
+    \  value: 2Gi\n- op: replace\n  path: /spec/template/spec/containers/0/resources/limits/cpu\n\
+    \  value: 2000m\n- op: replace\n  path: /spec/template/spec/containers/0/resources/limits/memory\n\
+    \  value: 4Gi\n"
+  target:
+    kind: StatefulSet
+    name: mlflow-postgresql
+- patch: "- op: replace\n  path: /spec/resources/requests/storage\n  value: 200Gi\n"
+  target:
+    kind: PersistentVolumeClaim
+    name: mlflow-minio-pvc
+- patch: "- op: replace\n  path: /spec/template/spec/containers/0/resources/requests/cpu\n\
+    \  value: 500m\n- op: replace\n  path: /spec/template/spec/containers/0/resources/requests/memory\n\
+    \  value: 1Gi\n- op: replace\n  path: /spec/template/spec/containers/0/resources/limits/cpu\n\
+    \  value: 2000m\n- op: replace\n  path: /spec/template/spec/containers/0/resources/limits/memory\n\
+    \  value: 2Gi\n"
+  target:
+    kind: Deployment
+    name: mlflow-minio
+- patch: "- op: replace\n  path: /spec/refreshInterval\n  value: 30m\n- op: replace\n\
+    \  path: /spec/data/0/remoteRef/key\n  value: mlops/production/mlflow/database\n\
+    - op: replace\n  path: /spec/data/1/remoteRef/key\n  value: mlops/production/mlflow/database\n\
+    - op: replace\n  path: /spec/data/2/remoteRef/key\n  value: mlops/production/mlflow/database\n"
+  target:
+    kind: ExternalSecret
+    name: mlflow-secrets
+- patch: "- op: replace\n  path: /spec/refreshInterval\n  value: 30m\n- op: replace\n\
+    \  path: /spec/data/0/remoteRef/key\n  value: mlops/production/mlflow/s3\n- op:\
+    \ replace\n  path: /spec/data/1/remoteRef/key\n  value: mlops/production/mlflow/s3\n"
+  target:
+    kind: ExternalSecret
+    name: mlflow-minio-secrets
+- patch: "- op: replace\n  path: /spec/target/template/data/backend_store_uri\n  value:\
+    \ \"postgresql://{{ .username | urlquery }}:{{ .password | urlquery }}@prod-mlflow-postgresql:5432/{{\
+    \ .database | urlquery }}\"\n"
+  target:
+    kind: ExternalSecret
+    name: mlflow-secrets
+images:
+- name: mlflow-server
+  newName: AWS_ACCOUNT_ID.dkr.ecr.AWS_REGION.amazonaws.com/mlops-prod-mlflow-server
+- name: mlops-platform
+  newName: AWS_ACCOUNT_ID.dkr.ecr.AWS_REGION.amazonaws.com/mlops-prod-trainer
+replacements:
+- source:
+    kind: ConfigMap
+    name: platform-config
+    fieldPath: data.AWS_ACCOUNT_ID
+  targets:
+  - select:
       kind: Deployment
       name: mlflow-server
-  - patch: |
-      - op: replace
-        path: /spec/template/spec/containers/0/resources/requests/cpu
-        value: 500m
-      - op: replace
-        path: /spec/template/spec/containers/0/resources/requests/memory
-        value: 1Gi
-      - op: replace
-        path: /spec/template/spec/containers/0/resources/limits/cpu
-        value: 2000m
-      - op: replace
-        path: /spec/template/spec/containers/0/resources/limits/memory
-        value: 2Gi
-    target:
+    fieldPaths:
+    - spec.template.spec.containers.[name=mlflow].image
+    options:
+      delimiter: .
+      index: 0
+  - select:
+      kind: ServiceAccount
+    fieldPaths:
+    - metadata.annotations.[eks.amazonaws.com/role-arn]
+    options:
+      delimiter: ':'
+      index: 4
+  - select:
+      kind: CronJob
+      name: postgres-backup
+    fieldPaths:
+    - spec.jobTemplate.spec.template.spec.containers.[name=postgres-backup].image
+    options:
+      delimiter: .
+      index: 0
+- source:
+    kind: ConfigMap
+    name: platform-config
+    fieldPath: data.AWS_REGION
+  targets:
+  - select:
       kind: Deployment
       name: mlflow-server
-  # Production: use real S3 instead of MinIO
-  - patch: |
-      - op: replace
-        path: /data/artifact_root
-        value: s3://mlflow-artifacts-production
-      - op: replace
-        path: /data/s3_endpoint_url
-        value: https://s3.AWS_REGION.amazonaws.com
-    target:
+    fieldPaths:
+    - spec.template.spec.containers.[name=mlflow].image
+    options:
+      delimiter: .
+      index: 3
+  - select:
+      kind: SecretStore
+    fieldPaths:
+    - spec.provider.aws.region
+  - select:
+      kind: CronJob
+    fieldPaths:
+    - spec.jobTemplate.spec.template.spec.containers.[name=postgres-backup].env.[name=AWS_DEFAULT_REGION].value
+  - select:
       kind: ConfigMap
       name: mlflow-config
-  # Production PostgreSQL: higher resources and storage
-  - patch: |
-      - op: replace
-        path: /spec/volumeClaimTemplates/0/spec/resources/requests/storage
-        value: 100Gi
-      - op: replace
-        path: /spec/template/spec/containers/0/resources/requests/cpu
-        value: 1000m
-      - op: replace
-        path: /spec/template/spec/containers/0/resources/requests/memory
-        value: 2Gi
-      - op: replace
-        path: /spec/template/spec/containers/0/resources/limits/cpu
-        value: 2000m
-      - op: replace
-        path: /spec/template/spec/containers/0/resources/limits/memory
-        value: 4Gi
-    target:
-      kind: StatefulSet
-      name: mlflow-postgresql
-  # Production MinIO: higher resources and storage
-  - patch: |
-      - op: replace
-        path: /spec/resources/requests/storage
-        value: 200Gi
-    target:
-      kind: PersistentVolumeClaim
-      name: mlflow-minio-pvc
-  - patch: |
-      - op: replace
-        path: /spec/template/spec/containers/0/resources/requests/cpu
-        value: 500m
-      - op: replace
-        path: /spec/template/spec/containers/0/resources/requests/memory
-        value: 1Gi
-      - op: replace
-        path: /spec/template/spec/containers/0/resources/limits/cpu
-        value: 2000m
-      - op: replace
-        path: /spec/template/spec/containers/0/resources/limits/memory
-        value: 2Gi
-    target:
-      kind: Deployment
-      name: mlflow-minio
-  # Production ExternalSecret: use production secret path with shorter refresh
-  - patch: |
-      - op: replace
-        path: /spec/refreshInterval
-        value: 30m
-      - op: replace
-        path: /spec/data/0/remoteRef/key
-        value: mlops/production/mlflow/database
-      - op: replace
-        path: /spec/data/1/remoteRef/key
-        value: mlops/production/mlflow/database
-      - op: replace
-        path: /spec/data/2/remoteRef/key
-        value: mlops/production/mlflow/database
-    target:
-      kind: ExternalSecret
-      name: mlflow-secrets
-  - patch: |
-      - op: replace
-        path: /spec/refreshInterval
-        value: 30m
-      - op: replace
-        path: /spec/data/0/remoteRef/key
-        value: mlops/production/mlflow/s3
-      - op: replace
-        path: /spec/data/1/remoteRef/key
-        value: mlops/production/mlflow/s3
-    target:
-      kind: ExternalSecret
-      name: mlflow-minio-secrets
-
-  - patch: |
-      - op: replace
-        path: /spec/target/template/data/backend_store_uri
-        value: "postgresql://{{ .username | urlquery }}:{{ .password | urlquery }}@prod-mlflow-postgresql:5432/{{ .database | urlquery }}"
-    target:
-      kind: ExternalSecret
-      name: mlflow-secrets
-
-images:
-  - name: mlflow-server
-    newName: AWS_ACCOUNT_ID.dkr.ecr.AWS_REGION.amazonaws.com/mlops-prod-mlflow-server
-
-replacements:
-  - source:
-      kind: ConfigMap
-      name: platform-config
-      fieldPath: data.AWS_ACCOUNT_ID
-    targets:
-      - select:
-          kind: Deployment
-          name: mlflow-server
-        fieldPaths:
-          - spec.template.spec.containers.[name=mlflow].image
-        options:
-          delimiter: "."
-          index: 0
-      - select:
-          kind: ServiceAccount
-        fieldPaths:
-          - metadata.annotations.[eks.amazonaws.com/role-arn]
-        options:
-          delimiter: ":"
-          index: 4
-  - source:
-      kind: ConfigMap
-      name: platform-config
-      fieldPath: data.AWS_REGION
-    targets:
-      - select:
-          kind: Deployment
-          name: mlflow-server
-        fieldPaths:
-          - spec.template.spec.containers.[name=mlflow].image
-        options:
-          delimiter: "."
-          index: 3
-      - select:
-          kind: SecretStore
-        fieldPaths:
-          - spec.provider.aws.region
-      - select:
-          kind: CronJob
-        fieldPaths:
-          - spec.jobTemplate.spec.template.spec.containers.[name=postgres-backup].env.[name=AWS_DEFAULT_REGION].value
-      - select:
-          kind: ConfigMap
-          name: mlflow-config
-        fieldPaths:
-          - data.s3_endpoint_url
-        options:
-          delimiter: "."
-          index: 1
+    fieldPaths:
+    - data.s3_endpoint_url
+    options:
+      delimiter: .
+      index: 1
+  - select:
+      kind: CronJob
+      name: postgres-backup
+    fieldPaths:
+    - spec.jobTemplate.spec.template.spec.containers.[name=postgres-backup].image
+    options:
+      delimiter: .
+      index: 3
