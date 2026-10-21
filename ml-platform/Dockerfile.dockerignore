@@ -4,6 +4,10 @@
 !README.md
 !src
 !tests
+!feature_repo
+feature_repo/**
+!feature_repo/feature_store.yaml
+!feature_repo/feature_definitions.py
 **/__pycache__
 **/*.pyc
 **/*.egg-info

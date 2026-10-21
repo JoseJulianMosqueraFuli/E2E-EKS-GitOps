@@ -60,7 +60,7 @@ with IRSA. Implementation: `src/pipelines/steps.py`; tests: `tests/test_steps.py
 
 | File | Image | Notes |
 |------|-------|-------|
-| `Dockerfile` | `mlops-platform` | Stages `builder` (core deps from `poetry.lock`), `test` (all extras + pytest), `runtime` (non-root UID 8737, read-only root filesystem compatible) |
+| `Dockerfile` | `mlops-platform` | Stages `builder` (core deps from `poetry.lock`), `test` (all extras + pytest, including Feast definitions and temporary test data), `runtime` (non-root UID 8737, read-only root filesystem compatible) |
 | `Dockerfile.mlflow-server` | `mlflow-server` | MLflow 3.17.1 + psycopg2 + boto3, UID 1000; matches the locked client |
 | `Dockerfile.monitoring` | monitoring service | Monitoring extra from `poetry.lock`, UID 8737, import and HTTP health checks |
 

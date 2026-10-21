@@ -27,6 +27,7 @@ FROM builder AS test
 RUN /opt/poetry/bin/poetry install --no-root -E dev
 COPY src ./src
 COPY tests ./tests
+COPY feature_repo/feature_store.yaml feature_repo/feature_definitions.py ./feature_repo/
 RUN python -m pytest tests -q -p no:cacheprovider
 
 FROM base AS runtime
