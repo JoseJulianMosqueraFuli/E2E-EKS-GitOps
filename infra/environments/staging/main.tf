@@ -125,7 +125,7 @@ module "s3" {
 
   buckets = {
     raw_data = {
-      name               = "${local.name_prefix}-raw-data"
+      name               = "${local.name_prefix}-raw-data-${data.aws_caller_identity.current.account_id}-${var.aws_region}"
       versioning_enabled = true
       force_destroy      = false
       tags               = { Purpose = "raw-data-storage" }
@@ -148,7 +148,7 @@ module "s3" {
     }
 
     curated_data = {
-      name               = "${local.name_prefix}-curated-data"
+      name               = "${local.name_prefix}-curated-data-${data.aws_caller_identity.current.account_id}-${var.aws_region}"
       versioning_enabled = true
       force_destroy      = false
       tags               = { Purpose = "curated-data-storage" }
@@ -166,8 +166,14 @@ module "s3" {
       ]
     }
 
+    backups = {
+      name               = "${local.name_prefix}-backups-${data.aws_caller_identity.current.account_id}-${var.aws_region}"
+      versioning_enabled = true
+      force_destroy      = false
+      tags               = { Purpose = "database-backups" }
+    }
     model_artifacts = {
-      name               = "${local.name_prefix}-model-artifacts"
+      name               = "${local.name_prefix}-model-artifacts-${data.aws_caller_identity.current.account_id}-${var.aws_region}"
       versioning_enabled = true
       force_destroy      = false
       tags               = { Purpose = "model-storage" }
@@ -227,11 +233,11 @@ module "glue" {
 
   databases = {
     mlops_raw = {
-      name        = "${local.name_prefix}-raw-data"
+      name        = "${local.name_prefix}-raw-data-${data.aws_caller_identity.current.account_id}-${var.aws_region}"
       description = "Raw data catalog for MLOps pipeline"
     }
     mlops_curated = {
-      name        = "${local.name_prefix}-curated-data"
+      name        = "${local.name_prefix}-curated-data-${data.aws_caller_identity.current.account_id}-${var.aws_region}"
       description = "Curated data catalog for MLOps pipeline"
     }
     mlops_features = {
@@ -243,7 +249,7 @@ module "glue" {
   tables = {
     raw_training_data = {
       name          = "training_data"
-      database_name = "${local.name_prefix}-raw-data"
+      database_name = "${local.name_prefix}-raw-data-${data.aws_caller_identity.current.account_id}-${var.aws_region}"
       description   = "Raw training data table"
       table_type    = "EXTERNAL_TABLE"
       storage_descriptor = {
@@ -277,7 +283,7 @@ module "glue" {
   crawlers = {
     raw_data_crawler = {
       name          = "${local.name_prefix}-raw-data-crawler"
-      database_name = "${local.name_prefix}-raw-data"
+      database_name = "${local.name_prefix}-raw-data-${data.aws_caller_identity.current.account_id}-${var.aws_region}"
       description   = "Crawler for raw ML data"
       schedule      = "cron(0 2 * * ? *)" # Daily at 2 AM
       s3_targets = [
@@ -293,7 +299,7 @@ module "glue" {
     }
     curated_data_crawler = {
       name          = "${local.name_prefix}-curated-data-crawler"
-      database_name = "${local.name_prefix}-curated-data"
+      database_name = "${local.name_prefix}-curated-data-${data.aws_caller_identity.current.account_id}-${var.aws_region}"
       description   = "Crawler for curated ML data"
       schedule      = "cron(0 3 * * ? *)" # Daily at 3 AM
       s3_targets = [
@@ -325,7 +331,7 @@ module "glue" {
         ]
       EOT
       target_table = {
-        database_name = "${local.name_prefix}-raw-data"
+        database_name = "${local.name_prefix}-raw-data-${data.aws_caller_identity.current.account_id}-${var.aws_region}"
         table_name    = "training_data"
       }
       tags = { Purpose = "data-quality-validation" }
@@ -343,3 +349,14 @@ module "glue" {
 
 # Data sources
 data "aws_caller_identity" "current" {}
+module "workload_identity" {
+  source                   = "../../modules/workload-identity"
+  name_prefix              = local.name_prefix
+  environment              = "staging"
+  oidc_provider_arn        = module.eks.oidc_provider_arn
+  oidc_provider_url        = module.eks.oidc_provider_url
+  bucket_arns              = module.s3.bucket_arns
+  kms_key_arn              = aws_kms_key.main.arn
+  inference_repository_arn = module.ecr.repository_arns["inference"]
+  tags                     = local.common_tags
+}
