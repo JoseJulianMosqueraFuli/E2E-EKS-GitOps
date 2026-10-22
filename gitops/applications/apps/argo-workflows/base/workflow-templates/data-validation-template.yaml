@@ -34,6 +34,7 @@ spec:
     outputs:
       parameters:
       - name: validated-data
+        globalName: validated-data
         valueFrom:
           path: /tmp/validated-data.txt
       - name: validation-report

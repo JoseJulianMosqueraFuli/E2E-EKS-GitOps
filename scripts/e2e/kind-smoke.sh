@@ -236,7 +236,7 @@ EOF
 )"
 wait_workflow "$VALIDATION_WF"
 VALIDATED_DATA_PATH="$(kc -n argo-workflows get "$VALIDATION_WF" -o jsonpath='{.status.outputs.parameters[?(@.name=="validated-data")].value}')"
-case "$VALIDATED_DATA_PATH" in s3://mlops-curated-data/validated/*/data.parquet) ;; *) echo "Missing validated dataset URI" >&2; exit 1 ;; esac
+case "$VALIDATED_DATA_PATH" in s3://mlops-curated-data/validated/*/data.parquet) ;; *) log "Missing validated dataset URI (got '${VALIDATED_DATA_PATH}')"; exit 1 ;; esac
 
 log "Run 1: first model must be approved and registered as champion"
 WF1="$(submit_training 0.0)"
