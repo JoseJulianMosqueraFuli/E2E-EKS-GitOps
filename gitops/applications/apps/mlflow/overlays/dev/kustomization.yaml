@@ -14,7 +14,7 @@ patches:
     kind: Deployment
     name: mlflow-server
 - patch: "- op: replace\n  path: /data/artifact_root\n  value: s3://mlflow-artifacts-dev\n\
-    - op: replace\n  path: /data/s3_endpoint_url\n  value: http://dev-mlflow-minio:9000\n"
+    - op: replace\n  path: /data/s3_endpoint_url\n  value: http://dev-mlflow-minio.mlflow.svc.cluster.local:9000\n"
   target:
     kind: ConfigMap
     name: mlflow-config
