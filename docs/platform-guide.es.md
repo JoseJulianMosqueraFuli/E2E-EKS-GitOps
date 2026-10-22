@@ -73,7 +73,7 @@ La plataforma conecta las siguientes etapas del ciclo de vida de ML en Kubernete
 |---|---|
 | Explorar el proyecto y ejecutar CI | Acceso a GitHub; el runner instala las herramientas necesarias |
 | Generar un plan inicial en AWS | Environment de GitHub, rol OIDC de planificación, `AWS_PLAN_ROLE_ARN` y `AWS_REGION`; ver [Terraform en CI](terraform-ci.md) |
-| Trabajar con Python (opcional) | Git, Python 3.10–3.12 y Poetry; instalar las dependencias del componente |
+| Trabajar con Python (opcional) | Git, Python 3.11–3.12 y Poetry; instalar las dependencias del componente |
 | Operar un entorno AWS existente | AWS CLI v2, sesión AWS autorizada, Terraform, kubectl, Kustomize, Helm y Make en el equipo de ejecución |
 | Ejecutar pruebas de integración de infraestructura | Go 1.21 y acceso a AWS; Terratest crea recursos reales |
 

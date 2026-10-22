@@ -73,7 +73,7 @@ The platform connects the following stages of the ML lifecycle on Kubernetes:
 |---|---|
 | Inspect the project and run CI | GitHub access; tools are installed on the hosted runner |
 | Generate an initial AWS plan | GitHub environment, AWS OIDC planning role, `AWS_PLAN_ROLE_ARN`, and `AWS_REGION`; see [Terraform CI](terraform-ci.md) |
-| Work on Python code (optional) | Git, Python 3.10–3.12, and Poetry; install the component's dependencies |
+| Work on Python code (optional) | Git, Python 3.11–3.12, and Poetry; install the component's dependencies |
 | Operate an existing AWS environment | AWS CLI v2, an authorized AWS session, Terraform, kubectl, Kustomize, Helm, and Make on the execution host |
 | Run infrastructure integration tests | Go 1.21 and AWS access; Terratest creates real resources |
 

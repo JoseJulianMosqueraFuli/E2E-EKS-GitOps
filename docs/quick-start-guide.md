@@ -6,7 +6,7 @@ Guía rápida para empezar a usar la plataforma MLOps en menos de 10 minutos.
 
 ```bash
 # Herramientas requeridas
-- Python 3.10+ (3.10 / 3.11 / 3.12)
+- Python 3.11 o 3.12
 - Poetry (instalable con `pip install poetry` o el instalador oficial)
 - Docker
 - kubectl
