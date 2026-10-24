@@ -316,7 +316,30 @@ def test_rendered_chaos_workflows_have_safety_dependencies(environment):
             and r["metadata"]["name"] == spec["volumes"][0]["configMap"]["name"]
         )
         assert config["metadata"]["namespace"] == workflow["metadata"]["namespace"]
-        assert set(config["data"]) == {"common.sh", "monitor.sh", "cleanup.sh", "az-safety.sh"}
+        assert set(config["data"]) == {
+            "common.sh",
+            "monitor.sh",
+            "cleanup.sh",
+            "az-safety.sh",
+            "kubeconfig",
+        }
+        kubeconfig = yaml.safe_load(config["data"]["kubeconfig"])
+        cluster = kubeconfig["clusters"][0]["cluster"]
+        assert cluster["server"] == "https://kubernetes.default.svc"
+        assert (
+            cluster["certificate-authority"]
+            == "/var/run/secrets/kubernetes.io/serviceaccount/ca.crt"
+        )
+        assert kubeconfig["users"][0]["user"] == {
+            "tokenFile": "/var/run/secrets/kubernetes.io/serviceaccount/token"
+        }
+        for template in spec["templates"]:
+            script = template.get("script", {})
+            if script.get("image", "").startswith("alpine/k8s:"):
+                assert {e["name"]: e.get("value") for e in script["env"]}[
+                    "KUBECONFIG"
+                ] == "/chaos/kubeconfig"
+                assert any(m["mountPath"] == "/chaos" for m in script["volumeMounts"])
         injector = next(
             t for t in spec["templates"] if t["name"] in ("run-pod-delete", "run-node-taint")
         )

@@ -67,6 +67,8 @@ spec:
       env:
       - name: HOME
         value: /tmp
+      - name: KUBECONFIG
+        value: /chaos/kubeconfig
       - name: WORKFLOW_NAME
         value: '{{workflow.name}}'
       - name: CHAOS_DURATION
@@ -114,6 +116,8 @@ spec:
       env:
       - name: HOME
         value: /tmp
+      - name: KUBECONFIG
+        value: /chaos/kubeconfig
       - name: WORKFLOW_NAME
         value: '{{workflow.name}}'
       - name: CHAOS_DURATION
@@ -210,6 +214,8 @@ spec:
       env:
       - name: HOME
         value: /tmp
+      - name: KUBECONFIG
+        value: /chaos/kubeconfig
       - name: WORKFLOW_NAME
         value: '{{workflow.name}}'
       - name: CHAOS_DURATION
@@ -237,6 +243,8 @@ spec:
       env:
       - name: HOME
         value: /tmp
+      - name: KUBECONFIG
+        value: /chaos/kubeconfig
       - name: WORKFLOW_NAME
         value: '{{workflow.name}}'
       - name: CHAOS_DURATION
@@ -305,6 +313,8 @@ spec:
       env:
       - name: HOME
         value: /tmp
+      - name: KUBECONFIG
+        value: /chaos/kubeconfig
       - name: WORKFLOW_NAME
         value: '{{workflow.name}}'
       - name: CHAOS_DURATION
@@ -325,6 +335,8 @@ spec:
       env:
       - name: HOME
         value: /tmp
+      - name: KUBECONFIG
+        value: /chaos/kubeconfig
       - name: WORKFLOW_NAME
         value: '{{workflow.name}}'
       - name: CHAOS_DURATION

@@ -54,7 +54,11 @@ then
   echo "Admission allowed the MLflow workflow to use the node fault account" >&2
   exit 1
 fi
-grep -q chaos-mlflow-engine-scope "$artifacts/admission-denial.txt"
+if ! grep -q chaos-mlflow-engine-scope "$artifacts/admission-denial.txt"; then
+  cat "$artifacts/admission-denial.txt" >&2
+  echo "Expected rejection by chaos-mlflow-engine-scope" >&2
+  exit 1
+fi
 submit() {
   kc create -o jsonpath='{.metadata.name}' -f - <<EOF
 apiVersion: argoproj.io/v1alpha1
@@ -78,7 +82,17 @@ wait_workflow() {
   for ((attempt=0; attempt<90; attempt++)); do
     phase="$(kc -n argo-workflows get workflow "$name" -o jsonpath='{.status.phase}')"
     case "$phase" in
-      Succeeded|Failed|Error) [ "$phase" = "$expected" ]; return ;;
+      Succeeded|Failed|Error)
+        if [ "$phase" != "$expected" ]; then
+          echo "Workflow $name ended in $phase; expected $expected" >&2
+          kc -n argo-workflows get workflow "$name" -o json | jq -r '.status.nodes[] | select(.phase == "Failed" or .phase == "Error") | [.displayName, .phase, .message] | @tsv' >&2
+          for pod in $(kc -n argo-workflows get pods -l "workflows.argoproj.io/workflow=$name" -o name); do
+            kc -n argo-workflows logs "$pod" -c main --tail=80 >&2 || true
+          done
+          return 1
+        fi
+        return 0
+        ;;
     esac
     sleep 5
   done

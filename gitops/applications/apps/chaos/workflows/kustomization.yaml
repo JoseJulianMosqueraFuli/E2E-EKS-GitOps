@@ -8,6 +8,7 @@ configMapGenerator:
 - name: chaos-workflow-scripts
   namespace: argo-workflows
   files:
+  - kubeconfig=scripts/in-cluster-config.yaml.tpl
   - scripts/common.sh
   - scripts/monitor.sh
   - scripts/cleanup.sh
