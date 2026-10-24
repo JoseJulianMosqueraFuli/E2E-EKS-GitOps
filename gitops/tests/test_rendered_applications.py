@@ -1,5 +1,6 @@
 import subprocess
 from pathlib import Path
+from urllib.parse import urlparse
 
 import pytest
 import yaml
@@ -7,6 +8,49 @@ import yaml
 from .application_helpers import generate_applications, load_application, validate_applications
 
 ROOT = Path(__file__).resolve().parents[2]
+
+
+@pytest.mark.parametrize(
+    "overlay",
+    [
+        "gitops/applications/apps/mlflow/base",
+        "gitops/applications/apps/mlflow/overlays/dev",
+        "gitops/applications/apps/mlflow/overlays/staging",
+        "scripts/e2e/kind/mlflow",
+    ],
+)
+def test_mlflow_artifact_endpoint_resolves_across_namespaces(overlay):
+    output = subprocess.check_output(["kustomize", "build", str(ROOT / overlay)], text=True)
+    resources = list(yaml.safe_load_all(output))
+    server = next(
+        r
+        for r in resources
+        if r["kind"] == "Deployment" and r["metadata"]["name"].endswith("mlflow-server")
+    )
+    container = next(
+        c for c in server["spec"]["template"]["spec"]["containers"] if c["name"] == "mlflow"
+    )
+    reference = next(
+        e["valueFrom"]["configMapKeyRef"]
+        for e in container["env"]
+        if e["name"] == "MLFLOW_S3_ENDPOINT_URL"
+    )
+    config = next(
+        r
+        for r in resources
+        if r["kind"] == "ConfigMap" and r["metadata"]["name"] == reference["name"]
+    )
+    endpoint = urlparse(config["data"][reference["key"]])
+    service = next(
+        r
+        for r in resources
+        if r["kind"] == "Service" and r["metadata"]["name"].endswith("mlflow-minio")
+    )
+    name = service["metadata"]["name"]
+    namespace = service["metadata"]["namespace"]
+    assert endpoint.scheme == "http"
+    assert endpoint.hostname == f"{name}.{namespace}.svc.cluster.local"
+    assert endpoint.port in {port["port"] for port in service["spec"]["ports"]}
 
 
 @pytest.fixture(scope="module")
