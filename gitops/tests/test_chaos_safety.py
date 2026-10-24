@@ -1,5 +1,6 @@
 import json
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -11,6 +12,32 @@ import yaml
 ROOT = Path(__file__).resolve().parents[2]
 CHAOS = ROOT / "gitops/applications/apps/chaos"
 SCRIPTS = CHAOS / "workflows/scripts"
+
+
+@pytest.mark.parametrize("environment", ["dev", "staging", "production"])
+def test_rendered_chaos_labels_and_metrics_annotations(environment):
+    output = subprocess.check_output(
+        ["kustomize", "build", str(CHAOS / "overlays" / environment)], text=True
+    )
+    resources = list(yaml.safe_load_all(output))
+    for resource in resources:
+        for key, value in resource["metadata"].get("labels", {}).items():
+            assert isinstance(value, str), (resource["kind"], key, value)
+            assert len(value) <= 63 and re.fullmatch(
+                r"([A-Za-z0-9]([-A-Za-z0-9_.]*[A-Za-z0-9])?)?", value
+            ), (resource["kind"], key, value)
+    service = next(
+        resource
+        for resource in resources
+        if resource["kind"] == "Service" and resource["metadata"]["name"] == "litmus-chaos-exporter"
+    )
+    annotations = service["metadata"]["annotations"]
+    assert annotations["prometheus.io/scrape"] == "true"
+    assert annotations["prometheus.io/path"] == "/metrics"
+    assert int(annotations["prometheus.io/port"]) in {
+        port["port"] for port in service["spec"]["ports"]
+    }
+
 
 FAKE_COMMAND = r"""
 import json

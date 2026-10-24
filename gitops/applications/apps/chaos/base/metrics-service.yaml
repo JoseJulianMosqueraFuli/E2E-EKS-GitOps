@@ -6,6 +6,7 @@ metadata:
   labels:
     app.kubernetes.io/name: litmus-chaos-exporter
     app.kubernetes.io/component: metrics
+  annotations:
     prometheus.io/scrape: "true"
     prometheus.io/port: "8080"
     prometheus.io/path: "/metrics"
