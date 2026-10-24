@@ -106,16 +106,28 @@ wait_workflow() {
   return 1
 }
 check_cleanup() {
-  local name="$1"
-  kc -n litmus get chaosengines -l "chaos.mlops-platform/workflow=$name" -o json | jq -e '.items | length > 0 and all(.[]; .status.engineStatus == "completed")'
-  [ -z "$(kc -n argo-workflows get configmap "$name-probe-ready" --ignore-not-found -o name)" ]
-  kc -n argo-workflows get workflow "$name" -o json | jq -e '[.status.nodes[] | select(.templateName == "stop-chaos")] | length == 1 and all(.[]; .phase == "Succeeded")'
+  local name="$1" expected="$2" engines
+  engines="$(kc -n litmus get chaosengines -l "chaos.mlops-platform/workflow=$name" -o json)"
+  if ! jq -e --arg status "$expected" '.items | length > 0 and all(.[]; .status.engineStatus == $status)' <<<"$engines" >/dev/null; then
+    echo "ChaosEngines of $name are not all $expected:" >&2
+    jq -r '.items[] | "\(.metadata.name) \(.status.engineStatus)"' <<<"$engines" >&2
+    return 1
+  fi
+  if [ -n "$(kc -n argo-workflows get configmap "$name-probe-ready" --ignore-not-found -o name)" ]; then
+    echo "Probe marker $name-probe-ready was not removed" >&2
+    return 1
+  fi
+  if ! kc -n argo-workflows get workflow "$name" -o json | jq -e '[.status.nodes[] | select(.templateName == "stop-chaos")] | length == 1 and all(.[]; .phase == "Succeeded")' >/dev/null; then
+    echo "stop-chaos exit handler of $name did not succeed" >&2
+    workflow_diagnostics "$name"
+    return 1
+  fi
   kc -n mlflow rollout status deployment/dev-mlflow-server --timeout=180s
 }
 workflow="$(submit 30)"
 wait_workflow "$workflow" Succeeded
 kc -n litmus get chaosresult "$workflow-pod-delete" -o json | jq -e '.status.experimentStatus.verdict == "Pass"'
-check_cleanup "$workflow"
+check_cleanup "$workflow" completed
 workflow="$(submit 180)"
 active=false
 for ((attempt=0; attempt<60; attempt++)); do
@@ -128,5 +140,5 @@ done
 [ "$active" = true ] || { echo "No active experiment observed for cancellation" >&2; exit 1; }
 kc -n argo-workflows patch workflow "$workflow" --type merge -p '{"spec":{"shutdown":"Stop"}}'
 wait_workflow "$workflow" Failed
-check_cleanup "$workflow"
+check_cleanup "$workflow" stopped
 echo "Chaos injection, data continuity and cancellation cleanup passed"

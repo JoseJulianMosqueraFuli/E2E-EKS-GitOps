@@ -67,6 +67,12 @@ elif command == "curl":
         output = json.dumps(state.get("prediction", {"predictions": [1]}))
 elif command == "kubectl":
     action, kind = args[:2]
+
+    def engine_status():
+        if state.get("aborted"):
+            return "stopped"
+        return "completed" if state["time"] >= state["complete_at"] else "initialized"
+
     if action == "create" and kind == "configmap":
         state["marker"] = True
     elif action == "delete" and kind == "configmap":
@@ -79,21 +85,25 @@ elif command == "kubectl":
         elif "name" in args:
             output = "chaosengine/test-engine"
         else:
-            complete = state.get("stopped") or state["time"] >= state["complete_at"]
             output = json.dumps({"items": [{
                 "metadata": {"name": "test-engine"},
-                "status": {"engineStatus": "completed" if complete else "initialized"},
+                "status": {"engineStatus": engine_status()},
                 "spec": {"experiments": [{"spec": {"components": {"env": [
                     {"name": "TARGET_NODE", "value": "target-node"}
                 ]}}}]}
             }]})
+    elif action == "get" and kind.startswith("chaosengine/"):
+        output = engine_status()
     elif action == "patch" and kind.startswith("chaosengine/"):
         if state.get("stop_error"):
             status = 1
         else:
+            state["aborted"] = state.get("aborted") or engine_status() == "initialized"
             state["stopped"] = True
     elif action == "wait":
-        status = 1 if state.get("stop_error") else 0
+        condition = next(arg for arg in args if arg.startswith("--for=jsonpath="))
+        expected = condition.rsplit("=", 1)[1]
+        status = 1 if state.get("stop_error") or engine_status() != expected else 0
     elif action == "get" and kind == "node":
         output = json.dumps({"spec": {"taints": state.get("taints", [])}})
     elif action == "get" and kind == "nodes":
@@ -215,6 +225,21 @@ def test_cleanup_only_removes_this_workflows_taint(shell):
         {"op": "remove", "path": "/spec/taints/1"},
     ]
     assert not state["marker"]
+
+
+def test_cleanup_accepts_engines_aborted_during_the_fault(shell):
+    result, state = shell(SCRIPTS / "cleanup.sh", {"complete_at": 9999})
+    assert result.returncode == 0, result.stderr
+    assert state["aborted"]
+    assert not state["marker"]
+
+
+def test_cleanup_fails_when_engines_never_stop(shell):
+    result, state = shell(
+        SCRIPTS / "cleanup.sh", {"complete_at": 9999, "stop_error": True, "sleep_step": 30}
+    )
+    assert result.returncode != 0
+    assert "did not stop" in result.stderr
 
 
 def test_cleanup_surfaces_stop_errors_instead_of_removing_taints(shell):

@@ -59,8 +59,18 @@ stop_engines() {
       -p '{"spec":{"engineState":"stop"}}' || failed=1
   done
   for engine in $engines; do
-    kubectl --request-timeout=130s wait "$engine" -n litmus \
-      --for=jsonpath='{.status.engineStatus}'=completed --timeout=120s || failed=1
+    stop_deadline=$(( $(date +%s) + 120 ))
+    while :; do
+      engine_status=$(kubectl --request-timeout=10s get "$engine" -n litmus \
+        -o jsonpath='{.status.engineStatus}') || engine_status=""
+      case "$engine_status" in completed|stopped) break ;; esac
+      if [ "$(date +%s)" -ge "$stop_deadline" ]; then
+        echo "ERROR: $engine did not stop (engineStatus=${engine_status:-unknown})" >&2
+        failed=1
+        break
+      fi
+      sleep 2
+    done
   done
   return "$failed"
 }
