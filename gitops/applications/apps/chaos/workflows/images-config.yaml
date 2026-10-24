@@ -1,0 +1,9 @@
+images:
+- path: spec/templates/container/image
+  kind: WorkflowTemplate
+- path: spec/templates/script/image
+  kind: WorkflowTemplate
+- path: spec/templates/initContainers/image
+  kind: WorkflowTemplate
+- path: spec/templates/sidecars/image
+  kind: WorkflowTemplate

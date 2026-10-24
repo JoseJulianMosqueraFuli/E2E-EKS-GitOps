@@ -316,6 +316,19 @@ def test_rendered_chaos_workflows_have_safety_dependencies(environment):
             and r["metadata"]["name"] == spec["volumes"][0]["configMap"]["name"]
         )
         assert config["metadata"]["namespace"] == workflow["metadata"]["namespace"]
+        if workflow["metadata"]["name"] == "mlflow-resilience-test":
+            platform = dict(
+                line.split("=", 1)
+                for line in (ROOT / "gitops/platform/aws.env").read_text().splitlines()
+                if "=" in line and not line.startswith("#")
+            )
+            expected_image = (
+                f"{platform['AWS_ACCOUNT_ID']}.dkr.ecr.{platform['AWS_REGION']}"
+                f".amazonaws.com/mlops-{environment}-trainer:0.1.0"
+            )
+            for name in ("prepare-canary", "verify-canary"):
+                template = next(t for t in spec["templates"] if t["name"] == name)
+                assert template["container"]["image"] == expected_image
         assert set(config["data"]) == {
             "common.sh",
             "monitor.sh",

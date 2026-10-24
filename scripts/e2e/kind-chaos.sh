@@ -77,6 +77,14 @@ spec:
       value: "15"
 EOF
 }
+workflow_diagnostics() {
+  local name="$1"
+  kc -n argo-workflows get workflow "$name" -o json | jq -r '.status.nodes[] | select(.phase != "Succeeded" and .phase != "Skipped") | [.displayName, .phase, .message] | @tsv' >&2 || true
+  kc -n argo-workflows get pods -l "workflows.argoproj.io/workflow=$name" -o wide >&2 || true
+  for pod in $(kc -n argo-workflows get pods -l "workflows.argoproj.io/workflow=$name" -o name); do
+    kc -n argo-workflows logs "$pod" -c main --tail=80 >&2 || true
+  done
+}
 wait_workflow() {
   local name="$1" expected="$2" phase=""
   for ((attempt=0; attempt<90; attempt++)); do
@@ -85,10 +93,7 @@ wait_workflow() {
       Succeeded|Failed|Error)
         if [ "$phase" != "$expected" ]; then
           echo "Workflow $name ended in $phase; expected $expected" >&2
-          kc -n argo-workflows get workflow "$name" -o json | jq -r '.status.nodes[] | select(.phase == "Failed" or .phase == "Error") | [.displayName, .phase, .message] | @tsv' >&2
-          for pod in $(kc -n argo-workflows get pods -l "workflows.argoproj.io/workflow=$name" -o name); do
-            kc -n argo-workflows logs "$pod" -c main --tail=80 >&2 || true
-          done
+          workflow_diagnostics "$name"
           return 1
         fi
         return 0
@@ -97,6 +102,7 @@ wait_workflow() {
     sleep 5
   done
   echo "Workflow $name timed out in phase $phase" >&2
+  workflow_diagnostics "$name"
   return 1
 }
 check_cleanup() {
