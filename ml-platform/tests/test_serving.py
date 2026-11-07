@@ -108,6 +108,10 @@ class FakeResponse:
         self._body = body
         self.headers = headers
 
+    @property
+    def text(self):
+        return json.dumps(self._body)
+
     def raise_for_status(self):
         assert self.status_code == 200, self._body
 
@@ -187,6 +191,28 @@ class TestDeploymentParity:
                     expected_version="99",
                 )
         assert "not 99" in str(error.value.__cause__)
+
+    def test_schema_rejection_fails_without_waiting_for_the_deadline(self, champion, monkeypatch):
+        app, _ = serving.build_app(MODEL_NAME)
+        calls = []
+        with TestClient(app) as client:
+            self._route_to(monkeypatch, client)
+            post = validation.requests.post
+
+            def without_segment(url, json, timeout):
+                calls.append(url)
+                json["dataframe_split"]["columns"] = json["dataframe_split"]["columns"][:-1]
+                json["dataframe_split"]["data"] = [
+                    row[:-1] for row in json["dataframe_split"]["data"]
+                ]
+                return post(url, json, timeout)
+
+            monkeypatch.setattr(validation.requests, "post", without_segment)
+            with pytest.raises(validation.DeploymentRejected, match="HTTP 400"):
+                validation.validate_deployment(
+                    "http://model/invocations", champion["data"], "target", timeout=300
+                )
+        assert len(calls) == 1
 
     def test_validate_command_passes_version_and_timeout(self, monkeypatch):
         calls = []

@@ -65,7 +65,7 @@ def rendered():
 
 def test_all_generated_overlays_render_and_are_authorized():
     count, errors = validate_applications()
-    assert count == 30
+    assert count == 33
     assert not errors, "\n".join(errors)
 
 
@@ -136,26 +136,24 @@ def test_production_prometheus_receives_production_patch(rendered):
     assert resources["limits"]["memory"] == "4Gi"
 
 
-def test_workflow_builder_has_no_privileged_daemon(rendered):
-    workflow = next(
-        r
-        for r in rendered["argo-workflows-production"]
+@pytest.mark.parametrize("env", ["dev", "staging", "production"])
+def test_workflows_build_no_images_and_run_unprivileged(rendered, env):
+    templates = [
+        template
+        for r in rendered[f"argo-workflows-{env}"]
         if r["kind"] == "WorkflowTemplate"
-        and r["metadata"]["name"].endswith("model-deployment-template")
-    )
-    template = next(
-        t
-        for t in workflow["spec"]["templates"]
-        if t["name"] == "build-inference-image-step"
-    )
-    assert template["container"]["image"] == "moby/buildkit:v0.16.0-rootless"
-    for container in [
-        template["container"],
-        *template.get("initContainers", []),
-        *template.get("sidecars", []),
-    ]:
-        assert not container.get("securityContext", {}).get("privileged", False)
-    assert all("hostPath" not in volume for volume in template.get("volumes", []))
+        for template in r["spec"]["templates"]
+    ]
+    for template in templates:
+        containers = [
+            template.get("container") or {},
+            *template.get("initContainers", []),
+            *template.get("sidecars", []),
+        ]
+        for container in containers:
+            assert "buildkit" not in container.get("image", ""), template["name"]
+            assert not container.get("securityContext", {}).get("privileged", False)
+        assert all("hostPath" not in volume for volume in template.get("volumes", []))
 
 
 def test_crds_preserve_workflow_spec(rendered):

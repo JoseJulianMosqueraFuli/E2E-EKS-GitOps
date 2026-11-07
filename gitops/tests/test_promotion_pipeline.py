@@ -115,7 +115,7 @@ def tmp_gitops(tmp_path):
     projects.mkdir(parents=True)
     for filename in ["mlops-applicationset.yaml", "mlops-core.yaml"]:
         shutil.copy(source_root / "applications" / "projects" / filename, projects / filename)
-    for app in ["mlflow", "kubeflow", "kserve", "monitoring", "argo-workflows", "feast", "external-secrets", "gatekeeper", "istio", "chaos"]:
+    for app in ["mlflow", "kubeflow", "kserve", "monitoring", "argo-workflows", "feast", "external-secrets", "gatekeeper", "istio", "chaos", "model-serving"]:
         base = tmp_path / "applications" / "apps" / app / "base"
         base.mkdir(parents=True)
         (base / "namespace.yaml").write_text(yaml.safe_dump({"apiVersion": "v1", "kind": "Namespace", "metadata": {"name": app}}))

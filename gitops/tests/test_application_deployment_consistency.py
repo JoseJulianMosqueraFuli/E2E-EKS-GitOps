@@ -54,7 +54,6 @@ REQUIRED_BASE_COMPONENTS = {
     },
     "kserve": {
         "namespace.yaml",
-        "serviceaccount.yaml",
         "helm-release.yaml",
         "network-policy.yaml",
         "kustomization.yaml",

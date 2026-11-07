@@ -23,6 +23,8 @@ spec:
       value: ''
     - name: validation-data
       value: s3://mlops-curated-data/training/data.csv
+    - name: verification-timeout
+      value: '600'
   templates:
   - name: model-deployment
     inputs:
@@ -39,6 +41,8 @@ spec:
         default: ''
       - name: validation-data
         default: s3://mlops-curated-data/training/data.csv
+      - name: verification-timeout
+        default: '600'
     dag:
       failFast: false
       tasks:
@@ -67,6 +71,8 @@ spec:
             value: '{{inputs.parameters.mlflow-tracking-uri}}'
           - name: validation-data
             value: '{{inputs.parameters.validation-data}}'
+          - name: timeout
+            value: '{{inputs.parameters.verification-timeout}}'
       - name: restore-champion
         template: set-alias-step
         depends: roll-out.Failed || roll-out.Errored || verify.Failed || verify.Errored
@@ -106,6 +112,8 @@ spec:
             value: '{{inputs.parameters.mlflow-tracking-uri}}'
           - name: validation-data
             value: '{{inputs.parameters.validation-data}}'
+          - name: timeout
+            value: '{{inputs.parameters.verification-timeout}}'
       - name: reject-candidate
         template: reject-candidate-step
         depends: restore-champion.Succeeded || restore-champion.Failed || restore-champion.Errored
@@ -144,6 +152,7 @@ spec:
       - name: deployment-namespace
       - name: mlflow-tracking-uri
       - name: validation-data
+      - name: timeout
     container:
       image: mlops-platform:0.1.0
       command:
@@ -162,7 +171,7 @@ spec:
       - --expected-version
       - '{{inputs.parameters.model-version}}'
       - --timeout
-      - '600'
+      - '{{inputs.parameters.timeout}}'
       env:
       - name: MLFLOW_TRACKING_URI
         value: '{{inputs.parameters.mlflow-tracking-uri}}'

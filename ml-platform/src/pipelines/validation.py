@@ -13,6 +13,12 @@ from src.pipelines.steps import read_table, write_table
 
 logger = logging.getLogger(__name__)
 
+PERMANENT_REJECTIONS = (400, 404, 405, 415, 422)
+
+
+class DeploymentRejected(Exception):
+    """The endpoint answered, but refused the validation request."""
+
 
 def validate_data(source: str, destination: str, target: str, suite: str) -> Dict:
     if suite not in ("default", "production"):
@@ -62,6 +68,11 @@ def _request_predictions(
     while True:
         try:
             response = requests.post(url, json=payload, timeout=10)
+            if response.status_code in PERMANENT_REJECTIONS:
+                raise DeploymentRejected(
+                    f"Endpoint rejected the request with HTTP {response.status_code}: "
+                    f"{response.text[:300]}"
+                )
             response.raise_for_status()
             served = response.headers.get(MODEL_VERSION_HEADER)
             if expected_version and served != expected_version:

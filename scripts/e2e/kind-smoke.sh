@@ -9,7 +9,7 @@ ECR_REGISTRY="${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com"
 CONTEXT="${KUBE_CONTEXT:-kind-mlops-e2e}"
 ML_IMAGE="${ML_IMAGE:-${ECR_REGISTRY}/mlops-dev-trainer:0.1.0}"
 WORKFLOW_TIMEOUT="${WORKFLOW_TIMEOUT:-900}"
-MODEL_NAME="e2e-model"
+MODEL_NAME="default-model"
 
 STAGE="setup"
 
@@ -144,75 +144,7 @@ EOF
 kc -n argo-workflows wait --for=jsonpath='{.status.phase}'=Succeeded pod/e2e-seed --timeout=300s
 kc -n argo-workflows logs e2e-seed
 
-submit_training() {
-  local min_improvement="$1"
-  kc create -o name -f - <<EOF
-apiVersion: argoproj.io/v1alpha1
-kind: Workflow
-metadata:
-  generateName: e2e-train-
-  namespace: argo-workflows
-spec:
-  workflowTemplateRef:
-    name: model-training-template
-  arguments:
-    parameters:
-      - name: data-path
-        value: ${VALIDATED_DATA_PATH:-s3://mlops-curated-data/training/data.csv}
-      - name: mlflow-tracking-uri
-        value: http://dev-mlflow-server.mlflow:5000
-      - name: model-name
-        value: ${MODEL_NAME}
-      - name: experiment-name
-        value: e2e
-      - name: hyperparameters
-        value: '{"n_estimators": 50}'
-      - name: min-improvement
-        value: "${min_improvement}"
-EOF
-}
-
-wait_workflow() {
-  local name="$1" phase="" waited=0
-  while [ "${waited}" -lt "${WORKFLOW_TIMEOUT}" ]; do
-    phase="$(kc -n argo-workflows get "${name}" -o jsonpath='{.status.phase}')"
-    case "${phase}" in
-      Succeeded) log "${name} Succeeded"; return 0 ;;
-      Failed|Error) log "${name} ${phase}"; return 1 ;;
-    esac
-    sleep 10
-    waited=$((waited + 10))
-  done
-  log "${name} timed out (phase=${phase})"
-  return 1
-}
-
-node_field() {
-  local name="$1" node="$2" field="$3"
-  kc -n argo-workflows get "${name}" -o json | python3 -c '
-import json, sys
-node, field = sys.argv[1], sys.argv[2]
-nodes = json.load(sys.stdin)["status"]["nodes"].values()
-match = [n for n in nodes if n.get("displayName") == node]
-if not match:
-    sys.exit(f"node {node} not found")
-n = match[0]
-if field == "phase":
-    print(n.get("phase", ""))
-else:
-    params = {p["name"]: p.get("value", "") for p in n.get("outputs", {}).get("parameters", [])}
-    print(params.get(field, ""))
-' "${node}" "${field}"
-}
-
-expect() {
-  local actual="$1" expected="$2" what="$3"
-  if [ "${actual}" != "${expected}" ]; then
-    echo "FAIL: ${what}: expected '${expected}', got '${actual}'"
-    exit 1
-  fi
-  echo "OK: ${what} = ${actual}"
-}
+source "${ROOT}/scripts/e2e/workflow-helpers.sh"
 
 log "Validate source data and publish an immutable curated dataset"
 VALIDATION_WF="$(kc create -o name -f - <<'EOF'
@@ -239,14 +171,14 @@ VALIDATED_DATA_PATH="$(kc -n argo-workflows get "$VALIDATION_WF" -o jsonpath='{.
 case "$VALIDATED_DATA_PATH" in s3://mlops-curated-data/validated/*/data.parquet) ;; *) log "Missing validated dataset URI (got '${VALIDATED_DATA_PATH}')"; exit 1 ;; esac
 
 log "Run 1: first model must be approved and registered as champion"
-WF1="$(submit_training 0.0)"
+WF1="$(submit_training 0.0 "${VALIDATED_DATA_PATH}")"
 wait_workflow "${WF1}"
 expect "$(node_field "${WF1}" evaluate-model model-approved)" "true" "run 1 model-approved"
 expect "$(node_field "${WF1}" register-model phase)" "Succeeded" "run 1 register-model"
 expect "$(node_field "${WF1}" register-model model-version)" "1" "run 1 model-version"
 
 log "Run 2: candidate must beat the champion by 0.5 and be blocked"
-WF2="$(submit_training 0.5)"
+WF2="$(submit_training 0.5 "${VALIDATED_DATA_PATH}")"
 wait_workflow "${WF2}"
 expect "$(node_field "${WF2}" evaluate-model model-approved)" "false" "run 2 model-approved"
 expect "$(node_field "${WF2}" register-model phase)" "Skipped" "run 2 register-model"
