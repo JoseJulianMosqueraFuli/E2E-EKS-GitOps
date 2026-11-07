@@ -329,6 +329,23 @@ def register(model_uri: str, model_name: str, alias: str = "champion") -> str:
     return str(version)
 
 
+def alias_version(model_name: str, alias: str = "champion") -> Optional[str]:
+    """Return the version ``alias`` points to, or None when the alias is not set."""
+    version = _champion(model_name, alias)
+    return None if version is None else str(version.version)
+
+
+def set_alias(model_name: str, alias: str, version: Optional[str]) -> None:
+    """Point ``alias`` to ``version``; an empty version removes the alias."""
+    client = MlflowClient()
+    if version:
+        client.set_registered_model_alias(model_name, alias, version)
+        logger.info("Moved %s@%s to v%s", model_name, alias, version)
+    else:
+        client.delete_registered_model_alias(model_name, alias)
+        logger.info("Removed %s@%s", model_name, alias)
+
+
 def write_outputs(outputs_dir: str, values: Dict[str, str]) -> None:
     """Write step outputs as files, the contract Argo uses for output parameters."""
     os.makedirs(outputs_dir, exist_ok=True)

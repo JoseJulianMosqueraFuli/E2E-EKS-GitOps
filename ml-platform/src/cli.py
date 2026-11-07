@@ -263,9 +263,22 @@ def step_evaluate_cmd(
 @OUTPUTS_DIR_OPTION
 def step_register_cmd(model_uri, model_name, alias, outputs_dir):
     """Register an approved model and assign an alias."""
+    previous = steps.alias_version(model_name, alias) or ""
     version = steps.register(model_uri, model_name, alias=alias)
-    steps.write_outputs(outputs_dir, {"model-version.txt": version})
-    click.echo(f"version={version}")
+    steps.write_outputs(
+        outputs_dir, {"model-version.txt": version, "previous-version.txt": previous}
+    )
+    click.echo(f"version={version} previous={previous or 'none'}")
+
+
+@step.command("set-alias")
+@click.option("--model-name", required=True, help="Registered model name")
+@click.option("--alias", default="champion", help="Alias to move")
+@click.option("--version", default="", help="Target version; empty removes the alias")
+def step_set_alias_cmd(model_name, alias, version):
+    """Move an alias to a version, or remove it when no version is given."""
+    steps.set_alias(model_name, alias, version)
+    click.echo(f"{model_name}@{alias} -> {version or 'removed'}")
 
 
 @step.command("backup-db")
@@ -328,10 +341,19 @@ def step_validate_data_cmd(source, output_prefix, target, suite, outputs_dir):
 @click.option("--data-uri", required=True)
 @click.option("--target", default="target")
 @click.option("--model-uri", default=None, help="Registry model whose predictions must match")
-def step_validate_deployment_cmd(url, data_uri, target, model_uri):
+@click.option("--expected-version", default=None, help="Version the endpoint must report")
+@click.option("--timeout", default=300, type=int, help="Seconds to wait for the endpoint")
+def step_validate_deployment_cmd(url, data_uri, target, model_uri, expected_version, timeout):
     from src.pipelines.validation import validate_deployment
 
-    validate_deployment(url, data_uri, target, model_uri=model_uri)
+    validate_deployment(
+        url,
+        data_uri,
+        target,
+        timeout=timeout,
+        model_uri=model_uri,
+        expected_version=expected_version,
+    )
     click.echo("Prediction request and response verified")
 
 
