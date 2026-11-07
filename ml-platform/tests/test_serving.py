@@ -44,7 +44,12 @@ def champion(mlflow_tmp, frame):
     data = mlflow_tmp / "train.csv"
     frame.to_csv(data, index=False)
     model_uri, _ = steps.train(
-        str(data), MODEL_NAME, "serving-tests", "target", "classification", params={"n_estimators": 10}
+        str(data),
+        MODEL_NAME,
+        "serving-tests",
+        "target",
+        "classification",
+        params={"n_estimators": 10},
     )
     version = steps.register(model_uri, MODEL_NAME)
     return {"data": str(data), "version": version}
