@@ -51,7 +51,7 @@ Train Model → Register in MLflow → Deploy to KServe → Monitor with Evident
 | Experiment Tracking | MLflow 3.17.1 (client = server)         | Model registry (aliases) & experiments |
 | Orchestration       | Argo Workflows v4.0.13                  | Training pipeline (split → train → evaluate → register) |
 | Pipelines UI/SDK    | Kubeflow Pipelines 2.17.2 (optional)    | Notebook-style pipelines        |
-| Model Serving       | KServe                                  | Model serving with autoscaling  |
+| Model Serving       | KServe v0.21.0 (Standard mode)          | Serves `@champion` with `step serve` |
 | Monitoring          | Prometheus + Grafana                    | Metrics & dashboards            |
 | Drift Detection     | Evidently 0.7 (`monitoring` extra)      | Data drift detection            |
 | Data Validation     | Great Expectations 1.x (`validation` extra) | Data quality validation     |
@@ -270,7 +270,7 @@ installs all of them plus tooling) and heavy modules are imported lazily.
 
 - `mlflow`: MLflow tracking server + PostgreSQL + Versity Gateway (S3-compatible artifacts in kind, dev and staging; prod uses S3). The gateway resources keep their `mlflow-minio` names (backlog #57). Runs the project's own `mlflow-server` image (MLflow 3.17.1 + psycopg2 + boto3; the official image has neither driver); init containers derive hosts from the backend URI / S3 endpoint, so they work with any overlay prefix
 - `kubeflow`: Kubeflow Pipelines UI (deployed via manifests in `gitops/applications/apps/kubeflow/`)
-- `kserve`: KServe inference controller (manifests ready in `gitops/applications/apps/kserve/`, deploy via `MLOPS_TOOLS=kserve make mlops-install`)
+- `kserve`: KServe v0.21.0 in `Standard` mode, installed by Flux HelmReleases from `gitops/applications/apps/kserve/` after the cert-manager addon (`MLOPS_TOOLS=kserve make mlops-install` runs the same steps). Predictors run `step serve` from the `mlops-platform` image; see the [KServe guide](../../k8s/mlops-stack/kserve/README.md)
 - `monitoring`: Prometheus + Grafana + Alertmanager + ArgoCD Notifications + Evidently drift detection
 - `argo-workflows`: Argo Workflows v4.0.13 (`--auth-mode=client`, emissary executor, CRDs applied server-side); training template on the `mlops-platform` image; per-environment step settings via optional `ml-step-env` ConfigMap / `ml-step-credentials` Secret
 - `feast`: Feature store server with Redis online store

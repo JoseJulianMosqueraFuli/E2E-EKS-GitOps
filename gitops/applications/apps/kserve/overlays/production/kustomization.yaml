@@ -10,14 +10,3 @@ labels:
   - pairs:
       environment: production
     includeSelectors: false
-
-patches:
-  - patch: |
-      - op: replace
-        path: /spec/containers/0/resources/limits/cpu
-        value: 4000m
-      - op: replace
-        path: /spec/containers/0/resources/limits/memory
-        value: 8Gi
-    target:
-      kind: ClusterServingRuntime

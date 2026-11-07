@@ -66,13 +66,15 @@ Each Argo task runs one step inside the `mlops-platform` image. Inputs and outpu
 | `step evaluate` | Scores the candidate on held-out data; approves only if it reaches `--min-score` and beats `@champion` by `--min-improvement` | `model-approved.txt`, `evaluation-metrics.json` |
 | `step register` | Registers the approved model and points `@champion` to it | `model-version.txt` |
 | `step validate-data` | Checks the input dataset and writes the validated dataset | `validated-data.txt`, `validation-report.json` |
-| `step validate-deployment` | Sends sample rows to the deployed model and checks predictions | Validation status |
+| `step validate-deployment` | Sends sample rows to the deployed model and checks predictions; with `--model-uri`, fails if they differ from that registry model | Validation status |
+| `step serve` | Serves the version behind `--alias` (default `champion`) with the MLflow scoring protocol on `--port` (default 8080); KServe runs it as the predictor | HTTP server (`/ping`, `/invocations`) |
 | `step chaos-canary` | Creates or verifies an MLflow parameter and artifact across a fault | `canary-run-id.txt` during preparation |
 | `step backup-db` / `step restore-db` | Backs up PostgreSQL to S3 or restores into a separate empty database | Backup key or restore status |
 | `step notify` | Logs the deployment outcome and optionally sends the configured webhook | Notification status |
 
 The same code runs locally, on kind with an S3-compatible gateway (`AWS_ENDPOINT_URL`, `MLFLOW_S3_ENDPOINT_URL`) and on EKS
-with IRSA. Implementation: `src/pipelines/steps.py`; tests: `tests/test_steps.py`.
+with IRSA. Implementation: `src/pipelines/steps.py` and `src/pipelines/serving.py`; tests:
+`tests/test_steps.py` and `tests/test_serving.py`. Serving on KServe: [KServe guide](../k8s/mlops-stack/kserve/README.md).
 
 ## Container images
 

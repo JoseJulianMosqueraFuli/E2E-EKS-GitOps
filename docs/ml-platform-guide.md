@@ -570,7 +570,7 @@ if health['status'] != 'healthy':
 
 Los modelos entrenados pueden ser desplegados usando:
 
-- **KServe** para serving serverless
+- **KServe** en modo Standard, con `step serve` sirviendo el modelo `@champion` ([guía](../k8s/mlops-stack/kserve/README.md))
 - **Seldon Core** para deployments complejos
 - **Argo Workflows** para pipelines de entrenamiento
 

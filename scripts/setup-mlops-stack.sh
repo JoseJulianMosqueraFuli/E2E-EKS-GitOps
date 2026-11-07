@@ -116,14 +116,16 @@ deploy_kubeflow() {
     log_success "Kubeflow Pipelines deployed successfully"
 }
 
-# Deploy KServe via Helm
+# Deploy KServe through Flux HelmReleases (Standard mode)
 deploy_kserve() {
-    log_info "Deploying KServe via Helm..."
+    log_info "Deploying cert-manager and KServe through Flux..."
 
-    helm upgrade --install kserve \
-      gitops/charts/kserve/ \
-      --namespace kserve --create-namespace \
-      --wait --timeout 600s
+    bash gitops/scripts/install-gitops-controllers.sh flux
+    kubectl apply -f gitops/infrastructure/sources/helm-repository.yaml
+    kubectl apply -k gitops/infrastructure/addons/cert-manager
+    kubectl -n flux-system wait --for=condition=Ready helmrelease/cert-manager --timeout=420s
+    kubectl apply -k k8s/mlops-stack/kserve/
+    kubectl -n kserve wait --for=condition=Ready helmrelease/kserve-crd helmrelease/kserve --timeout=600s
 
     log_success "KServe deployed successfully"
 }

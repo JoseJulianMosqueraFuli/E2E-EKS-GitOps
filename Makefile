@@ -216,7 +216,7 @@ docs: ## Generate documentation
 	@echo "Infrastructure documentation available in docs/"
 	@echo "MLOps recommendations available in docs/mlops-enterprise-recommendations.md"
 
-.PHONY: e2e-kind-smoke e2e-kind-backup e2e-kind-chaos
+.PHONY: e2e-kind-smoke e2e-kind-backup e2e-kind-chaos e2e-kind-serve
 
 e2e-kind-smoke: ## Run the training smoke on the GitHub Actions kind cluster
 	bash scripts/e2e/kind-smoke.sh
@@ -226,3 +226,6 @@ e2e-kind-backup: ## Verify backup and restore on the GitHub Actions kind cluster
 
 e2e-kind-chaos: ## Verify Litmus injection and cleanup on the GitHub Actions kind cluster
 	bash scripts/e2e/kind-chaos.sh
+
+e2e-kind-serve: ## Serve the champion with KServe and compare it with the registry on kind
+	bash scripts/e2e/kind-serve.sh

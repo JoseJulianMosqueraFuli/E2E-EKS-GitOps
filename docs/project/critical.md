@@ -202,6 +202,7 @@ This document lists all **CRITICAL** and **HIGH** severity findings identified d
 - **Impact**: Users may accidentally use unencrypted channels.
 - **Fix**: Add `tls.httpsRedirect: true` to the HTTP server in the Istio Gateway.
 - **Status**: ✅ Fixed 2026-07-13
+- **Update 2026-11-07**: The Gateway was removed with the move to KServe 0.21 in `Standard` mode. It routed to a Knative gateway that nothing installed. Predictors are now reachable only inside the cluster; external exposure with TLS is tracked in backlog #68.
 - **Owner**: Platform Team
 
 ---

@@ -8,6 +8,7 @@ resources:
   - aws-load-balancer-controller
   - ebs-csi-driver
   - cluster-autoscaler
+  - cert-manager
 
 commonLabels:
   app.kubernetes.io/name: addons

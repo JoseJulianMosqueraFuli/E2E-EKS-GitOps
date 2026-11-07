@@ -56,7 +56,7 @@ The platform connects the following stages of the ML lifecycle on Kubernetes:
 | **Argo Workflows v4**    | Training pipeline with a promotion gate against the `@champion` model |
 | **MLflow 3.17.1**        | Track experiments, model registry with aliases (own server image with PostgreSQL + S3 drivers) |
 | **Kubeflow Pipelines**   | Optional pipeline UI/SDK (KFP 2.17.2)                |
-| **KServe**               | Serve models with autoscaling                        |
+| **KServe 0.21**          | Serve the `@champion` model with `step serve` (Standard mode, no Knative) |
 | **Prometheus + Grafana** | Metrics, dashboards, and cost monitoring             |
 | **Evidently**            | Detect data drift automatically                      |
 | **Optional NVIDIA GPU**  | GPU node groups + GPU Operator for CUDA workloads    |

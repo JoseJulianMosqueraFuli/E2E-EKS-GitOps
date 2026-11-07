@@ -1,0 +1,9 @@
+nameReference:
+  - kind: HelmRepository
+    fieldSpecs:
+      - kind: HelmRelease
+        path: spec/chart/spec/sourceRef/name
+  - kind: HelmRelease
+    fieldSpecs:
+      - kind: HelmRelease
+        path: spec/dependsOn/name

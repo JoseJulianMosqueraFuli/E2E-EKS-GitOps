@@ -27,7 +27,8 @@ kubectl apply -k gitops/applications/apps/external-secrets/base/
 | Grafana        | grafana-secrets   | mlops/grafana         |
 | MLflow         | mlflow-secrets    | mlops/mlflow/database |
 | Argo Workflows | argo-artifacts-s3 | mlops/argo/s3         |
-| KServe         | storage-config    | mlops/kserve/s3       |
+
+Los predictores de KServe no necesitan un secret: leen los modelos a través del proxy de artefactos de MLflow.
 
 ## 🛡️ IAM Roles for Service Accounts (IRSA)
 

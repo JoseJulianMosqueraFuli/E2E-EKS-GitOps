@@ -51,8 +51,10 @@ Managed via Flux HelmRelease resources in `addons/`:
 | AWS Load Balancer Controller | 1.7.x         | kube-system | Ingress/ALB management              |
 | Cluster Autoscaler           | 9.60.0        | kube-system | Node autoscaling (CA 1.37.0, matches EKS 1.37) |
 | AWS EBS CSI Driver           | 2.28.x        | kube-system | Persistent storage (gp3, encrypted) |
+| cert-manager                 | v1.21.3       | cert-manager | Certificates for admission webhooks (required by KServe) |
 
-All addons use IRSA (IAM Roles for Service Accounts) for secure AWS API access.
+The AWS addons use IRSA (IAM Roles for Service Accounts) for AWS API access. cert-manager does not call
+AWS APIs.
 
 ## Environment Configuration
 

@@ -55,7 +55,8 @@ REQUIRED_BASE_COMPONENTS = {
     "kserve": {
         "namespace.yaml",
         "serviceaccount.yaml",
-        "configmap.yaml",
+        "helm-release.yaml",
+        "network-policy.yaml",
         "kustomization.yaml",
     },
     "monitoring": {
@@ -70,7 +71,6 @@ REQUIRED_BASE_COMPONENTS = {
 REQUIRED_WORKLOADS = {
     "mlflow": ["deployment.yaml"],
     "kubeflow": ["pipeline-controller.yaml"],
-    "kserve": ["serving-runtime.yaml"],
     "monitoring": ["prometheus-statefulset.yaml", "grafana-deployment.yaml"],
 }
 
