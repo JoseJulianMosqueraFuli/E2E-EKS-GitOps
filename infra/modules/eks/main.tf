@@ -69,6 +69,10 @@ resource "aws_eks_cluster" "main" {
 
   enabled_cluster_log_types = var.cluster_log_types
 
+  upgrade_policy {
+    support_type = var.support_type
+  }
+
   depends_on = [
     aws_iam_role_policy_attachment.cluster_AmazonEKSClusterPolicy
   ]

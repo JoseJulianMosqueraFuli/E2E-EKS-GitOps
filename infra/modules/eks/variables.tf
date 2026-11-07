@@ -6,13 +6,24 @@ variable "cluster_name" {
 }
 
 variable "kubernetes_version" {
-  description = "Kubernetes version. Must be a supported EKS version."
+  description = "Kubernetes version. Must be in EKS standard support."
   type        = string
-  default     = "1.32"
+  default     = "1.37"
 
   validation {
-    condition     = can(regex("^(1\\.(3[0-2]|[2-9][0-9]))$", var.kubernetes_version))
-    error_message = "Kubernetes version must be 1.30 or higher. EKS no longer supports versions below 1.30."
+    condition     = can(regex("^1\\.[0-9]+$", var.kubernetes_version)) && try(tonumber(split(".", var.kubernetes_version)[1]) >= 35, false)
+    error_message = "Kubernetes version must use the 1.<minor> format and be 1.35 or higher. Earlier versions are in, or close to, EKS extended support."
+  }
+}
+
+variable "support_type" {
+  description = "EKS support policy. STANDARD upgrades the control plane when standard support ends instead of billing extended support."
+  type        = string
+  default     = "STANDARD"
+
+  validation {
+    condition     = contains(["STANDARD", "EXTENDED"], var.support_type)
+    error_message = "support_type must be STANDARD or EXTENDED."
   }
 }
 
@@ -69,7 +80,12 @@ variable "node_group_instance_types" {
 variable "node_group_ami_type" {
   description = "Type of Amazon Machine Image (AMI) associated with the EKS Node Group"
   type        = string
-  default     = "AL2_x86_64"
+  default     = "AL2023_x86_64_STANDARD"
+
+  validation {
+    condition     = !can(regex("^AL2_", var.node_group_ami_type))
+    error_message = "Amazon Linux 2 AMIs are not published for Kubernetes 1.33 or later. Use an AL2023 or Bottlerocket AMI type."
+  }
 }
 
 variable "node_group_disk_size" {
@@ -172,9 +188,14 @@ variable "gpu_node_group_disk_size" {
 }
 
 variable "gpu_node_group_ami_type" {
-  description = "AMI type for GPU nodes. Must be AL2_x86_64_GPU for NVIDIA GPUs"
+  description = "AMI type for GPU nodes. Use AL2023_x86_64_NVIDIA for NVIDIA GPUs"
   type        = string
-  default     = "AL2_x86_64_GPU"
+  default     = "AL2023_x86_64_NVIDIA"
+
+  validation {
+    condition     = !can(regex("^AL2_", var.gpu_node_group_ami_type))
+    error_message = "Amazon Linux 2 AMIs are not published for Kubernetes 1.33 or later. Use AL2023_x86_64_NVIDIA or a Bottlerocket NVIDIA AMI type."
+  }
 }
 
 variable "gpu_node_group_capacity_type" {
