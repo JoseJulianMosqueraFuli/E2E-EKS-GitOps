@@ -64,9 +64,10 @@ Each Argo task runs one step inside the `mlops-platform` image. Inputs and outpu
 | `step split` | Splits raw data into train/test Parquet (stratified for classification) | `features-path.txt`, `test-data-path.txt` |
 | `step train` | Fits preprocessing + model as one sklearn pipeline, logs it to MLflow | `model-uri.txt`, `run-id.txt` |
 | `step evaluate` | Scores the candidate on held-out data; approves only if it reaches `--min-score` and beats `@champion` by `--min-improvement` | `model-approved.txt`, `evaluation-metrics.json` |
-| `step register` | Registers the approved model and points `@champion` to it | `model-version.txt` |
+| `step register` | Registers the approved model and points `@champion` to it | `model-version.txt`, `previous-version.txt` (empty for the first model) |
+| `step set-alias` | Moves `--alias` (default `champion`) to `--version`; without a version it removes the alias. The deployment template uses it to roll back | Alias change |
 | `step validate-data` | Checks the input dataset and writes the validated dataset | `validated-data.txt`, `validation-report.json` |
-| `step validate-deployment` | Sends sample rows to the deployed model and checks predictions; with `--model-uri`, fails if they differ from that registry model | Validation status |
+| `step validate-deployment` | Sends sample rows to the deployed model and checks predictions; retries until `--timeout` while the endpoint is unavailable or reports a version other than `--expected-version`, fails at once on `4xx`, and with `--model-uri` fails if predictions differ from that registry model | Validation status |
 | `step serve` | Serves the version behind `--alias` (default `champion`) with the MLflow scoring protocol on `--port` (default 8080); KServe runs it as the predictor | HTTP server (`/ping`, `/invocations`) |
 | `step chaos-canary` | Creates or verifies an MLflow parameter and artifact across a fault | `canary-run-id.txt` during preparation |
 | `step backup-db` / `step restore-db` | Backs up PostgreSQL to S3 or restores into a separate empty database | Backup key or restore status |

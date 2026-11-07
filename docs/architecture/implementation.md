@@ -270,7 +270,8 @@ installs all of them plus tooling) and heavy modules are imported lazily.
 
 - `mlflow`: MLflow tracking server + PostgreSQL + Versity Gateway (S3-compatible artifacts in kind, dev and staging; prod uses S3). The gateway resources keep their `mlflow-minio` names (backlog #57). Runs the project's own `mlflow-server` image (MLflow 3.17.1 + psycopg2 + boto3; the official image has neither driver); init containers derive hosts from the backend URI / S3 endpoint, so they work with any overlay prefix
 - `kubeflow`: Kubeflow Pipelines UI (deployed via manifests in `gitops/applications/apps/kubeflow/`)
-- `kserve`: KServe v0.21.0 in `Standard` mode, installed by Flux HelmReleases from `gitops/applications/apps/kserve/` after the cert-manager addon (`MLOPS_TOOLS=kserve make mlops-install` runs the same steps). Predictors run `step serve` from the `mlops-platform` image; see the [KServe guide](../../k8s/mlops-stack/kserve/README.md)
+- `kserve`: KServe v0.21.0 in `Standard` mode, installed by Flux HelmReleases from `gitops/applications/apps/kserve/` after the cert-manager addon (`MLOPS_TOOLS=kserve make mlops-install` runs the same steps). Predictors run `step serve` from the `mlops-platform` image
+- `model-serving`: InferenceServices declared in Git (`gitops/applications/apps/model-serving/`, ArgoCD app `model-serving-<env>`). `model-deployment-template` rolls out the version behind `@champion`, verifies it and rolls back on failure; see the [KServe guide](../../k8s/mlops-stack/kserve/README.md#deploy-a-new-version)
 - `monitoring`: Prometheus + Grafana + Alertmanager + ArgoCD Notifications + Evidently drift detection
 - `argo-workflows`: Argo Workflows v4.0.13 (`--auth-mode=client`, emissary executor, CRDs applied server-side); training template on the `mlops-platform` image; per-environment step settings via optional `ml-step-env` ConfigMap / `ml-step-credentials` Secret
 - `feast`: Feature store server with Redis online store
@@ -283,14 +284,14 @@ installs all of them plus tooling) and heavy modules are imported lazily.
 
 - Istio strict mTLS policies defined for inter-service communication and managed via ArgoCD (`gitops/applications/apps/istio/`)
 - Gatekeeper constraints enforcing Pod Security Standards, managed via ArgoCD (`gitops/applications/apps/gatekeeper/`)
-- Network Policies limiting inter-namespace traffic (`mlflow/network-policy.yaml`, `kserve/network-policy.yaml`)
+- Network Policies limiting inter-namespace traffic (`mlflow/network-policy.yaml`, `kserve/network-policy.yaml`, `model-serving/network-policy.yaml`)
 - External Secrets Operator for AWS Secrets Manager integration (deployed via `gitops/applications/apps/external-secrets/`)
 - IRSA roles for least-privilege pod access to AWS services
 
 **IRSA Roles** (created by `setup-mlops-stack.sh`; Terraform-managed roles pending, backlog #50):
 
 - `mlops-{env}-mlflow-role`: S3 access for MLflow artifacts
-- `mlops-{env}-kserve-role`: S3 read access for model serving
+- `mlops-{env}-kserve-role`: created for compatibility; predictors read models through the MLflow artifact proxy and do not use it
 - The `argo-workflow` service account has no IRSA annotation yet, so pipeline steps have no S3 access on EKS until #50 is done
 
 ### 4.4 GitOps Architecture
@@ -623,7 +624,7 @@ A focused security audit was performed across Terraform, Kubernetes manifests, G
 - **First green run of `e2e-kind.yml`** — MLflow had never been executed before; expect adjustments
 - **Before the first AWS deployment** — ArgoCD injection of `aws.env` (#48), IRSA roles for Argo/MLflow (#50), globally unique S3 bucket names (#51), ECR publishing via GitHub OIDC (#55)
 - **End-to-end AWS test** — Full flow: Terraform apply → EKS deploy → ArgoCD sync → MLflow → KServe inference
-- **Missing images** — `mlops/data-validator`, `kserve-deployer`, `deployment-validator`, `notifier` (#52) and broken `Dockerfile.monitoring` (#53)
+- **Monitoring image** — broken `Dockerfile.monitoring` (#53). Validation, deployment, serving and notification run on `mlops-platform`
 
 **Medium Priority:**
 
@@ -654,9 +655,9 @@ A focused security audit was performed across Terraform, Kubernetes manifests, G
 5. **Joblib over pickle**: Model serialization uses joblib for better numpy/scipy object handling.
 6. **Poetry for Python**: Dependency management uses Poetry (with pip fallback support via `pyproject.toml` setuptools backend).
 7. **Single CI provider**: only GitHub Actions is maintained and validated. GitLab CI, CircleCI, and Jenkins configurations are inactive in `ci-cd/future/` ([decision record](../../ci-cd/future/README.md)).
-8. **One image for all pipeline steps**: steps share dependencies and code; one image avoids version skew between training and evaluation and keeps CI to one build (`linux/amd64`, EKS nodes are x86).
+8. **One image for all pipeline steps and serving**: steps and the model server share dependencies and code; one image avoids version skew between training, evaluation and inference and keeps CI to one build (`linux/amd64`, EKS nodes are x86).
 9. **Preprocessing travels with the model**: training logs a single sklearn `Pipeline`, so serving receives raw features and there is no training/serving skew.
-10. **Promotion through the registry**: the `@champion` alias is the contract between training and serving; a candidate must beat it on the same held-out data.
+10. **Promotion through the registry**: the `@champion` alias is the contract between training and serving; a candidate must beat it on the same held-out data. Git declares what is served, the alias decides which version, and a rollback moves the alias back.
 11. **No account/region in manifests**: placeholders + Kustomize `replacements` from `gitops/platform/aws.env` (gitignored).
 
 ---

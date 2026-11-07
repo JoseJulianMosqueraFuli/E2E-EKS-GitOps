@@ -28,7 +28,7 @@ Argo Workflows provides:
 | --------------------------- | ----------------------------------------------- | --------------------- |
 | `data-validation-template`  | Validates data quality using Great Expectations | Before training       |
 | `model-training-template`   | split → train → evaluate (gate vs `@champion`) → register, on the `mlops-platform` image | Training pipeline     |
-| `model-deployment-template` | Deploys models to KServe                        | Production deployment |
+| `model-deployment-template` | Rolls out `@champion` on the Git-declared InferenceService, verifies it and rolls back on failure | Production deployment |
 | `model-retraining-template` | Automatic retraining based on drift/performance | Model maintenance     |
 | `ml-pipeline-template`      | Complete E2E pipeline orchestrating all stages  | Full automation       |
 
@@ -180,7 +180,8 @@ argo submit -n argo-workflows --from workflowtemplate/model-retraining-template 
 | `min-score`           | `0.0`                                       | Minimum primary metric (F1 weighted / R²)          |
 | `min-improvement`     | `0.0`                                       | Required gain over the `@champion` model           |
 
-The DAG exposes `model-approved` and `model-version` as outputs, so `ml-pipeline-template` can call it with
+The DAG exposes `model-approved`, `model-version` and `previous-version` (the version `@champion` pointed
+to before registration, empty for the first model) as outputs, so `ml-pipeline-template` can call it with
 `templateRef`. When a candidate is not approved, `register-model` is skipped and `model-version` is empty.
 
 ### Model Retraining Template
@@ -364,16 +365,19 @@ parameters:
 
 ### Model Deployment Template
 
-Deploys models using KServe:
+Rolls out the version that `@champion` points to on the InferenceService declared in
+`gitops/applications/apps/model-serving/`. It builds no images. The flow and the rollback are described in
+the [KServe guide](../kserve/README.md#deploy-a-new-version).
 
-```yaml
-# Example parameters
-parameters:
-  model-name: "fraud-detection"
-  model-version: "3"
-  deployment-namespace: "models"
-  ecr-repository: "<AWS_ACCOUNT_ID>.dkr.ecr.<AWS_REGION>.amazonaws.com/mlops-dev-inference"
-```
+| Parameter              | Default                                     | Description                                         |
+| ---------------------- | ------------------------------------------- | --------------------------------------------------- |
+| `model-name`           | `default-model`                             | Registered model; also the InferenceService name    |
+| `model-version`        | `1`                                         | Version the endpoint must serve after the rollout   |
+| `deployment-namespace` | `models`                                    | Namespace of the InferenceService                   |
+| `mlflow-tracking-uri`  | `http://mlflow-server.mlflow:5000`          | MLflow server URL (`dev-mlflow-server` in dev)      |
+| `previous-version`     | empty                                       | Version restored if verification fails; empty removes `@champion` |
+| `validation-data`      | `s3://mlops-curated-data/training/data.csv` | Rows sent to the endpoint (the target column is dropped) |
+| `verification-timeout` | `600`                                       | Seconds to wait for the new version to answer        |
 
 ## Security Configuration
 
@@ -384,6 +388,7 @@ The workflow service accounts have minimal required permissions:
 - Pod creation and management
 - ConfigMap and Secret access
 - Workflow resource management
+- `get` and `patch` on InferenceServices in `models` (the rollout annotation)
 - S3 access via IRSA
 
 ### Network Policies

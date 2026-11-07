@@ -52,11 +52,11 @@ The platform connects the following stages of the ML lifecycle on Kubernetes:
 | ------------------------ | ---------------------------------------------------- |
 | **Terraform modules**    | VPC, EKS, S3, ECR, Glue - reusable and tested        |
 | **ML Platform**          | Ready-to-use models, training pipelines, CLI         |
-| **`mlops-platform` image** | One container image for every pipeline step (`step split/train/evaluate/register`) |
+| **`mlops-platform` image** | One container image for every pipeline step (`step split/train/evaluate/register`) and for the model server (`step serve`) |
 | **Argo Workflows v4**    | Training pipeline with a promotion gate against the `@champion` model |
 | **MLflow 3.17.1**        | Track experiments, model registry with aliases (own server image with PostgreSQL + S3 drivers) |
 | **Kubeflow Pipelines**   | Optional pipeline UI/SDK (KFP 2.17.2)                |
-| **KServe 0.21**          | Serve the `@champion` model with `step serve` (Standard mode, no Knative) |
+| **KServe 0.21**          | Serve the `@champion` model declared in Git (Standard mode, no Knative); deployments roll out the alias and roll back on failure |
 | **Prometheus + Grafana** | Metrics, dashboards, and cost monitoring             |
 | **Evidently**            | Detect data drift automatically                      |
 | **Optional NVIDIA GPU**  | GPU node groups + GPU Operator for CUDA workloads    |

@@ -33,6 +33,13 @@ Each entry links the change that fixed it, so the same symptom can be traced qui
 | The controller does not start when `persistence` is configured | Workflow archiving requires PostgreSQL or MySQL | Archiving disabled until a database is provided (backlog #46) |
 | Steps fail to start on the emissary executor | Without `command`, emissary looks up the entrypoint in the image registry, which fails for images loaded into kind | Explicit `command: [python, -m, src.cli]` in each step (`2ca2b2e`) |
 
+## Model serving
+
+| Symptom | Cause | Fix |
+|---|---|---|
+| The `default-model` predictor restarts and ArgoCD reports `model-serving` as degraded on a new cluster | The predictor resolves `@champion` at startup, and no model has been registered yet | Run the training pipeline. Once `@champion` exists, the next restart or deployment loads it |
+| `model-deployment-template` fails at `reject-candidate` | `verify` rejected the new version (it never reported the expected version, returned `4xx`, or its predictions differ from the registry). `restore-champion` and `verify-rollback` show whether the previous version is serving again | Read the `verify` logs. The rollout annotation `mlops-platform/model-version` on the InferenceService shows the version rolled out last |
+
 ## Chaos and Litmus
 
 | Symptom | Cause | Fix |

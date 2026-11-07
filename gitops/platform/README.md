@@ -22,12 +22,13 @@ make validate-platform-config   # fails if any placeholder is left unresolved
 
 | App | Fields |
 |-----|--------|
-| `argo-workflows` | Pipeline images, inference repository, AWS region, IRSA role and environment/account/region-specific data buckets |
+| `argo-workflows` | Pipeline images, AWS region, IRSA role and environment/account/region-specific data buckets |
 | `mlflow` | Server/backup images, separate IRSA roles, SecretStore region, backup bucket and production artifact bucket |
 | `chaos` | MLflow canary images in dev/staging |
 | `monitoring` | Service and drift-job images; other AWS integrations remain tracked in #49 |
+| `model-serving` | Predictor image (the `mlops-platform` image of each environment) |
 
-Other apps (kserve, monitoring, kubeflow, external-secrets) still carry literal values or `ACCOUNT_ID`
+Other apps (monitoring, kubeflow, external-secrets) still carry literal values or `ACCOUNT_ID`
 placeholders and will be migrated to this mechanism (see `docs/project/backlog.md`). Flux-managed infrastructure reads a required `platform-runtime-config` ConfigMap through `substituteFrom`;
 `flux.env.example` lists all values and `flux_runtime_config` is the Terraform output for cloud identifiers.
 

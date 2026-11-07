@@ -125,7 +125,7 @@ These references replace per-tool rule files. MCP servers are read-only by polic
 - **Argo Workflows** (`k8s/mlops-stack/argo-workflows/`): already hardened (TLS + `--auth-mode=client` + emissary executor; SSO pending an OIDC provider). Don't reintroduce `docker.sock` mounts or `containerRuntimeExecutor: docker`.
 - **Gatekeeper**: `no-latest-tag` constraint is active for production namespaces. Pin image tags.
 - **AWS account / region**: never write them literally in manifests or docs. Use the `AWS_ACCOUNT_ID` / `AWS_REGION` placeholders and resolve them with Kustomize `replacements` from `gitops/platform/` (see its README). `gitops/platform/aws.env` is gitignored.
-- **Images**: pipeline steps run on the single `mlops-platform` image (`ml-platform/Dockerfile`); add a `step` subcommand instead of a new image. CI builds only `linux/amd64` (EKS nodes are x86).
+- **Images**: pipeline steps and model serving run on the single `mlops-platform` image (`ml-platform/Dockerfile`); add a `step` subcommand instead of a new image. Deployments move the `@champion` alias; do not reintroduce per-model image builds. CI builds only `linux/amd64` (EKS nodes are x86).
 - **AWS costs**: `make test` and `make apply` hit real AWS. Prefer `test-terraform-plan` for CI/local validation.
 
 ## Known open work (see `docs/project/critical.md` / `docs/project/backlog.md`)

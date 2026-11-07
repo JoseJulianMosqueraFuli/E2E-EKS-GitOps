@@ -51,7 +51,7 @@ metadata:
 | external-secrets | external-secrets | SecretsManager:Read |
 | mlflow-sa        | mlflow           | S3:ReadWrite        |
 | argo-workflow-s3 | argo-workflows   | S3:ReadWrite        |
-| models-sa        | models           | S3:Read             |
+| model-predictor  | models           | Ninguno (lee modelos por el proxy de MLflow) |
 
 ## 🔒 Network Security
 

@@ -77,6 +77,7 @@ This document lists all **CRITICAL** and **HIGH** severity findings identified d
   2. Remove all `hostPath` mounts of `/var/run/docker.sock` from workflow templates.
   3. Use Kaniko or BuildKit for image builds if needed.
 - **Owner**: Infrastructure / DevSecOps Team
+- **Status (2026-11-07)**: no workflow template builds images any more. Deployment rolls out the `@champion` alias on the `mlops-platform` image; a test checks that no WorkflowTemplate runs BuildKit, privileged containers or `hostPath` volumes.
 
 ---
 
@@ -189,8 +190,9 @@ This document lists all **CRITICAL** and **HIGH** severity findings identified d
 
 - **Files**: `gitops/applications/apps/argo-workflows/base/workflow-templates/*.yaml`.
 - **Fix (2026-10-20)**: validation, deployment verification and notification run on `mlops-platform:0.1.0`;
-  KServe deployment uses an Argo resource template with namespace-scoped permissions. Model images use
-  a tag in the existing inference repository. Data validation returns the actual curated dataset to training.
+  KServe deployment uses an Argo resource template with namespace-scoped permissions. Data validation
+  returns the actual curated dataset to training. Since 2026-11-07 no model image is built: the predictor
+  runs `mlops-platform` and the deployment patches only `get`/`patch`-scoped InferenceServices.
 - **Remaining validation**: full KServe serving path in EKS, and the separate KServe transformer examples (#52).
 
 ---
