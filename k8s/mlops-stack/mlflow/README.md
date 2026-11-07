@@ -45,7 +45,7 @@ MLflow provides:
 
 ### Core Components
 - **MLflow Server**: Web UI and REST API for experiment tracking and model registry. Image built from
-  `ml-platform/Dockerfile.mlflow-server` (MLflow 2.22.5 + psycopg2 + boto3; the official image has no PostgreSQL
+  `ml-platform/Dockerfile.mlflow-server` (MLflow 3.17.1 + psycopg2 + boto3; the official image has no PostgreSQL
   or S3 driver), mapped to ECR `mlops-<env>-mlflow-server` per overlay
 - **PostgreSQL**: Metadata store for experiments, runs, and model registry
 - **S3 Integration**: Artifact storage with IRSA-based authentication

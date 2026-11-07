@@ -23,6 +23,7 @@ Guides are available in English or Spanish, depending on the topic.
 | ML models, pipelines, and CLI | [ML platform guide](ml-platform-guide.md) |
 | Training orchestration | [Argo Workflows](../k8s/mlops-stack/argo-workflows/README.md) |
 | Data validation, training, backup and Chaos tests in CI | [Workflow](../.github/workflows/e2e-kind.yml) · [Smoke test script](../scripts/e2e/kind-smoke.sh) |
+| Known failures and their fixes | [Troubleshooting](troubleshooting.md) |
 | GitOps | [Overview](../gitops/README.md) · [Installation](../gitops/SETUP.md) |
 | AWS account, roles, bootstrap and recovery | [Platform configuration](../gitops/platform/README.md) · [Runtime contract](architecture/platform-runtime-config.md) |
 | Monitoring and drift detection | [Monitoring guide](model-monitoring-guide.md) |

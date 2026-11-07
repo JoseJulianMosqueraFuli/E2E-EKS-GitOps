@@ -48,7 +48,7 @@ Train Model → Register in MLflow → Deploy to KServe → Monitor with Evident
 
 | Component           | Technology                  | Purpose                        |
 | ------------------- | --------------------------- | ------------------------------ |
-| Experiment Tracking | MLflow 2.22 (client = server)           | Model registry (aliases) & experiments |
+| Experiment Tracking | MLflow 3.17.1 (client = server)         | Model registry (aliases) & experiments |
 | Orchestration       | Argo Workflows v4.0.13                  | Training pipeline (split → train → evaluate → register) |
 | Pipelines UI/SDK    | Kubeflow Pipelines 2.17.2 (optional)    | Notebook-style pipelines        |
 | Model Serving       | KServe                                  | Model serving with autoscaling  |
@@ -250,8 +250,8 @@ E2E-EKS-GitOps/
 | `evaluate` | Held-out metrics; approves only if `>= min-score` and beats `@champion` by `min-improvement` | `model-approved`, `evaluation-metrics` |
 | `register` | Registers the version and moves the `@champion` alias | `model-version` |
 
-Data is read and written through URIs (local or `s3://`), so the same code runs locally, on kind with MinIO
-and on EKS with IRSA. ROC AUC is computed from probabilities (one-vs-rest for multiclass).
+Data is read and written through URIs (local or `s3://`), so the same code runs locally, on kind with an S3-compatible
+gateway (Versity Gateway) and on EKS with IRSA. ROC AUC is computed from probabilities (one-vs-rest for multiclass).
 
 **Container image** (`ml-platform/Dockerfile`): `builder` installs only the core dependencies from
 `poetry.lock`; `test` adds all extras and runs pytest; `runtime` is non-root (UID 8737) and works with a
@@ -268,7 +268,7 @@ installs all of them plus tooling) and heavy modules are imported lazily.
 
 **Namespaces**:
 
-- `mlflow`: MLflow tracking server + PostgreSQL + MinIO (S3-compatible artifacts). Runs the project's own `mlflow-server` image (MLflow 3.17.1 + psycopg2 + boto3; the official image has neither driver); init containers derive hosts from the backend URI / S3 endpoint, so they work with any overlay prefix
+- `mlflow`: MLflow tracking server + PostgreSQL + Versity Gateway (S3-compatible artifacts in kind, dev and staging; prod uses S3). The gateway resources keep their `mlflow-minio` names (backlog #57). Runs the project's own `mlflow-server` image (MLflow 3.17.1 + psycopg2 + boto3; the official image has neither driver); init containers derive hosts from the backend URI / S3 endpoint, so they work with any overlay prefix
 - `kubeflow`: Kubeflow Pipelines UI (deployed via manifests in `gitops/applications/apps/kubeflow/`)
 - `kserve`: KServe inference controller (manifests ready in `gitops/applications/apps/kserve/`, deploy via `MLOPS_TOOLS=kserve make mlops-install`)
 - `monitoring`: Prometheus + Grafana + Alertmanager + ArgoCD Notifications + Evidently drift detection
@@ -404,9 +404,13 @@ Triggered on push to `main`/`develop` and PRs to `main`:
 ### E2E on kind (`e2e-kind.yml`, GitHub Actions only)
 
 - Builds `mlops-platform` and `mlflow-server`, creates kind, loads the images under their ECR names
-- `scripts/e2e/kind-smoke.sh`: deploys Argo + MLflow (PostgreSQL, MinIO), seeds data, runs the training
-  template twice and asserts that the first model is registered as `@champion` and that a candidate that
-  does not beat it is blocked
+- `scripts/e2e/kind-smoke.sh`: deploys Argo + MLflow (PostgreSQL, Versity Gateway), seeds data, runs the
+  training template twice and asserts that the first model is registered as `@champion` and that a
+  candidate that does not beat it is blocked
+- `scripts/e2e/kind-backup.sh`: backs up PostgreSQL and restores it into a separate empty database
+- `scripts/e2e/kind-chaos.sh`: installs Flux and Litmus, checks RBAC and admission denials, requires a
+  `Pass` verdict for pod-delete, and verifies cleanup after stopping a second workflow
+- Kind v0.33.0 with a Kubernetes 1.37.0 node, matching the EKS version
 - GitHub-hosted runners are free for public repositories
 
 ### Environment Promotion (`environment-promotion.yml`)
@@ -552,7 +556,7 @@ A focused security audit was performed across Terraform, Kubernetes manifests, G
 
 **Strengths confirmed:**
 
-- **No hardcoded secrets**: All credentials flow through External Secrets Operator / `existingSecret` references / empty defaults. PostgreSQL, MinIO, Grafana, and Slack tokens are never committed in plaintext.
+- **No hardcoded secrets**: All credentials flow through External Secrets Operator / `existingSecret` references / empty defaults. PostgreSQL, S3 gateway, Grafana, and Slack tokens are never committed in plaintext.
 - **S3 hardening**: Every bucket enforces a public-access block, KMS (`aws:kms`) encryption with bucket keys, versioning, plus a default bucket policy that denies non-TLS connections (`aws:SecureTransport=false`) and unencrypted uploads.
 - **EKS hardening**: Private endpoint by default in dev/staging/prod (`endpoint_public_access = false`), KMS envelope encryption for `secrets`, control-plane audit logging, and IRSA roles scoped per service account (least privilege).
 - **ECR**: KMS encryption, scan-on-push, enhanced registry scanning, and `IMMUTABLE` tags in production.

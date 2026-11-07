@@ -82,7 +82,7 @@ Training steps read optional per-environment settings:
 
 | Object (namespace `argo-workflows`) | Keys | When |
 | ----------------------------------- | ---- | ---- |
-| ConfigMap `ml-step-env` | `AWS_ENDPOINT_URL`, `MLFLOW_S3_ENDPOINT_URL` | MinIO or another S3-compatible endpoint (kind, dev) |
+| ConfigMap `ml-step-env` | `AWS_ENDPOINT_URL`, `MLFLOW_S3_ENDPOINT_URL` | S3-compatible gateway (Versity Gateway in kind, dev and staging) |
 | Secret `ml-step-credentials` | `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY` | Static credentials (kind only; on EKS use IRSA) |
 
 On EKS neither is needed once the `argo-workflow` service account has an IRSA role with access to the data and

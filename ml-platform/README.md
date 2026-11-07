@@ -71,7 +71,7 @@ Each Argo task runs one step inside the `mlops-platform` image. Inputs and outpu
 | `step backup-db` / `step restore-db` | Backs up PostgreSQL to S3 or restores into a separate empty database | Backup key or restore status |
 | `step notify` | Logs the deployment outcome and optionally sends the configured webhook | Notification status |
 
-The same code runs locally, on kind with MinIO (`AWS_ENDPOINT_URL`, `MLFLOW_S3_ENDPOINT_URL`) and on EKS
+The same code runs locally, on kind with an S3-compatible gateway (`AWS_ENDPOINT_URL`, `MLFLOW_S3_ENDPOINT_URL`) and on EKS
 with IRSA. Implementation: `src/pipelines/steps.py`; tests: `tests/test_steps.py`.
 
 ## Container images

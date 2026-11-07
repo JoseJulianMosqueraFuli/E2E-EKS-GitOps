@@ -204,7 +204,7 @@ poetry run python -m src.cli step register --model-uri "$(cat out/model-uri.txt)
 - `register` crea la versión en el registro y le asigna el alias `@champion`.
 
 Las rutas pueden ser locales o `s3://`; con `AWS_ENDPOINT_URL` y `MLFLOW_S3_ENDPOINT_URL` funcionan contra
-MinIO. Código: `src/pipelines/steps.py`; tests: `tests/test_steps.py`.
+un gateway compatible con S3 (Versity Gateway en kind). Código: `src/pipelines/steps.py`; tests: `tests/test_steps.py`.
 
 ## 🚀 Pipelines de Inferencia
 

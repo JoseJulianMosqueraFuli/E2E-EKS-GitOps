@@ -54,7 +54,7 @@ La plataforma conecta las siguientes etapas del ciclo de vida de ML en Kubernete
 | **Plataforma ML**         | Modelos listos para usar, pipelines de training, CLI |
 | **Imagen `mlops-platform`** | Una sola imagen para todos los pasos del pipeline (`step split/train/evaluate/register`) |
 | **Argo Workflows v4**     | Pipeline de entrenamiento con gate de promoción contra el modelo `@champion` |
-| **MLflow 2.22**           | Experimentos y registro de modelos con aliases (imagen propia con drivers de PostgreSQL y S3) |
+| **MLflow 3.17.1**         | Experimentos y registro de modelos con aliases (imagen propia con drivers de PostgreSQL y S3) |
 | **Kubeflow Pipelines**    | UI/SDK de pipelines opcional (KFP 2.17.2)            |
 | **KServe**                | Servir modelos con autoscaling                       |
 | **Prometheus + Grafana**  | Métricas, dashboards y monitoreo de costos           |
@@ -64,7 +64,7 @@ La plataforma conecta las siguientes etapas del ciclo de vida de ML en Kubernete
 | **Gatekeeper/OPA**        | Políticas de seguridad en admisión del cluster       |
 | **Multi-ambiente**        | Configs para dev, staging, prod                      |
 | **CI/CD**                 | GitHub Actions; configs inactivas de GitLab, CircleCI y Jenkins en `ci-cd/future/` |
-| **Prueba E2E**            | Argo + MLflow + entrenamiento en kind, solo en GitHub Actions |
+| **Prueba E2E**            | Entrenamiento y registro, backup/restore de PostgreSQL y Chaos con Litmus en kind, solo en GitHub Actions |
 | **Reglas para agentes IA** | Instrucciones compartidas en `AGENTS.md` y `.agents/`; entradas mínimas por herramienta |
 
 ## Requisitos
