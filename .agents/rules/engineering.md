@@ -28,7 +28,7 @@ These rules apply to every task, in every part of the repository. Read `AGENTS.m
   - Kubernetes: `kustomize build <path> | kubectl apply --dry-run=client -f -`, `make validate-kubernetes`
   - Python: `make validate-python`, `make dev-lint`, `poetry run pytest tests/ -v` in `ml-platform/` or `gitops/`
 - Never run `make apply`, `make test`, `make destroy`, `kubectl apply` (non dry-run) or anything that touches real AWS without explicit request: it costs money and mutates shared state.
-- Do not remove `|| true` from CI steps (HIGH-013) unless explicitly asked.
+- Do not reintroduce `|| true` or `continue-on-error` on CI test/lint steps (HIGH-013, fixed).
 
 ## Delivering
 

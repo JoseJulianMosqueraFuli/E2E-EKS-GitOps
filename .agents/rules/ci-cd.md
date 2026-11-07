@@ -1,14 +1,14 @@
 ---
-description: CI/CD pipelines (GitHub Actions, GitLab CI, CircleCI, Jenkins) and promotion
-globs: .github/workflows/**, .gitlab-ci.yml, .circleci/**, ci-cd/**, Makefile
+description: CI/CD pipelines (GitHub Actions) and promotion
+globs: .github/workflows/**, ci-cd/**, Makefile
 ---
 
 # CI/CD
 
 - `Makefile` is the single entry point; pipelines call `make` targets instead of reimplementing commands, so local and CI behave the same.
-- Four providers are maintained (`.github/workflows/`, `.gitlab-ci.yml`, `.circleci/config.yml`, `ci-cd/providers/jenkins/Jenkinsfile`). A change in one usually needs the equivalent change in the others, or an explicit note why not.
-- `|| true` on test/lint steps is intentional (HIGH-013). Do not remove it unless explicitly asked.
-- Pin actions/orbs/images to a version tag or SHA. Set minimal `permissions:` on GitHub workflows.
+- GitHub Actions (`.github/workflows/`) is the only maintained provider. GitLab CI, CircleCI and Jenkins configurations are parked in `ci-cd/future/` and do not run; do not update them alongside GitHub changes. Reactivating one follows `ci-cd/future/README.md`.
+- Test and lint steps must fail the pipeline. Do not add `|| true`, `continue-on-error` or soft-fail options to them (HIGH-013, fixed).
+- Pin actions and images to a version tag or SHA. Set minimal `permissions:` on GitHub workflows.
 - Use OIDC to assume AWS roles from CI; never long-lived AWS keys in CI variables.
 - Jobs that hit real AWS (`make test`, `apply`) must be opt-in (manual `workflow_dispatch` input or protected branch) and never run on pull requests from forks.
 - Cache dependencies (Poetry, Terraform providers) keyed on lock files.

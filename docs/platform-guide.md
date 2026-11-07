@@ -63,7 +63,7 @@ The platform connects the following stages of the ML lifecycle on Kubernetes:
 | **Istio mTLS**           | mTLS policies; remaining coverage gaps are tracked in the backlog         |
 | **Gatekeeper/OPA**       | Admission policies, including image-tag restrictions |
 | **Multi-environment**    | Dev, staging, prod configs                           |
-| **CI/CD templates**      | GitHub Actions, GitLab, CircleCI, Jenkins            |
+| **CI/CD**                | GitHub Actions; inactive GitLab, CircleCI, and Jenkins configs in `ci-cd/future/` |
 | **E2E smoke test**       | Argo + MLflow + training on kind, in GitHub Actions only |
 | **AI agent rules**       | Shared instructions in `AGENTS.md` and `.agents/`; minimal entry points for each tool |
 
@@ -213,7 +213,7 @@ The [architecture reference](architecture/implementation.md) explains ownership 
 │   ├── Dockerfile            # `mlops-platform` image (builder / test / runtime stages)
 │   ├── Dockerfile.mlflow-server  # MLflow server with PostgreSQL + S3 drivers
 │   └── pyproject.toml        # Python packaging with optional extras
-├── ci-cd/                    # CI/CD configurations (Jenkins)
+├── ci-cd/future/             # Inactive GitLab CI, CircleCI, and Jenkins configs
 ├── scripts/                  # Automation scripts
 │   └── e2e/                  # kind smoke test (runs in GitHub Actions)
 ├── .github/workflows/        # CI, image build, E2E on kind, environment promotion

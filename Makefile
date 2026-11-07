@@ -2,7 +2,7 @@
 
 .PHONY: help init plan apply destroy test test-terraform-plan terraform-initial-plan test-unit test-integration clean \
         mlops-install mlops-uninstall mlops-status mlops-mlflow-only mlops-monitoring-only mlops-core mlops-full \
-        setup-github setup-gitlab setup-circleci setup-jenkins \
+        setup-github \
         platform-config terraform-fmt-check validate-terraform validate-kubernetes validate-platform-config validate-python validate-all \
         dev-setup dev-format dev-lint agents-sync agents-check \
         quickstart-dev quickstart-prod \
@@ -30,7 +30,7 @@ help: ## Show this help message
 	@echo ''
 	@echo 'Variables:'
 	@echo '  ENV=$(ENV)              Target environment'
-	@echo '  CI_PROVIDER=$(CI_PROVIDER)      CI/CD provider (github|gitlab|circleci|jenkins)'
+	@echo '  CI_PROVIDER=$(CI_PROVIDER)      CI/CD provider (github; inactive providers are in ci-cd/future/)'
 	@echo '  MLOPS_TOOLS=$(MLOPS_TOOLS)  MLOps tools to deploy'
 
 # Infrastructure Targets
@@ -102,29 +102,11 @@ mlops-full: ## Install full MLOps stack (MLflow + Kubeflow + Monitoring)
 # CI/CD Setup Targets
 setup-github: ## Setup GitHub Actions
 	@echo "GitHub Actions configuration is already present in .github/workflows/"
-	@echo "Configure secrets in GitHub repository settings:"
-	@echo "  - AWS_ACCESS_KEY_ID"
-	@echo "  - AWS_SECRET_ACCESS_KEY"
-	@echo "  - KUBE_CONFIG_DATA"
-
-setup-gitlab: ## Setup GitLab CI
-	@echo "GitLab CI configuration is already present in .gitlab-ci.yml"
-	@echo "Configure variables in GitLab project settings:"
-	@echo "  - AWS_ACCESS_KEY_ID"
-	@echo "  - AWS_SECRET_ACCESS_KEY"
-	@echo "  - KUBE_CONFIG"
-
-setup-circleci: ## Setup CircleCI
-	@echo "CircleCI configuration is already present in .circleci/config.yml"
-	@echo "Configure environment variables in CircleCI project settings:"
-	@echo "  - AWS_ACCESS_KEY_ID"
-	@echo "  - AWS_SECRET_ACCESS_KEY"
-
-setup-jenkins: ## Setup Jenkins
-	@echo "Jenkins configuration is available in ci-cd/providers/jenkins/Jenkinsfile"
-	@echo "Configure Jenkins credentials:"
-	@echo "  - aws-credentials (AWS Access Key)"
-	@echo "  - kubeconfig (Kubernetes config)"
+	@echo "AWS access uses OIDC roles; no long-lived AWS keys are stored in GitHub."
+	@echo "Configure variables in the GitHub environments:"
+	@echo "  - terraform-plan-<env>: AWS_PLAN_ROLE_ARN, AWS_REGION (docs/terraform-ci.md)"
+	@echo "  - <env>: AWS_ROLE_ARN, AWS_REGION (docs/architecture/platform-runtime-config.md)"
+	@echo "Inactive GitLab, CircleCI and Jenkins configurations: ci-cd/future/README.md"
 
 # Validation Targets
 terraform-fmt-check: ## Check Terraform formatting without changing files

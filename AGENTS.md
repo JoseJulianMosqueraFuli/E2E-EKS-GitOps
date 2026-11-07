@@ -29,10 +29,10 @@ End-to-end MLOps platform on Amazon EKS: Terraform infra → EKS cluster → Git
 | `ml-platform/tests/` | Unit + integration tests (pytest) |
 | `ml-platform/feature_repo/` | Feast feature repo (local backend) |
 | `ml-platform/Dockerfile`, `Dockerfile.mlflow-server` | `mlops-platform` image (pipeline steps) and MLflow server image |
-| `ci-cd/providers/jenkins/` | Jenkinsfile |
+| `ci-cd/future/` | Inactive GitLab CI, CircleCI and Jenkins configurations (not run; see its README) |
 | `scripts/` | Top-level automation (`setup-mlops-stack.sh`, `bootstrap-terraform-backend.sh`) |
 | `scripts/e2e/` | kind smoke test (CI only) |
-| `.github/workflows/` | `ci.yml`, `ml-platform-image.yml`, `e2e-kind.yml`, `environment-promotion.yml` |
+| `.github/workflows/` | Only active CI/CD: `ci.yml`, `ml-platform-image.yml`, `e2e-kind.yml`, `terraform-plan.yml`, `publish-ecr.yml`, `environment-promotion.yml` |
 | `docs/` | Project documentation (`docs/README.md` is the hub) |
 | `docs/architecture/` | Platform architecture and implementation overview |
 | `docs/project/` | Canonical backlog and CRITICAL/HIGH findings |
@@ -120,7 +120,7 @@ These references replace per-tool rule files. MCP servers are read-only by polic
 
 ## Sensitive areas — be careful
 
-- **CI `|| true`**: test/lint steps in `.github/workflows/ci.yml`, `.gitlab-ci.yml`, `.circleci/config.yml` intentionally tolerate failures. **Do not remove `|| true` without explicit request** (tracked as HIGH-013 in `docs/project/critical.md`, owner: DevOps).
+- **CI failures**: GitHub Actions is the only active CI. Its test/lint steps fail the pipeline (HIGH-013 fixed in `c50a12f`). Don't reintroduce `|| true`, `continue-on-error` or soft-fail options on them. Don't update `ci-cd/future/` alongside GitHub changes; reactivating a provider follows its README.
 - **Terraform state**: backend configuration is supplied through ignored `backend.hcl` files. Run the bootstrap explicitly with an AWS account; do not initialize or migrate state during validation.
 - **Argo Workflows** (`k8s/mlops-stack/argo-workflows/`): already hardened (TLS + `--auth-mode=client` + emissary executor; SSO pending an OIDC provider). Don't reintroduce `docker.sock` mounts or `containerRuntimeExecutor: docker`.
 - **Gatekeeper**: `no-latest-tag` constraint is active for production namespaces. Pin image tags.
@@ -133,7 +133,6 @@ These references replace per-tool rule files. MCP servers are read-only by polic
 - CRIT-004: ArgoCD `mlops-core` AppProject is restricted in current manifests (verified 2026-10-20); effective permissions in EKS still need verification.
 - HIGH-006 / HIGH-007 are corrected in code: monitoring and pipeline images are versioned; CI image builds and the full KServe path still need verification (#52/#53).
 - HIGH-001: Terraform S3 backend activation (account available; run `scripts/bootstrap-terraform-backend.sh <env> "$AWS_REGION"`).
-- HIGH-013: CI hides failures (intentional, do not touch unless asked).
 - Before the first AWS deployment: apply/configure the implemented ArgoCD renderer (#48), IRSA roles (#50), unique buckets (#51), ECR OIDC publisher (#55) and controller bootstrap (#61). Other app AWS contracts remain open (#49). Validate the new Chaos/backup kind CI (#54/#62), then EKS data probes (#63) and zone recovery (#64). Promotion of the same ECR digest is tracked in #65.
 - Many MEDIUM/LOW items in `docs/project/backlog.md` (Istio mTLS gaps, Gatekeeper coverage, Helm chart hardening, ML platform debt).
 

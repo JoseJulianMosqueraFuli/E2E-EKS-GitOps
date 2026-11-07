@@ -135,7 +135,7 @@ kubectl port-forward svc/argocd-server -n argocd 8080:443
 - ✅ **External Secrets Operator**: Secure secret management for MLflow and other components
 - ✅ **ArgoCD Notifications**: Slack notifications for sync events (`mlops-deployments`, `mlops-alerts`)
 - ✅ **ApplicationSet**: Auto-generates applications across environments
-- ✅ **Promotion Pipeline**: `scripts/promote.py` + GitHub Actions + Jenkins for env-to-env promotion
+- ✅ **Promotion Pipeline**: `scripts/promote.py` + GitHub Actions for env-to-env promotion
 - ✅ **A/B Testing Workflow**: Argo Workflows template for model A/B experiments
 
 ### Pending

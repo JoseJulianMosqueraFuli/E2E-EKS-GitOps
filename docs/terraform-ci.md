@@ -84,7 +84,7 @@ make terraform-initial-plan ENV=dev
 remains a compatibility alias for `validate-terraform`; it does not generate a plan. Existing `make plan`
 behavior is unchanged.
 
-This automation targets GitHub Actions because it is the requested execution platform. GitLab,
-CircleCI, and Jenkins retain their existing workflows; they can use the common validation targets.
+This automation targets GitHub Actions, the only active CI provider. The GitLab CI, CircleCI, and
+Jenkins configurations are inactive in [`ci-cd/future/`](../ci-cd/future/README.md).
 No AWS deployment or Terratest run is enabled by these changes. ECR publishing through OIDC remains a
 separate task (backlog #55).

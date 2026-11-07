@@ -3,7 +3,7 @@
 [← Documentation index](../README.md)
 
 **Report Date**: 2026-06-06
-**Last Updated**: 2026-10-20
+**Last Updated**: 2026-11-07
 **Project**: E2E MLOps Platform on Amazon EKS
 **Reviewer**: OpenCode AI
 **Status**: OPEN - Requires immediate action before production deployment
@@ -17,7 +17,7 @@ This document lists all **CRITICAL** and **HIGH** severity findings identified d
 | Severity | Count | Status |
 |----------|-------|--------|
 | CRITICAL | 4 | 4 corrected in code/manifests; CRIT-004 effective permissions still require EKS verification |
-| HIGH | 14 | 11 corrected in code, 2 Open, 1 mitigated in manifests (HIGH-014; EKS verification pending) |
+| HIGH | 14 | 12 corrected in code, 1 Open (HIGH-001), 1 mitigated in manifests (HIGH-014; EKS verification pending) |
 
 ---
 
@@ -252,12 +252,13 @@ This document lists all **CRITICAL** and **HIGH** severity findings identified d
 
 ## CI/CD Issues
 
-### HIGH-013: Tests Hiding Failures with `|| true`
+### HIGH-013: Tests Hiding Failures with `|| true` — FIXED
 
-- **Files**: `.github/workflows/ci.yml`, `.gitlab-ci.yml`, `.circleci/config.yml`
-- **Issue**: Multiple test/lint steps use `|| true`, causing pipelines to pass even when tests fail.
-- **Impact**: Broken code can be merged unnoticed.
-- **Fix**: Remove `|| true` from test and lint commands.
+- **Files**: `.github/workflows/ci.yml`. The GitLab CI and CircleCI configurations were moved to `ci-cd/future/` on 2026-11-07 and no longer run.
+- **Issue**: Multiple test/lint steps used `|| true`, causing pipelines to pass even when tests failed.
+- **Impact**: Broken code could be merged unnoticed.
+- **Fix**: Commit `c50a12f` removed `|| true` from the test and lint commands of every provider.
+- **Status**: ✅ Fixed 2026-10-01. Verified 2026-11-07: no `|| true`, `continue-on-error`, or soft-fail options remain on test/lint steps in `.github/workflows/`.
 - **Owner**: DevOps Team
 
 ---

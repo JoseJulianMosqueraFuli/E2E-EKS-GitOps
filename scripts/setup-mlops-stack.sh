@@ -75,14 +75,8 @@ setup_cicd() {
         "github")
             log_info "GitHub Actions configuration already present"
             ;;
-        "gitlab")
-            log_info "GitLab CI configuration already present"
-            ;;
-        "circleci")
-            log_info "CircleCI configuration already present"
-            ;;
-        "jenkins")
-            log_info "Jenkins configuration available in ci-cd/providers/jenkins/"
+        "gitlab"|"circleci"|"jenkins")
+            log_warning "${CI_PROVIDER} is inactive; see ci-cd/future/README.md"
             ;;
         *)
             log_warning "Unknown CI provider: ${CI_PROVIDER}"
@@ -290,7 +284,7 @@ case "${1:-}" in
         echo ""
         echo "Environment variables:"
         echo "  ENVIRONMENT     - Target environment (default: dev)"
-        echo "  CI_PROVIDER     - CI/CD provider (github|gitlab|circleci|jenkins)"
+        echo "  CI_PROVIDER     - CI/CD provider (default: github; others are inactive in ci-cd/future/)"
         echo "  MLOPS_TOOLS     - Comma-separated tools (mlflow,kubeflow,kserve,monitoring)"
         echo "  AWS_REGION      - AWS region (default: us-east-1)"
         echo "  CLUSTER_NAME    - EKS cluster name"
@@ -298,7 +292,6 @@ case "${1:-}" in
         echo "Examples:"
         echo "  $0 install"
         echo "  MLOPS_TOOLS=mlflow,monitoring $0 install"
-        echo "  CI_PROVIDER=gitlab $0 install"
         exit 1
         ;;
 esac

@@ -92,6 +92,7 @@ Detalles y comandos: [contrato de configuracion y recuperacion](../architecture/
 - [x] Smoke test E2E en kind (GitHub Actions): Argo + MLflow + entrenamiento + gate de promocion `(2026-10-10)` - primer verde registrado en `2ca2b2e` (2026-10-11), ver #56; no cubre Chaos
 - [x] Terraform en GitHub Actions: validacion de dev/staging/prod y workflow manual de planes iniciales con OIDC de lectura, sin apply `(2026-10-17)` - implementado; pendiente configurar rol/variables AWS y verificar primer run. Ver `docs/terraform-ci.md`. HIGH-001 y #55 siguen pendientes.
 
+- [x] CI reducido a GitHub Actions: GitLab CI, CircleCI y Jenkins movidos sin cambios a `ci-cd/future/` (inactivos, sin sincronizar). Ver [`ci-cd/future/README.md`](../../ci-cd/future/README.md) `(2026-11-07)`
 - [x] Chaos revisado: barrera de inicio para la sonda, downtime por tiempo real, observacion hasta completar los engines, mutex, preflight de desalojo por zona y limpieza con errores visibles. RBAC de charts limitado (HIGH-014). `(2026-10-17)` - validacion estatica y pruebas con dobles; ejecucion EKS pendiente. EC2 stop #58, particion de red desactivada #59, separacion de roles #60.
 ---
 
@@ -100,7 +101,7 @@ Detalles y comandos: [contrato de configuracion y recuperacion](../architecture/
 | Area | Estado verificable al 2026-10-20 |
 |------|--------------------------------|
 | CRITICAL historicos | 4 corregidos en codigo/manifiestos; permisos efectivos de CRIT-004 pendientes de comprobar en EKS |
-| HIGH historicos | 11 corregidos en codigo; HIGH-001 y HIGH-013 abiertos; HIGH-014 mitigado en manifiestos |
+| HIGH historicos | 12 corregidos en codigo; HIGH-001 abierto; HIGH-014 mitigado en manifiestos. HIGH-013 verificado como corregido el 2026-11-07 |
 | GitOps / Chaos | Bootstrap y E2E Chaos implementados; render/pruebas locales aprobados; ejecucion de CI/EKS pendiente |
 | Proceso ML | Pipeline principal y monitoring corregidos; validar la ampliacion data → train → serve y publicacion |
 | AWS / recuperacion | Validacion dev/staging/prod aprobada; plan real, despliegue, restore y resiliencia por zona pendientes |
@@ -144,7 +145,7 @@ Los estados por ID y la evidencia de la revision sustituyen los antiguos totales
 | HIGH-010 | Prometheus Deployment | `gitops/applications/apps/monitoring/base/prometheus-deployment.yaml` | ✅ Corregido 2026-06-08 |
 | HIGH-011 | Errores de import Python | `ml-platform/src/main.py` | ✅ Corregido 2026-06-08 |
 | HIGH-012 | `fastapi`/`uvicorn` faltantes | `ml-platform/pyproject.toml` | ✅ Corregido 2026-06-08 |
-| HIGH-013 | CI oculta fallas | `.github/workflows/ci.yml`, `.gitlab-ci.yml`, `.circleci/config.yml` | Eliminar `|| true` |
+| HIGH-013 | CI oculta fallas | `.github/workflows/ci.yml` | ✅ Corregido en `c50a12f` (2026-10-01); verificado 2026-11-07 sin `|| true`, `continue-on-error` ni soft-fail en test/lint. GitLab CI y CircleCI movidos a `ci-cd/future/` (inactivos) |
 
 ---
 
@@ -244,11 +245,11 @@ Los estados por ID y la evidencia de la revision sustituyen los antiguos totales
 
 | # | Issue | Archivo(s) |
 |---|-------|------------|
-| 39 | GitLab CI usa `bitnami/kubectl:latest` | `.gitlab-ci.yml` |
-| 40 | CircleCI usa `bitnami/kubectl:latest` | `.circleci/config.yml` |
-| 41 | GitHub Actions: pytest/flake8/black con `|| true` | `.github/workflows/ci.yml` |
-| 42 | GitLab CI: pytest/flake8/black con `|| true` | `.gitlab-ci.yml` |
-| 43 | CircleCI: pytest/flake8/black con `|| true` | `.circleci/config.yml` |
+| 39 | GitLab CI usa `bitnami/kubectl:latest` y `bridgecrew/checkov:latest` | `ci-cd/future/gitlab/.gitlab-ci.yml` | Diferido: proveedor inactivo desde 2026-11-07; requisito para reactivarlo |
+| 40 | CircleCI usa `bitnami/kubectl:latest` | `ci-cd/future/circleci/config.yml` | ✅ Ya no aplica: el executor usa `cimg/go:1.21`; proveedor inactivo desde 2026-11-07 |
+| 41 | GitHub Actions: pytest/flake8/black con `|| true` | `.github/workflows/ci.yml` | ✅ Corregido en `c50a12f` (HIGH-013) |
+| 42 | GitLab CI: pytest/flake8/black con `|| true` | `ci-cd/future/gitlab/.gitlab-ci.yml` | ✅ Corregido en `c50a12f`; proveedor inactivo |
+| 43 | CircleCI: pytest/flake8/black con `|| true` | `ci-cd/future/circleci/config.yml` | ✅ Corregido en `c50a12f`; proveedor inactivo |
 | 44 | Falta pipeline automatizada para Terratest Go | `.github/workflows/ci.yml` |
 | 55 | Rol OIDC por entorno y publicacion inicial dev en `publish-ecr.yml` implementados. Configurar provider/variables del entorno GitHub, aplicar IAM y ejecutar; promocion sin reconstruir en #65 | `.github/workflows/ml-platform-image.yml`, `infra/` |
 | 56 | Primer run verde de `e2e-kind.yml` (entrena, evalua, registra y bloquea por el gate de promocion) | `.github/workflows/e2e-kind.yml`, `scripts/e2e/kind-smoke.sh` | ✅ Verde en `2ca2b2e` (2026-10-11): Secrets sin prefijo en kind, Postgres UID 70, MinIO reemplazado (#57), SQLAlchemy 2.0.49 fijado, `command` explicito para emissary |

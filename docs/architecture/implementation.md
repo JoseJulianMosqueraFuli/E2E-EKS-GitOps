@@ -70,12 +70,10 @@ Train Model → Register in MLflow → Deploy to KServe → Monitor with Evident
 
 ### CI/CD
 
-| Provider       | Status            |
-| -------------- | ----------------- |
-| GitHub Actions | ✅ Primary        |
-| GitLab CI      | ✅ Config present |
-| CircleCI       | ✅ Config present |
-| Jenkins        | ✅ Config present |
+| Provider                       | Status                                                         |
+| ------------------------------ | -------------------------------------------------------------- |
+| GitHub Actions                 | ✅ Only active provider                                        |
+| GitLab CI, CircleCI, Jenkins   | Inactive; kept in [`ci-cd/future/`](../../ci-cd/future/README.md) |
 
 ### Development
 
@@ -156,9 +154,8 @@ E2E-EKS-GitOps/
 │   ├── pyproject.toml              # Poetry + setuptools dependencies
 │   └── Dockerfile.monitoring       # Monitoring service Docker image
 │
-├── ci-cd/                          # CI/CD configurations
-│   └── providers/
-│       └── jenkins/                # Jenkinsfile
+├── ci-cd/
+│   └── future/                     # Inactive GitLab CI, CircleCI and Jenkins configs
 │
 ├── scripts/                        # Automation scripts
 │   ├── bootstrap-terraform-backend.sh  # S3 + DynamoDB backend setup
@@ -177,12 +174,14 @@ E2E-EKS-GitOps/
 │   ├── mlops-enterprise-recommendations.md
 │   └── PHASE2_IMPLEMENTATION_GUIDE.md
 │
-├── .github/workflows/             # GitHub Actions
+├── .github/workflows/             # GitHub Actions (only active CI/CD)
 │   ├── ci.yml                      # CI pipeline (Terraform, K8s, Python, Helm, Security)
+│   ├── ml-platform-image.yml       # Build and test the platform images
+│   ├── e2e-kind.yml                # Training, backup/restore and Chaos on kind
+│   ├── terraform-plan.yml          # Manual initial AWS plan through OIDC
+│   ├── publish-ecr.yml             # Manual image publication to ECR through OIDC
 │   └── environment-promotion.yml   # Dev → Staging → Production promotion
 │
-├── .circleci/                      # CircleCI config
-├── .gitlab-ci.yml                  # GitLab CI config
 ├── Makefile                        # Main automation interface
 ├── README.md / README.es.md        # Main documentation
 └── LICENSE                         # MIT License
@@ -528,7 +527,7 @@ mlflow:
 ### Makefile Variables
 
 - `ENV`: dev/staging/prod
-- `CI_PROVIDER`: github/gitlab/circleci/jenkins
+- `CI_PROVIDER`: github (other providers are inactive in `ci-cd/future/`)
 - `MLOPS_TOOLS`: comma-separated list (mlflow,kubeflow,kserve,monitoring)
 - `REGION`: AWS region (default: us-east-1)
 
@@ -602,7 +601,7 @@ A focused security audit was performed across Terraform, Kubernetes manifests, G
 - **External Secrets Operator** integrated with MLflow and monitoring stacks
 - **ArgoCD Notifications** (Slack: `mlops-deployments`, `mlops-alerts` channels)
 - **ApplicationSet** for auto-generating all applications across environments
-- **Promotion pipeline** (`promote.py` + GitHub Actions + Jenkins + CircleCI + GitLab)
+- **Promotion pipeline** (`promote.py` + GitHub Actions)
 - **A/B Testing workflow templates** (7-step Argo Workflows DAG with statistical metrics and auto-promotion)
 - **GPU Operator support** (optional manifests in `gitops/applications/apps/gpu-operator/`)
 - **Model Monitoring with Evidently** (drift detection + model performance + CronJob)
@@ -650,7 +649,7 @@ A focused security audit was performed across Terraform, Kubernetes manifests, G
 4. **Kustomize + Helm**: Raw K8s manifests use Kustomize for overlays; packaged apps use Helm charts in `gitops/charts/`.
 5. **Joblib over pickle**: Model serialization uses joblib for better numpy/scipy object handling.
 6. **Poetry for Python**: Dependency management uses Poetry (with pip fallback support via `pyproject.toml` setuptools backend).
-7. **Multi-CI support**: Configurations for GitHub Actions, GitLab CI, CircleCI, and Jenkins are all maintained.
+7. **Single CI provider**: only GitHub Actions is maintained and validated. GitLab CI, CircleCI, and Jenkins configurations are inactive in `ci-cd/future/` ([decision record](../../ci-cd/future/README.md)).
 8. **One image for all pipeline steps**: steps share dependencies and code; one image avoids version skew between training and evaluation and keeps CI to one build (`linux/amd64`, EKS nodes are x86).
 9. **Preprocessing travels with the model**: training logs a single sklearn `Pipeline`, so serving receives raw features and there is no training/serving skew.
 10. **Promotion through the registry**: the `@champion` alias is the contract between training and serving; a candidate must beat it on the same held-out data.

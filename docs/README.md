@@ -35,7 +35,7 @@ Guides are available in English or Spanish, depending on the topic.
 
 - [GitOps Python tooling and Poetry](../gitops/POETRY_GUIDE.md)
 - [GitOps test suite](../gitops/tests/README.md)
-- [Make commands](../Makefile) and [CI workflows](../.github/workflows/)
+- [Make commands](../Makefile) and [CI workflows](../.github/workflows/) (GitHub Actions only; [inactive providers](../ci-cd/future/README.md))
 - [Agent instructions](../AGENTS.md), [agent configuration](../.agents/README.md), and [canonical rules shared by all agents](../.agents/rules/)
 
 ## Architecture diagrams
