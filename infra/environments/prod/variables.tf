@@ -39,7 +39,7 @@ variable "node_egress_cidrs" {
 variable "kubernetes_version" {
   description = "Kubernetes version"
   type        = string
-  default     = "1.32"
+  default     = "1.37"
 }
 
 variable "node_group_instance_types" {

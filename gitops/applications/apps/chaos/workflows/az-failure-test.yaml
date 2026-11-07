@@ -74,7 +74,7 @@ spec:
         valueFrom:
           path: /tmp/node-count.txt
     script:
-      image: alpine/k8s:1.32.13
+      image: alpine/k8s:1.37.1
       command:
       - sh
       env:
@@ -151,7 +151,7 @@ spec:
       - name: node
       - name: index
     script:
-      image: alpine/k8s:1.32.13
+      image: alpine/k8s:1.37.1
       command:
       - sh
       env:
@@ -245,7 +245,7 @@ spec:
         valueFrom:
           path: /tmp/max_downtime.txt
     script:
-      image: alpine/k8s:1.32.13
+      image: alpine/k8s:1.37.1
       command:
       - sh
       resources:
@@ -290,7 +290,7 @@ spec:
       - name: expected-engines
   - name: verify-recovery
     script:
-      image: alpine/k8s:1.32.13
+      image: alpine/k8s:1.37.1
       command:
       - sh
       env:
@@ -388,7 +388,7 @@ spec:
         readOnly: true
   - name: cleanup
     script:
-      image: alpine/k8s:1.32.13
+      image: alpine/k8s:1.37.1
       command:
       - sh
       env:

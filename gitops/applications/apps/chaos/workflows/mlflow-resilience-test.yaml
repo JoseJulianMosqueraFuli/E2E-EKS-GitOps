@@ -61,7 +61,7 @@ spec:
             value: '{{steps.monitor-during-chaos.outputs.parameters.max-downtime}}'
   - name: mlflow-health-check
     script:
-      image: alpine/k8s:1.32.13
+      image: alpine/k8s:1.37.1
       command:
       - sh
       env:
@@ -110,7 +110,7 @@ spec:
         readOnly: true
   - name: run-pod-delete
     script:
-      image: alpine/k8s:1.32.13
+      image: alpine/k8s:1.37.1
       command:
       - sh
       env:
@@ -194,7 +194,7 @@ spec:
         valueFrom:
           path: /tmp/max_downtime.txt
     script:
-      image: alpine/k8s:1.32.13
+      image: alpine/k8s:1.37.1
       command:
       - sh
       resources:
@@ -237,7 +237,7 @@ spec:
       - name: run-id
   - name: mlflow-log-run
     script:
-      image: alpine/k8s:1.32.13
+      image: alpine/k8s:1.37.1
       command:
       - sh
       env:
@@ -329,7 +329,7 @@ spec:
         readOnly: true
   - name: stop-chaos
     script:
-      image: alpine/k8s:1.32.13
+      image: alpine/k8s:1.37.1
       command:
       - sh
       env:
