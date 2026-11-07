@@ -22,10 +22,6 @@ variable "kms_key_arn" {
   type        = string
   description = "Platform encryption key ARN"
 }
-variable "inference_repository_arn" {
-  type        = string
-  description = "ECR repository for images built by model deployment workflows"
-}
 variable "tags" {
   type        = map(string)
   description = "Resource tags"

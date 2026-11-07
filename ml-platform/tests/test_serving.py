@@ -129,10 +129,8 @@ class TestDeploymentParity:
 
         def post(url, json, timeout):
             response = client.post("/invocations", json=json)
-            headers = dict(response.headers)
-            headers[serving.MODEL_VERSION_HEADER] = next(
-                reported, headers[serving.MODEL_VERSION_HEADER]
-            )
+            served = response.headers[serving.MODEL_VERSION_HEADER]
+            headers = {serving.MODEL_VERSION_HEADER: next(reported, served)}
             return FakeResponse(response.status_code, transform(response.json()), headers)
 
         monkeypatch.setattr(validation.requests, "post", post)

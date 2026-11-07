@@ -334,15 +334,14 @@ module "glue" {
 # Data sources
 data "aws_caller_identity" "current" {}
 module "workload_identity" {
-  source                   = "../../modules/workload-identity"
-  name_prefix              = local.name_prefix
-  environment              = "dev"
-  oidc_provider_arn        = module.eks.oidc_provider_arn
-  oidc_provider_url        = module.eks.oidc_provider_url
-  bucket_arns              = module.s3.bucket_arns
-  kms_key_arn              = aws_kms_key.main.arn
-  inference_repository_arn = module.ecr.repository_arns["inference"]
-  tags                     = local.common_tags
+  source            = "../../modules/workload-identity"
+  name_prefix       = local.name_prefix
+  environment       = "dev"
+  oidc_provider_arn = module.eks.oidc_provider_arn
+  oidc_provider_url = module.eks.oidc_provider_url
+  bucket_arns       = module.s3.bucket_arns
+  kms_key_arn       = aws_kms_key.main.arn
+  tags              = local.common_tags
 }
 
 module "ecr_publisher" {

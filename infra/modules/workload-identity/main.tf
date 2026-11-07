@@ -70,26 +70,6 @@ resource "aws_iam_role_policy" "storage" {
   policy   = data.aws_iam_policy_document.storage[each.key].json
 }
 
-data "aws_iam_policy_document" "inference_images" {
-  statement {
-    actions   = ["ecr:GetAuthorizationToken"]
-    resources = ["*"]
-  }
-  statement {
-    actions = [
-      "ecr:BatchCheckLayerAvailability", "ecr:InitiateLayerUpload", "ecr:UploadLayerPart",
-      "ecr:CompleteLayerUpload", "ecr:PutImage", "ecr:BatchGetImage", "ecr:GetDownloadUrlForLayer"
-    ]
-    resources = [var.inference_repository_arn]
-  }
-}
-
-resource "aws_iam_role_policy" "inference_images" {
-  name   = "inference-images"
-  role   = aws_iam_role.workload["argo"].id
-  policy = data.aws_iam_policy_document.inference_images.json
-}
-
 data "aws_region" "current" {}
 data "aws_caller_identity" "current" {}
 

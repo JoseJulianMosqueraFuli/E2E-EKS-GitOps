@@ -18,6 +18,9 @@ spec:
           - app: kserve
             namespace: kserve
             component: model-serving
+          - app: model-serving
+            namespace: models
+            component: inference
           - app: monitoring
             namespace: monitoring
             component: observability
@@ -101,6 +104,9 @@ spec:
           - app: kserve
             namespace: kserve
             component: model-serving
+          - app: model-serving
+            namespace: models
+            component: inference
           - app: monitoring
             namespace: monitoring
             component: observability
@@ -184,6 +190,9 @@ spec:
           - app: kserve
             namespace: kserve
             component: model-serving
+          - app: model-serving
+            namespace: models
+            component: inference
           - app: monitoring
             namespace: monitoring
             component: observability
