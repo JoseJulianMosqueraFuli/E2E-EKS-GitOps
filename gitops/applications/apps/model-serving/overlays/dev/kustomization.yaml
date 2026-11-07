@@ -1,0 +1,53 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - ../../base
+  - ../../../../../platform
+
+labels:
+  - pairs:
+      environment: dev
+    includeSelectors: false
+
+images:
+  - name: mlops-platform
+    newName: AWS_ACCOUNT_ID.dkr.ecr.AWS_REGION.amazonaws.com/mlops-dev-trainer
+
+patches:
+  - target:
+      kind: InferenceService
+      name: default-model
+    patch: |-
+      - op: test
+        path: /spec/predictor/containers/0/env/0/name
+        value: MLFLOW_TRACKING_URI
+      - op: replace
+        path: /spec/predictor/containers/0/env/0/value
+        value: http://dev-mlflow-server.mlflow:5000
+
+replacements:
+  - source:
+      kind: ConfigMap
+      name: platform-config
+      fieldPath: data.AWS_ACCOUNT_ID
+    targets:
+      - select:
+          kind: InferenceService
+        fieldPaths:
+          - spec.predictor.containers.[name=kserve-container].image
+        options:
+          delimiter: .
+          index: 0
+  - source:
+      kind: ConfigMap
+      name: platform-config
+      fieldPath: data.AWS_REGION
+    targets:
+      - select:
+          kind: InferenceService
+        fieldPaths:
+          - spec.predictor.containers.[name=kserve-container].image
+        options:
+          delimiter: .
+          index: 3

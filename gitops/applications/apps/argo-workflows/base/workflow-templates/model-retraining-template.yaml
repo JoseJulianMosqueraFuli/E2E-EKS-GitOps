@@ -109,6 +109,8 @@ spec:
                   value: "{{workflow.parameters.model-name}}"
                 - name: model-version
                   value: "{{tasks.retrain-model.outputs.parameters.new-version}}"
+                - name: previous-version
+                  value: "{{workflow.parameters.current-model-version}}"
                 - name: deployment-namespace
                   value: "models"
                 - name: mlflow-tracking-uri

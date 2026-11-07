@@ -19,52 +19,12 @@ spec:
       value: models
     - name: mlflow-tracking-uri
       value: http://mlflow-server.mlflow:5000
-    - name: ecr-repository
-      value: AWS_ACCOUNT_ID.dkr.ecr.AWS_REGION.amazonaws.com/mlops-dev-inference
+    - name: previous-version
+      value: ''
     - name: validation-data
       value: s3://mlops-curated-data/training/data.csv
   templates:
   - name: model-deployment
-    dag:
-      tasks:
-      - name: build-inference-image
-        template: build-inference-image-step
-        arguments:
-          parameters:
-          - name: model-name
-            value: '{{inputs.parameters.model-name}}'
-          - name: model-version
-            value: '{{inputs.parameters.model-version}}'
-          - name: mlflow-tracking-uri
-            value: '{{inputs.parameters.mlflow-tracking-uri}}'
-          - name: ecr-repository
-            value: '{{inputs.parameters.ecr-repository}}'
-      - name: create-kserve-deployment
-        template: create-kserve-deployment-step
-        dependencies:
-        - build-inference-image
-        arguments:
-          parameters:
-          - name: model-name
-            value: '{{inputs.parameters.model-name}}'
-          - name: model-version
-            value: '{{inputs.parameters.model-version}}'
-          - name: deployment-namespace
-            value: '{{inputs.parameters.deployment-namespace}}'
-          - name: inference-image
-            value: '{{tasks.build-inference-image.outputs.parameters.inference-image}}'
-      - name: validate-deployment
-        template: validate-deployment-step
-        dependencies:
-        - create-kserve-deployment
-        arguments:
-          parameters:
-          - name: model-name
-            value: '{{inputs.parameters.model-name}}'
-          - name: deployment-namespace
-            value: '{{inputs.parameters.deployment-namespace}}'
-          - name: validation-data
-            value: '{{inputs.parameters.validation-data}}'
     inputs:
       parameters:
       - name: model-name
@@ -75,223 +35,114 @@ spec:
         default: models
       - name: mlflow-tracking-uri
         default: http://mlflow-server.mlflow:5000
-      - name: ecr-repository
-        default: AWS_ACCOUNT_ID.dkr.ecr.AWS_REGION.amazonaws.com/mlops-dev-inference
+      - name: previous-version
+        default: ''
       - name: validation-data
         default: s3://mlops-curated-data/training/data.csv
-  - name: build-inference-image-step
+    dag:
+      failFast: false
+      tasks:
+      - name: roll-out
+        template: roll-out-step
+        arguments:
+          parameters:
+          - name: model-name
+            value: '{{inputs.parameters.model-name}}'
+          - name: deployment-namespace
+            value: '{{inputs.parameters.deployment-namespace}}'
+          - name: model-version
+            value: '{{inputs.parameters.model-version}}'
+      - name: verify
+        template: validate-deployment-step
+        depends: roll-out
+        arguments:
+          parameters:
+          - name: model-name
+            value: '{{inputs.parameters.model-name}}'
+          - name: model-version
+            value: '{{inputs.parameters.model-version}}'
+          - name: deployment-namespace
+            value: '{{inputs.parameters.deployment-namespace}}'
+          - name: mlflow-tracking-uri
+            value: '{{inputs.parameters.mlflow-tracking-uri}}'
+          - name: validation-data
+            value: '{{inputs.parameters.validation-data}}'
+      - name: restore-champion
+        template: set-alias-step
+        depends: roll-out.Failed || roll-out.Errored || verify.Failed || verify.Errored
+        arguments:
+          parameters:
+          - name: model-name
+            value: '{{inputs.parameters.model-name}}'
+          - name: version
+            value: '{{inputs.parameters.previous-version}}'
+          - name: mlflow-tracking-uri
+            value: '{{inputs.parameters.mlflow-tracking-uri}}'
+      - name: roll-back
+        template: roll-out-step
+        depends: restore-champion
+        when: "'{{inputs.parameters.previous-version}}' != ''"
+        arguments:
+          parameters:
+          - name: model-name
+            value: '{{inputs.parameters.model-name}}'
+          - name: deployment-namespace
+            value: '{{inputs.parameters.deployment-namespace}}'
+          - name: model-version
+            value: '{{inputs.parameters.previous-version}}'
+      - name: verify-rollback
+        template: validate-deployment-step
+        depends: roll-back
+        when: "'{{inputs.parameters.previous-version}}' != ''"
+        arguments:
+          parameters:
+          - name: model-name
+            value: '{{inputs.parameters.model-name}}'
+          - name: model-version
+            value: '{{inputs.parameters.previous-version}}'
+          - name: deployment-namespace
+            value: '{{inputs.parameters.deployment-namespace}}'
+          - name: mlflow-tracking-uri
+            value: '{{inputs.parameters.mlflow-tracking-uri}}'
+          - name: validation-data
+            value: '{{inputs.parameters.validation-data}}'
+      - name: reject-candidate
+        template: reject-candidate-step
+        depends: restore-champion.Succeeded || restore-champion.Failed || restore-champion.Errored
+        arguments:
+          parameters:
+          - name: model-name
+            value: '{{inputs.parameters.model-name}}'
+          - name: model-version
+            value: '{{inputs.parameters.model-version}}'
+          - name: previous-version
+            value: '{{inputs.parameters.previous-version}}'
+  - name: roll-out-step
     inputs:
       parameters:
       - name: model-name
-      - name: model-version
-      - name: mlflow-tracking-uri
-      - name: ecr-repository
-    outputs:
-      parameters:
-      - name: inference-image
-        valueFrom:
-          path: /workspace/inference-image.txt
-    metadata:
-      annotations:
-        container.apparmor.security.beta.kubernetes.io/main: unconfined
-    podSpecPatch: '{"securityContext":{"runAsUser":1000,"runAsGroup":1000,"fsGroup":1000}}'
-    volumes:
-    - name: build-context
-      emptyDir: {}
-    - name: registry-config
-      emptyDir: {}
-    - name: buildkit-state
-      emptyDir: {}
-    initContainers:
-    - name: prepare-model
-      image: mlops-platform:0.1.0
-      command:
-      - python
-      - -c
-      args:
-      - |
-        import os
-        import re
-        import shutil
-        from pathlib import Path
-        import mlflow.artifacts
-
-        name = os.environ["MODEL_NAME"]
-        version = os.environ["MODEL_VERSION"]
-        repository = os.environ["ECR_REPOSITORY"]
-        if not re.fullmatch(r"[a-z0-9][a-z0-9._-]*", name):
-            raise ValueError("Model name must be a valid image repository component")
-        if not re.fullmatch(r"[A-Za-z0-9_][A-Za-z0-9_.-]{0,127}", version):
-            raise ValueError("Model version must be a valid image tag")
-        if not re.fullmatch(r"[0-9]{12}\.dkr\.ecr\.[a-z0-9-]+\.amazonaws\.com/[a-z0-9._/-]+", repository):
-            raise ValueError("Expected a private ECR repository URL")
-        workspace = Path("/workspace")
-        model = mlflow.artifacts.download_artifacts(artifact_uri=f"models:/{name}/{version}", dst_path="/tmp/model-download")
-        shutil.copytree(model, workspace / "model")
-        requirements = workspace / "model" / "requirements.txt"
-        if not requirements.exists():
-            raise ValueError("The registered model must include requirements.txt")
-        (workspace / "Dockerfile").write_text(
-            "FROM python:3.11.17-slim-bookworm\n"
-            "WORKDIR /opt/model\n"
-            "COPY model/ /opt/model/\n"
-            "RUN pip install --no-cache-dir -r requirements.txt\n"
-            "EXPOSE 8080\n"
-            "USER 1000:1000\n"
-            'CMD ["mlflow", "models", "serve", "--model-uri", "/opt/model", "--host", "0.0.0.0", "--port", "8080", "--env-manager", "local"]\n'
-        )
-        (workspace / "inference-image.txt").write_text(f"{repository}:{name}-{version}")
-      env:
-      - name: MODEL_NAME
-        value: '{{inputs.parameters.model-name}}'
-      - name: MODEL_VERSION
-        value: '{{inputs.parameters.model-version}}'
-      - name: MLFLOW_TRACKING_URI
-        value: '{{inputs.parameters.mlflow-tracking-uri}}'
-      - name: ECR_REPOSITORY
-        value: '{{inputs.parameters.ecr-repository}}'
-      - name: HOME
-        value: /tmp
-      volumeMounts:
-      - name: build-context
-        mountPath: /workspace
-      securityContext:
-        runAsNonRoot: true
-        allowPrivilegeEscalation: false
-        capabilities:
-          drop:
-          - ALL
-      resources:
-        requests:
-          cpu: 250m
-          memory: 512Mi
-        limits:
-          cpu: 1000m
-          memory: 2Gi
-    - name: registry-login
-      image: public.ecr.aws/aws-cli/aws-cli:2.17.49
-      command:
-      - /bin/sh
-      - -ec
-      args:
-      - |
-        registry="${ECR_REPOSITORY%%/*}"
-        token="$(aws ecr get-authorization-token --query 'authorizationData[0].authorizationToken' --output text)"
-        umask 077
-        printf '{"auths":{"%s":{"auth":"%s"}}}' "$registry" "$token" > /registry/config.json
-      env:
-      - name: ECR_REPOSITORY
-        value: '{{inputs.parameters.ecr-repository}}'
-      - name: AWS_DEFAULT_REGION
-        value: AWS_REGION
-      - name: HOME
-        value: /tmp
-      volumeMounts:
-      - name: registry-config
-        mountPath: /registry
-      securityContext:
-        runAsNonRoot: true
-        allowPrivilegeEscalation: false
-        capabilities:
-          drop:
-          - ALL
-      resources:
-        requests:
-          cpu: 100m
-          memory: 128Mi
-        limits:
-          cpu: 500m
-          memory: 512Mi
-    container:
-      image: moby/buildkit:v0.16.0-rootless
-      command:
-      - /bin/sh
-      - -ec
-      args:
-      - |
-        image="$(cat /workspace/inference-image.txt)"
-        buildctl-daemonless.sh build --frontend dockerfile.v0 --local context=/workspace --local dockerfile=/workspace --output "type=image,name=$image,push=true"
-      env:
-      - name: BUILDKITD_FLAGS
-        value: --oci-worker-no-process-sandbox --oci-worker-snapshotter=native
-      - name: DOCKER_CONFIG
-        value: /registry
-      securityContext:
-        runAsNonRoot: true
-        runAsUser: 1000
-        runAsGroup: 1000
-        privileged: false
-        seccompProfile:
-          type: Unconfined
-      volumeMounts:
-      - name: build-context
-        mountPath: /workspace
-      - name: registry-config
-        mountPath: /registry
-        readOnly: true
-      - name: buildkit-state
-        mountPath: /home/user/.local/share/buildkit
-      resources:
-        requests:
-          cpu: 1000m
-          memory: 2Gi
-        limits:
-          cpu: 2000m
-          memory: 4Gi
-  - name: create-kserve-deployment-step
-    inputs:
-      parameters:
-      - name: model-name
-      - name: model-version
       - name: deployment-namespace
-      - name: inference-image
+      - name: model-version
     resource:
-      action: apply
+      action: patch
+      mergeStrategy: merge
       manifest: |
         apiVersion: serving.kserve.io/v1beta1
         kind: InferenceService
         metadata:
           name: "{{inputs.parameters.model-name}}"
           namespace: "{{inputs.parameters.deployment-namespace}}"
-          annotations:
-            serving.kserve.io/deploymentMode: RawDeployment
         spec:
           predictor:
-            minReplicas: 2
-            containers:
-              - name: kserve-container
-                image: "{{inputs.parameters.inference-image}}"
-                ports:
-                  - containerPort: 8080
-                securityContext:
-                  runAsNonRoot: true
-                  runAsUser: 1000
-                  allowPrivilegeEscalation: false
-                  capabilities:
-                    drop: [ALL]
-                  seccompProfile:
-                    type: RuntimeDefault
-                resources:
-                  requests:
-                    cpu: 100m
-                    memory: 256Mi
-                  limits:
-                    cpu: 1000m
-                    memory: 1Gi
-                readinessProbe:
-                  httpGet:
-                    path: /ping
-                    port: 8080
-                livenessProbe:
-                  httpGet:
-                    path: /ping
-                    port: 8080
-                  initialDelaySeconds: 30
+            annotations:
+              mlops-platform/model-version: "{{inputs.parameters.model-version}}"
   - name: validate-deployment-step
     inputs:
       parameters:
       - name: model-name
+      - name: model-version
       - name: deployment-namespace
+      - name: mlflow-tracking-uri
       - name: validation-data
     container:
       image: mlops-platform:0.1.0
@@ -303,10 +154,61 @@ spec:
       - step
       - validate-deployment
       - --url
-      - http://{{inputs.parameters.model-name}}-predictor.{{inputs.parameters.deployment-namespace}}/invocations
+      - http://{{inputs.parameters.model-name}}-predictor.{{inputs.parameters.deployment-namespace}}.svc.cluster.local/invocations
       - --data-uri
       - '{{inputs.parameters.validation-data}}'
+      - --model-uri
+      - models:/{{inputs.parameters.model-name}}/{{inputs.parameters.model-version}}
+      - --expected-version
+      - '{{inputs.parameters.model-version}}'
+      - --timeout
+      - '600'
       env:
+      - name: MLFLOW_TRACKING_URI
+        value: '{{inputs.parameters.mlflow-tracking-uri}}'
+      - name: AWS_DEFAULT_REGION
+        value: AWS_REGION
+      envFrom:
+      - configMapRef:
+          name: ml-step-env
+          optional: true
+      - secretRef:
+          name: ml-step-credentials
+          optional: true
+      resources:
+        requests:
+          cpu: 100m
+          memory: 512Mi
+        limits:
+          cpu: 500m
+          memory: 1Gi
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop:
+          - ALL
+  - name: set-alias-step
+    inputs:
+      parameters:
+      - name: model-name
+      - name: version
+      - name: mlflow-tracking-uri
+    container:
+      image: mlops-platform:0.1.0
+      command:
+      - python
+      - -m
+      - src.cli
+      args:
+      - step
+      - set-alias
+      - --model-name
+      - '{{inputs.parameters.model-name}}'
+      - --version
+      - '{{inputs.parameters.version}}'
+      env:
+      - name: MLFLOW_TRACKING_URI
+        value: '{{inputs.parameters.mlflow-tracking-uri}}'
       - name: AWS_DEFAULT_REGION
         value: AWS_REGION
       envFrom:
@@ -322,7 +224,39 @@ spec:
           memory: 256Mi
         limits:
           cpu: 500m
-          memory: 1Gi
+          memory: 512Mi
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop:
+          - ALL
+  - name: reject-candidate-step
+    inputs:
+      parameters:
+      - name: model-name
+      - name: model-version
+      - name: previous-version
+    container:
+      image: mlops-platform:0.1.0
+      command:
+      - sh
+      - -c
+      args:
+      - echo "${MODEL_NAME} v${MODEL_VERSION} failed the deployment gate; @champion returned to '${PREVIOUS_VERSION}'" >&2; exit 1
+      env:
+      - name: MODEL_NAME
+        value: '{{inputs.parameters.model-name}}'
+      - name: MODEL_VERSION
+        value: '{{inputs.parameters.model-version}}'
+      - name: PREVIOUS_VERSION
+        value: '{{inputs.parameters.previous-version}}'
+      resources:
+        requests:
+          cpu: 50m
+          memory: 64Mi
+        limits:
+          cpu: 100m
+          memory: 128Mi
       securityContext:
         allowPrivilegeEscalation: false
         capabilities:

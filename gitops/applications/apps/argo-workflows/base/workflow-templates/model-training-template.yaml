@@ -64,6 +64,10 @@ spec:
         valueFrom:
           parameter: "{{tasks.register-model.outputs.parameters.model-version}}"
           default: ""
+      - name: previous-version
+        valueFrom:
+          parameter: "{{tasks.register-model.outputs.parameters.previous-version}}"
+          default: ""
     dag:
       tasks:
       - name: feature-engineering
@@ -309,6 +313,10 @@ spec:
       - name: model-version
         valueFrom:
           path: /tmp/model-version.txt
+          default: ""
+      - name: previous-version
+        valueFrom:
+          path: /tmp/previous-version.txt
           default: ""
     container:
       image: mlops-platform:0.1.0

@@ -1,0 +1,3 @@
+images:
+  - path: spec/predictor/containers/image
+    kind: InferenceService

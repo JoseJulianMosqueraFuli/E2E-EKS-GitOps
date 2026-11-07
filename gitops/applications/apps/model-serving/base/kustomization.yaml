@@ -1,0 +1,17 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - serviceaccount.yaml
+  - network-policy.yaml
+  - inference-service.yaml
+
+configurations:
+  - kustomizeconfig.yaml
+
+labels:
+  - pairs:
+      app.kubernetes.io/name: model-serving
+      app.kubernetes.io/component: inference
+      app.kubernetes.io/part-of: mlops-platform
+    includeSelectors: false

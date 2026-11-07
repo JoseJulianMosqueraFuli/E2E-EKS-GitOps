@@ -12,26 +12,6 @@ images:
   newName: AWS_ACCOUNT_ID.dkr.ecr.AWS_REGION.amazonaws.com/mlops-prod-trainer
 patches:
 - target:
-    kind: WorkflowTemplate
-    name: model-deployment-template
-  patch: |-
-    - op: test
-      path: /spec/arguments/parameters/4/name
-      value: ecr-repository
-    - op: replace
-      path: /spec/arguments/parameters/4/value
-      value: AWS_ACCOUNT_ID.dkr.ecr.AWS_REGION.amazonaws.com/mlops-prod-inference
-- target:
-    kind: WorkflowTemplate
-    name: ml-pipeline-template
-  patch: |-
-    - op: test
-      path: /spec/arguments/parameters/5/name
-      value: ecr-repository
-    - op: replace
-      path: /spec/arguments/parameters/5/value
-      value: AWS_ACCOUNT_ID.dkr.ecr.AWS_REGION.amazonaws.com/mlops-prod-inference
-- target:
     kind: ServiceAccount
     name: argo-workflow
   patch: |
@@ -162,22 +142,6 @@ replacements:
     options:
       delimiter: .
       index: 0
-  - select:
-      kind: WorkflowTemplate
-      name: model-deployment-template
-    fieldPaths:
-    - spec.arguments.parameters.[name=ecr-repository].value
-    options:
-      delimiter: .
-      index: 0
-  - select:
-      kind: WorkflowTemplate
-      name: ml-pipeline-template
-    fieldPaths:
-    - spec.arguments.parameters.[name=ecr-repository].value
-    options:
-      delimiter: .
-      index: 0
 - source:
     kind: ConfigMap
     name: platform-config
@@ -196,29 +160,8 @@ replacements:
       index: 3
   - select:
       kind: WorkflowTemplate
-      name: model-deployment-template
-    fieldPaths:
-    - spec.arguments.parameters.[name=ecr-repository].value
-    options:
-      delimiter: .
-      index: 3
-  - select:
-      kind: WorkflowTemplate
-      name: ml-pipeline-template
-    fieldPaths:
-    - spec.arguments.parameters.[name=ecr-repository].value
-    options:
-      delimiter: .
-      index: 3
-  - select:
-      kind: WorkflowTemplate
     fieldPaths:
     - spec.templates.*.container.env.[name=AWS_DEFAULT_REGION].value
-  - select:
-      kind: WorkflowTemplate
-      name: model-deployment-template
-    fieldPaths:
-    - spec.templates.[name=build-inference-image-step].initContainers.[name=registry-login].env.[name=AWS_DEFAULT_REGION].value
 - source:
     kind: ConfigMap
     name: platform-config
@@ -249,15 +192,9 @@ replacements:
       kind: WorkflowTemplate
       name: model-deployment-template
     fieldPaths:
-    - spec.templates.[name=build-inference-image-step].initContainers.[name=prepare-model].image
-    options:
-      delimiter: .
-      index: 0
-  - select:
-      kind: WorkflowTemplate
-      name: model-deployment-template
-    fieldPaths:
     - spec.templates.[name=validate-deployment-step].container.image
+    - spec.templates.[name=set-alias-step].container.image
+    - spec.templates.[name=reject-candidate-step].container.image
     options:
       delimiter: .
       index: 0
@@ -286,15 +223,9 @@ replacements:
       kind: WorkflowTemplate
       name: model-deployment-template
     fieldPaths:
-    - spec.templates.[name=build-inference-image-step].initContainers.[name=prepare-model].image
-    options:
-      delimiter: .
-      index: 3
-  - select:
-      kind: WorkflowTemplate
-      name: model-deployment-template
-    fieldPaths:
     - spec.templates.[name=validate-deployment-step].container.image
+    - spec.templates.[name=set-alias-step].container.image
+    - spec.templates.[name=reject-candidate-step].container.image
     options:
       delimiter: .
       index: 3
@@ -507,16 +438,6 @@ replacements:
       name: model-deployment-template
     fieldPaths:
     - spec.templates.[name=model-deployment].inputs.parameters.[name=mlflow-tracking-uri].default
-- source:
-    kind: WorkflowTemplate
-    name: model-deployment-template
-    fieldPath: spec.arguments.parameters.[name=ecr-repository].value
-  targets:
-  - select:
-      kind: WorkflowTemplate
-      name: model-deployment-template
-    fieldPaths:
-    - spec.templates.[name=model-deployment].inputs.parameters.[name=ecr-repository].default
 - source:
     kind: WorkflowTemplate
     name: model-deployment-template

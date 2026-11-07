@@ -4,7 +4,6 @@ kind: Kustomization
 resources:
   - namespace.yaml
   - helm-release.yaml
-  - serviceaccount.yaml
   - network-policy.yaml
 
 configurations:

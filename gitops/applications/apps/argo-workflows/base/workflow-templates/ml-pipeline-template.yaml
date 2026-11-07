@@ -21,8 +21,6 @@ spec:
       value: models
     - name: mlflow-tracking-uri
       value: http://mlflow-server.mlflow:5000
-    - name: ecr-repository
-      value: AWS_ACCOUNT_ID.dkr.ecr.AWS_REGION.amazonaws.com/mlops-dev-inference
   templates:
   - name: ml-pipeline
     dag:
@@ -72,8 +70,8 @@ spec:
             value: '{{workflow.parameters.deployment-namespace}}'
           - name: mlflow-tracking-uri
             value: '{{workflow.parameters.mlflow-tracking-uri}}'
-          - name: ecr-repository
-            value: '{{workflow.parameters.ecr-repository}}'
+          - name: previous-version
+            value: '{{tasks.model-training.outputs.parameters.previous-version}}'
           - name: validation-data
             value: '{{tasks.data-validation.outputs.parameters.validated-data}}'
       - name: send-notification

@@ -125,7 +125,7 @@ validate-kubernetes: platform-config ## Validate Kubernetes manifests
 	python3 gitops/scripts/validate_applications.py
 
 validate-platform-config: platform-config ## Fail if AWS account/region placeholders are left unresolved in rendered overlays
-	@for app in argo-workflows mlflow; do \
+	@for app in argo-workflows mlflow model-serving; do \
 		for env in dev staging production; do \
 			out=$$(kustomize build gitops/applications/apps/$$app/overlays/$$env) || exit 1; \
 			if echo "$$out" | grep -qE 'AWS_ACCOUNT_ID|AWS_REGION|ACCOUNT_ID'; then \
