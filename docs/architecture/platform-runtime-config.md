@@ -105,9 +105,9 @@ GitHub Actions kind tests validate data, train/register, enforce the promotion g
 install Flux/Litmus, run pod deletion and stop a second workflow using Argo `Stop`. They retain logs,
 workflows and Litmus results for 14 days. `Terminate` and a failed Argo controller can bypass exit handlers;
 the runbook's manual recovery procedure still applies. Kind tests run only in GitHub Actions.
-The job pins kind 0.30.0 and the Kubernetes 1.34.0 node digest from the
-[official kind release](https://github.com/kubernetes-sigs/kind/releases/tag/v0.30.0), satisfying the Flux
-controller and stable admission-policy API requirements.
+The job pins kind 0.33.0 and the Kubernetes 1.37.0 node digest from the
+[official kind release](https://github.com/kubernetes-sigs/kind/releases/tag/v0.33.0), matching the EKS
+version in Terraform and satisfying the Flux controller and stable admission-policy API requirements.
 
 Local checks cover manifests, policy configuration and failure behavior with doubles. A temporary
 MLflow 3.17.1 HTTP server with SQLite and local artifact storage also passed the Chaos canary round trip

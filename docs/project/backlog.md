@@ -55,6 +55,7 @@ Para detalles técnicos de issues CRÍTICOS y ALTOS (CVSS, fix concreto), ver: [
 |-----------|-----------|---------------------|
 | P0 | Ejecutar la ampliacion de GitHub Actions (#54/#61/#62) | Charts reales reconciliados, backup restaurado, Litmus Pass y limpieza tras Stop |
 | P0 | Configurar/aplicar AWS (#48/#50/#51/#55, HIGH-001) y completar contratos de otras apps (#49) | Plan revisado, backend activo, secretos disponibles, imagenes publicadas y ArgoCD saludable |
+| P0 antes del primer apply | Add-ons compatibles con EKS 1.37 (#66) y un solo dueno para EBS CSI (#67) | Versiones con soporte declarado para 1.37 renderizadas; plan sin recursos duplicados |
 | P0 antes de fallos de zona | Recuperacion de almacenamiento y afinidades (#64) | Restore/HA entre zonas y capacidad de reubicacion demostrados; el preflight rechaza PVCs por defecto |
 | P1 | Confirmar permisos, SLO/RTO/RPO y evidencia en EKS (#60/#63) | Permisos efectivos, predicciones/datos conservados, panel de resultados y tiempos medidos |
 | P1 | Promocion del mismo digest ECR y ciclo completo (#65/#52/#53) | dev → staging → prod sin reconstruir; train → register → serve → monitor comprobado |
@@ -92,6 +93,7 @@ Detalles y comandos: [contrato de configuracion y recuperacion](../architecture/
 - [x] Smoke test E2E en kind (GitHub Actions): Argo + MLflow + entrenamiento + gate de promocion `(2026-10-10)` - primer verde registrado en `2ca2b2e` (2026-10-11), ver #56; no cubre Chaos
 - [x] Terraform en GitHub Actions: validacion de dev/staging/prod y workflow manual de planes iniciales con OIDC de lectura, sin apply `(2026-10-17)` - implementado; pendiente configurar rol/variables AWS y verificar primer run. Ver `docs/terraform-ci.md`. HIGH-001 y #55 siguen pendientes.
 
+- [x] EKS 1.37 en dev/staging/prod: 1.32 estaba fuera de soporte estandar desde 2026-03-23 y AL2 no tiene AMIs para 1.33+. Nodos y GPU en AL2023, `upgrade_policy` `STANDARD`, validacion numerica >= 1.35, Cluster Autoscaler 1.37, kind 0.33.0 con nodo 1.37.0 y kubectl 1.37 en Chaos. Falta E2E en kind 1.37 y add-ons (#66/#67) `(2026-11-07)`
 - [x] CI reducido a GitHub Actions: GitLab CI, CircleCI y Jenkins movidos sin cambios a `ci-cd/future/` (inactivos, sin sincronizar). Ver [`ci-cd/future/README.md`](../../ci-cd/future/README.md) `(2026-11-07)`
 - [x] Chaos revisado: barrera de inicio para la sonda, downtime por tiempo real, observacion hasta completar los engines, mutex, preflight de desalojo por zona y limpieza con errores visibles. RBAC de charts limitado (HIGH-014). `(2026-10-17)` - validacion estatica y pruebas con dobles; ejecucion EKS pendiente. EC2 stop #58, particion de red desactivada #59, separacion de roles #60.
 ---
@@ -128,7 +130,7 @@ Los estados por ID y la evidencia de la revision sustituyen los antiguos totales
 | ID | Issue | Archivo(s) | Fix |
 |----|-------|------------|-----|
 | HIGH-001 | Backend local Terraform | `infra/environments/*/main.tf` | Seguir checklist de activacion en `main.tf` (requiere cuenta AWS) |
-| HIGH-002 | Kubernetes 1.28 near EOL | `infra/modules/eks/variables.tf` | ✅ Actualizado a 1.32 (2026-06-09) |
+| HIGH-002 | Kubernetes 1.28 near EOL | `infra/modules/eks/variables.tf` | ✅ Actualizado a 1.32 (2026-06-09) y a 1.37 en los tres entornos (2026-11-07), con minimo 1.35, soporte `STANDARD` y nodos AL2023. Add-ons pendientes en #66/#67 |
 | HIGH-003 | Node egress sin restriccion | `infra/environments/dev/main.tf`, `infra/environments/staging/main.tf` | ✅ Restringido a `var.vpc_cidr` (2026-07-13) |
 | HIGH-004 | CIDR hardcoded en prod | `infra/environments/prod/main.tf` | ✅ Parametrizado con `var.vpc_cidr` + `var.node_egress_cidrs` (2026-07-13) |
 | HIGH-005 | Feast `latest` tag | `k8s/mlops-stack/feast/feast-server.yaml` | ✅ Pineado a `0.40.1` en `gitops/applications/apps/feast/base/kustomization.yaml` (2026-06-26) |
@@ -215,6 +217,8 @@ Los estados por ID y la evidencia de la revision sustituyen los antiguos totales
 | 26 | Glue table schema hardcodeado | `infra/environments/*/main.tf` |
 | 27 | Glue crawlers schedule hardcodeado en los 3 ambientes | `infra/environments/*/main.tf` |
 | 51 | Nombres de buckets de datos, artefactos, backups y state incluyen cuenta/region. Revisar replacements/migracion en un plan real si existen buckets previos; otros contratos de apps siguen en #49 | `infra/`, `gitops/applications/apps/*`, `scripts/bootstrap-terraform-backend.sh` |
+| 66 | EKS 1.37 exige actualizar add-ons fijados antes de 1.32: Istio `1.20.x` (fin de vida), AWS Load Balancer Controller `1.7.x`, EBS CSI `2.28.x` y External Secrets `0.9.13`. Como no hay nada desplegado, se puede instalar directamente la version actual sin migracion. Cluster Autoscaler ya usa el chart `9.60.0` (CA 1.37.0, publicado 2026-11-06): revisar si hay un parche 1.37.x antes del primer apply | `gitops/infrastructure/`, `gitops/applications/apps/external-secrets/` |
+| 67 | EBS CSI tiene dos duenos: `aws_eks_addon.ebs_csi_driver` en Terraform y el HelmRelease de Flux en `addons/ebs-csi-driver`. Elegir una capa y eliminar la otra antes del primer apply | `infra/modules/eks/main.tf`, `gitops/infrastructure/addons/` |
 
 ### Python / ML Platform (7)
 

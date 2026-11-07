@@ -138,6 +138,7 @@ This document lists all **CRITICAL** and **HIGH** severity findings identified d
 - **Impact**: No security patches after EOL, potential compatibility issues with newer addons.
 - **Fix**: Updated default to `1.32` across all environments and added validation to prevent regressions below 1.30.
 - **Status**: ✅ Fixed 2026-06-09
+- **Update 2026-11-07**: `1.32` left standard support on 2026-03-23, so a new cluster would have been billed for extended support. The default is now `1.37` in all environments (standard support until 2027-12-01). The previous regex still accepted 1.20–1.29; a numeric check now rejects versions below 1.35. `upgrade_policy` uses `STANDARD` support by default. Nodes moved from AL2 to AL2023 because EKS does not publish AL2 AMIs for 1.33 or later. Add-ons pending for this version are tracked in backlog #66 and #67.
 - **Owner**: Infrastructure Team
 
 ---

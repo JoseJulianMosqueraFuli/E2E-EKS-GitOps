@@ -49,7 +49,7 @@ Managed via Flux HelmRelease resources in `addons/`:
 | Addon                        | Chart Version | Namespace   | Purpose                             |
 | ---------------------------- | ------------- | ----------- | ----------------------------------- |
 | AWS Load Balancer Controller | 1.7.x         | kube-system | Ingress/ALB management              |
-| Cluster Autoscaler           | 9.37.x        | kube-system | Node autoscaling                    |
+| Cluster Autoscaler           | 9.60.0        | kube-system | Node autoscaling (CA 1.37.0, matches EKS 1.37) |
 | AWS EBS CSI Driver           | 2.28.x        | kube-system | Persistent storage (gp3, encrypted) |
 
 All addons use IRSA (IAM Roles for Service Accounts) for secure AWS API access.
