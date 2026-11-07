@@ -3,7 +3,7 @@ import json
 import logging
 import os
 import time
-from typing import Dict
+from typing import Dict, List, Optional
 
 import numpy as np
 import requests
@@ -41,12 +41,17 @@ def validate_data(source: str, destination: str, target: str, suite: str) -> Dic
     }
 
 
-def validate_deployment(url: str, data_uri: str, target: str, timeout: int = 300) -> None:
-    if not url.startswith(("http://", "https://")):
-        raise ValueError("Inference URL must use HTTP(S)")
-    frame = read_table(data_uri).drop(columns=[target]).head(3)
-    if frame.empty:
-        raise ValueError("Inference validation requires data")
+def _same_predictions(served, expected) -> bool:
+    served = np.asarray(served).ravel()
+    expected = np.asarray(expected).ravel()
+    if served.shape != expected.shape:
+        return False
+    if np.issubdtype(served.dtype, np.number) and np.issubdtype(expected.dtype, np.number):
+        return bool(np.allclose(served.astype(float), expected.astype(float), rtol=1e-6))
+    return bool((served.astype(str) == expected.astype(str)).all())
+
+
+def _request_predictions(url: str, frame, timeout: int) -> List:
     payload = {"dataframe_split": json.loads(frame.to_json(orient="split"))}
     payload["dataframe_split"].pop("index", None)
     deadline = time.monotonic() + timeout
@@ -60,11 +65,33 @@ def validate_deployment(url: str, data_uri: str, target: str, timeout: int = 300
                 raise ValueError("Inference response must contain one prediction per input")
             if any(value is None for value in predictions):
                 raise ValueError("Inference returned a missing prediction")
-            return
+            return predictions
         except (requests.RequestException, ValueError) as error:
             last_error = error
             time.sleep(2)
     raise RuntimeError("Inference validation did not succeed before the deadline") from last_error
+
+
+def validate_deployment(
+    url: str,
+    data_uri: str,
+    target: str,
+    timeout: int = 300,
+    model_uri: Optional[str] = None,
+) -> None:
+    if not url.startswith(("http://", "https://")):
+        raise ValueError("Inference URL must use HTTP(S)")
+    frame = read_table(data_uri).drop(columns=[target]).head(3)
+    if frame.empty:
+        raise ValueError("Inference validation requires data")
+    predictions = _request_predictions(url, frame, timeout)
+    if model_uri:
+        import mlflow.pyfunc
+
+        expected = mlflow.pyfunc.load_model(model_uri).predict(frame)
+        if not _same_predictions(predictions, expected):
+            raise ValueError(f"Served predictions differ from {model_uri}")
+        logger.info("Served predictions match %s", model_uri)
 
 
 def notify_pipeline(model: str, version: str, status: str) -> None:

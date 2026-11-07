@@ -3,7 +3,8 @@ Pipeline Steps
 
 Single-responsibility steps executed as separate containers by Argo Workflows.
 Each step reads and writes data through URIs (local paths or s3://), so the same
-code runs on a laptop, on kind with MinIO (AWS_ENDPOINT_URL) and on EKS with IRSA.
+code runs on a laptop, on kind with an S3-compatible gateway (AWS_ENDPOINT_URL) and on EKS
+with IRSA.
 """
 
 import io

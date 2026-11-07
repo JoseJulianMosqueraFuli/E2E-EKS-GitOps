@@ -327,11 +327,23 @@ def step_validate_data_cmd(source, output_prefix, target, suite, outputs_dir):
 @click.option("--url", required=True)
 @click.option("--data-uri", required=True)
 @click.option("--target", default="target")
-def step_validate_deployment_cmd(url, data_uri, target):
+@click.option("--model-uri", default=None, help="Registry model whose predictions must match")
+def step_validate_deployment_cmd(url, data_uri, target, model_uri):
     from src.pipelines.validation import validate_deployment
 
-    validate_deployment(url, data_uri, target)
+    validate_deployment(url, data_uri, target, model_uri=model_uri)
     click.echo("Prediction request and response verified")
+
+
+@step.command("serve")
+@click.option("--model-name", required=True)
+@click.option("--alias", default="champion")
+@click.option("--host", default="0.0.0.0")
+@click.option("--port", default=8080, type=int)
+def step_serve_cmd(model_name, alias, host, port):
+    from src.pipelines.serving import serve
+
+    serve(model_name, alias, host, port)
 
 
 @step.command("notify")
