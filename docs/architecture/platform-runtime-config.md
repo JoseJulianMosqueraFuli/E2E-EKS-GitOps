@@ -18,6 +18,28 @@ separate accounts/regions need a scoped configuration extension before being reg
 
 This follows the [ArgoCD sidecar plugin model](https://argo-cd.readthedocs.io/en/release-2.9/operator-manual/config-management-plugins/).
 
+## Decision: S3 traffic inside the VPC (2026-11-08)
+
+**Context.** In production MLflow stores artifacts in S3 and signs download URLs for
+`s3.<region>.amazonaws.com`; predictors and pipeline steps download through those URLs. The VPC only had
+the S3 gateway endpoint, which routes S3's public addresses. NetworkPolicies select destinations by IP,
+cannot reference the gateway prefix list, and the MLflow policy only allows `10.0.0.0/8:443`.
+
+**Options.** Allow 443 to any public address from MLflow and predictors; list S3's published IP ranges,
+which change and cannot be rendered per region; or add an S3 interface endpoint whose private DNS answers
+for in-VPC clients.
+
+**Decision.** `enable_s3_interface_endpoint` creates the interface endpoint with
+`private_dns_only_for_inbound_resolver_endpoint = false`, so regional S3 names resolve to endpoint
+addresses inside the VPC for all workloads. It is on in staging and prod, where pipeline steps already use
+S3, and off in dev, where MLflow uses the in-cluster gateway. The gateway endpoint stays.
+
+**Consequences.** S3 traffic in staging and prod is billed per AZ-hour and per GB processed
+([AWS PrivateLink pricing](https://aws.amazon.com/privatelink/pricing/)); the gateway endpoint is free.
+The interface endpoint does not support TLS 1.3, so clients negotiate TLS 1.2. The production predictor
+NetworkPolicy allows 443 to the same block as MLflow. These rules take effect once the VPC CNI enforces
+NetworkPolicies (backlog #59).
+
 ## AWS resources
 
 - Data and backup bucket names include the environment, account and region. Outputs are the integration
@@ -25,8 +47,8 @@ This follows the [ArgoCD sidecar plugin model](https://argo-cd.readthedocs.io/en
   plan and migrate data before applying it.
 - `workload-identity` creates separate roles for MLflow artifacts, Argo steps, PostgreSQL backups and
   MLflow secret retrieval. Trust policies match an exact namespace, service account and STS audience.
-  ECR push permissions for Argo are limited to its inference repository. `ecr:GetAuthorizationToken`
-  uses `Resource: "*"` because that API does not support repository resource scoping.
+  Argo has no ECR permissions: deployments move the `@champion` alias instead of building images.
+  `scripts/setup-mlops-stack.sh` creates no IAM roles; it stops if one of these is missing.
 - `ecr-publisher` trusts only the configured repository and GitHub environment. Dev can create the
   account-wide GitHub OIDC provider; set `github_oidc_provider_arn` when one already exists.
 - `.github/workflows/publish-ecr.yml` is manual and publishes the initial **dev** images with semantic

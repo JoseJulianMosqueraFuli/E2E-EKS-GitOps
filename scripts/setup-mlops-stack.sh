@@ -9,8 +9,6 @@ set -e
 ENVIRONMENT=${ENVIRONMENT:-"dev"}
 CI_PROVIDER=${CI_PROVIDER:-"github"}
 MLOPS_TOOLS=${MLOPS_TOOLS:-"mlflow,kubeflow,kserve,monitoring"}
-AWS_REGION=${AWS_REGION:-"us-east-1"}
-CLUSTER_NAME=${CLUSTER_NAME:-"mlops-${ENVIRONMENT}-cluster"}
 
 # Colors for output
 RED='\033[0;31m'
@@ -155,53 +153,21 @@ deploy_monitoring() {
     log_info "Access Grafana via port-forward: kubectl port-forward svc/grafana 3000:3000 -n monitoring"
 }
 
-# Setup IRSA roles for MLOps tools
-setup_irsa_roles() {
-    log_info "Setting up IRSA roles for MLOps tools..."
-    
-    # Get OIDC issuer URL
-    OIDC_ISSUER=$(aws eks describe-cluster --name ${CLUSTER_NAME} --region ${AWS_REGION} --query "cluster.identity.oidc.issuer" --output text)
-    OIDC_ID=$(echo $OIDC_ISSUER | cut -d '/' -f 5)
-    ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
-    
-    # Create trust policy inline (avoid predictable temp files)
-    create_trust_policy() {
-        local ns=$1
-        local sa=$2
-        cat <<EOF
-{
-  "Version": "2012-10-17",
-  "Statement": [
-    {
-      "Effect": "Allow",
-      "Principal": {
-        "Federated": "arn:aws:iam::${ACCOUNT_ID}:oidc-provider/${OIDC_ISSUER#https://}"
-      },
-      "Action": "sts:AssumeRoleWithWebIdentity",
-      "Condition": {
-        "StringEquals": {
-          "${OIDC_ISSUER#https://}:sub": "system:serviceaccount:${ns}:${sa}",
-          "${OIDC_ISSUER#https://}:aud": "sts.amazonaws.com"
-        }
-      }
-    }
-  ]
-}
-EOF
-    }
+check_workload_roles() {
+    log_info "Checking the workload IAM roles managed by Terraform..."
 
-    # Create MLflow role with least-privilege S3 policy (specific buckets should be attached separately)
-    mlflow_trust=$(create_trust_policy "mlflow" "mlflow-sa")
-    aws iam create-role --role-name mlops-${ENVIRONMENT}-mlflow-role --assume-role-policy-document "$mlflow_trust" 2>/dev/null || true
-    # NOTE: Attach a custom policy scoped to mlops S3 buckets instead of AmazonS3FullAccess
-    log_warning "mlops-${ENVIRONMENT}-mlflow-role created. Attach a least-privilege S3 policy manually."
+    local missing=0
+    for workload in mlflow argo secrets backup; do
+        if ! aws iam get-role --role-name "mlops-${ENVIRONMENT}-${workload}" &> /dev/null; then
+            log_error "IAM role mlops-${ENVIRONMENT}-${workload} not found; run 'make apply ENV=${ENVIRONMENT}' first"
+            missing=1
+        fi
+    done
+    if [ "$missing" -ne 0 ]; then
+        exit 1
+    fi
 
-    # Create KServe role (replaces legacy Seldon)
-    kserve_trust=$(create_trust_policy "kserve" "kserve-sa")
-    aws iam create-role --role-name mlops-${ENVIRONMENT}-kserve-role --assume-role-policy-document "$kserve_trust" 2>/dev/null || true
-    log_warning "mlops-${ENVIRONMENT}-kserve-role created. Attach a least-privilege S3 read policy manually."
-
-    log_success "IRSA roles configured"
+    log_success "Workload IAM roles found"
 }
 
 # Main deployment function
@@ -248,7 +214,7 @@ main() {
     
     check_prerequisites
     setup_cicd
-    setup_irsa_roles
+    check_workload_roles
     deploy_tools
     cleanup
     
@@ -288,8 +254,6 @@ case "${1:-}" in
         echo "  ENVIRONMENT     - Target environment (default: dev)"
         echo "  CI_PROVIDER     - CI/CD provider (default: github; others are inactive in ci-cd/future/)"
         echo "  MLOPS_TOOLS     - Comma-separated tools (mlflow,kubeflow,kserve,monitoring)"
-        echo "  AWS_REGION      - AWS region (default: us-east-1)"
-        echo "  CLUSTER_NAME    - EKS cluster name"
         echo ""
         echo "Examples:"
         echo "  $0 install"

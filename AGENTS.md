@@ -133,6 +133,7 @@ These references replace per-tool rule files. MCP servers are read-only by polic
 - CRIT-004: ArgoCD `mlops-core` AppProject is restricted in current manifests (verified 2026-10-20); effective permissions in EKS still need verification.
 - HIGH-006 / HIGH-007 are corrected in code: monitoring and pipeline images are versioned; CI image builds and the full KServe path still need verification (#52/#53).
 - HIGH-001: Terraform S3 backend activation (account available; run `scripts/bootstrap-terraform-backend.sh <env> "$AWS_REGION"`).
+- HIGH-003 (reopened): the restricted `eks_nodes` security group is not attached to the nodes; attaching it needs a node egress decision. EKS does not enforce NetworkPolicies yet (`vpc-cni` without `enableNetworkPolicy`, #59).
 - Before the first AWS deployment: apply/configure the implemented ArgoCD renderer (#48), IRSA roles (#50), unique buckets (#51), ECR OIDC publisher (#55) and controller bootstrap (#61). Other app AWS contracts remain open (#49). Chaos and backup pass in kind CI (#54/#62, `991bcd3`); the serving E2E (#52) needs a green run, then EKS data probes (#63) and zone recovery (#64). Promotion of the same ECR digest is tracked in #65.
 - Many MEDIUM/LOW items in `docs/project/backlog.md` (Istio mTLS gaps, Gatekeeper coverage, Helm chart hardening, ML platform debt).
 

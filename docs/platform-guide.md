@@ -144,7 +144,7 @@ This is the operational command reference for a configured execution host or a f
 The initial-plan workflow does not perform these deployment steps. Before using them, resolve the
 [deployment blockers](project/backlog.md): backend activation (HIGH-001), ArgoCD configuration injection
 (#48), workload IRSA (#50), unique bucket names (#51), ECR publishing (#55), EKS 1.37 add-ons with a single
-EBS CSI owner (#66/#67), and S3 egress for MLflow and predictors (#73).
+EBS CSI owner (#66/#67), node egress (HIGH-003), and S3 egress for MLflow and predictors (#73).
 Install/configure Flux and ArgoCD using the [GitOps setup guide](../gitops/SETUP.md).
 Use one deployment owner per resource; do not install the same application through Helm and ArgoCD.
 

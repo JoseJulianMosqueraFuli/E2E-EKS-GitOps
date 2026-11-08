@@ -144,7 +144,8 @@ Esta es la referencia operativa para un equipo de ejecución configurado o un fu
 El workflow de planes iniciales no realiza estos pasos. Antes de usarlos, resuelve los
 [bloqueos de despliegue](project/backlog.md): backend (HIGH-001), inyección de configuración en ArgoCD
 (#48), IRSA de workloads (#50), nombres únicos de buckets (#51), publicación en ECR (#55), add-ons de EKS 1.37
-con un único gestor de EBS CSI (#66/#67) y salida a S3 para MLflow y los predictores (#73).
+con un único gestor de EBS CSI (#66/#67), salida de los nodos (HIGH-003) y salida a S3 para MLflow y los
+predictores (#73).
 Instala/configura Flux y ArgoCD siguiendo la [guía de GitOps](../gitops/SETUP.md).
 Cada recurso debe tener un único gestor; evita instalar la misma aplicación mediante Helm y ArgoCD.
 

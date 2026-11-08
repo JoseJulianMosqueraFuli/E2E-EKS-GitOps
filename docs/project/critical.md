@@ -3,7 +3,7 @@
 [← Documentation index](../README.md)
 
 **Report Date**: 2026-06-06
-**Last Updated**: 2026-11-07
+**Last Updated**: 2026-11-08
 **Project**: E2E MLOps Platform on Amazon EKS
 **Reviewer**: OpenCode AI
 **Status**: OPEN - Requires immediate action before production deployment
@@ -17,7 +17,7 @@ This document lists all **CRITICAL** and **HIGH** severity findings identified d
 | Severity | Count | Status |
 |----------|-------|--------|
 | CRITICAL | 4 | 4 corrected in code/manifests; CRIT-004 effective permissions still require EKS verification |
-| HIGH | 14 | 12 corrected in code, 1 Open (HIGH-001), 1 mitigated in manifests (HIGH-014; EKS verification pending) |
+| HIGH | 14 | 11 corrected in code, 2 Open (HIGH-001; HIGH-003 reopened 2026-11-08), 1 mitigated in manifests (HIGH-014; EKS verification pending) |
 
 ---
 
@@ -144,13 +144,18 @@ This document lists all **CRITICAL** and **HIGH** severity findings identified d
 
 ---
 
-### HIGH-003: Unrestricted Node Egress in Dev/Staging — FIXED
+### HIGH-003: Unrestricted Node Egress — REOPENED
 
-- **File**: `infra/environments/dev/main.tf`, `infra/environments/staging/main.tf`, `infra/modules/vpc/variables.tf`
-- **Issue**: `node_egress_cidrs` defaulted to `["0.0.0.0/0"]` in dev/staging.
-- **Impact**: EKS nodes could initiate outbound connections to any IP on the internet.
-- **Fix**: Override `node_egress_cidrs` to `[var.vpc_cidr]` plus optional extra CIDRs via `var.node_egress_cidrs`.
-- **Status**: ✅ Fixed 2026-07-13
+- **File**: `infra/modules/vpc/main.tf` (`aws_security_group.eks_nodes`), `infra/modules/eks/main.tf`
+- **Issue**: `node_egress_cidrs` defaulted to `["0.0.0.0/0"]` in dev/staging. The 2026-07-13 fix restricts
+  the `eks_nodes` security group to `[var.vpc_cidr]`, but no node uses that group: the cluster `vpc_config`
+  sets no `security_group_ids` and the managed node group has no launch template, so nodes receive the
+  EKS-created cluster security group, which allows all outbound traffic.
+- **Impact**: EKS nodes and pods can still initiate outbound connections to any IP on the internet.
+- **Fix (pending decision)**: attach the restricted group through a launch template. Before that, decide how
+  nodes reach GitHub, ghcr.io, quay.io and Docker Hub (NAT with an allow list, or ECR pull-through cache
+  and mirrored charts), and allow the S3 gateway endpoint prefix list; ECR image layers are served from S3.
+- **Status**: Reopened 2026-11-08 (the 2026-07-13 change has no effect)
 - **Owner**: Network / Infrastructure Team
 
 ---
@@ -161,7 +166,7 @@ This document lists all **CRITICAL** and **HIGH** severity findings identified d
 - **Issue**: `node_egress_cidrs` hardcoded `"10.0.0.0/8"`.
 - **Impact**: If VPC CIDR doesn't belong to `10.0.0.0/8`, the rule is inconsistent.
 - **Fix**: Derive egress from `var.vpc_cidr` plus optional extra CIDRs from `var.node_egress_cidrs`.
-- **Status**: ✅ Fixed 2026-07-13
+- **Status**: ✅ Fixed 2026-07-13; the rule takes effect only once HIGH-003 attaches the group to the nodes
 - **Owner**: Infrastructure Team
 
 ---
@@ -290,11 +295,11 @@ This document lists all **CRITICAL** and **HIGH** severity findings identified d
 | P0 | CRIT-001 & CRIT-002: Argo Workflows TLS/Auth | 4h | Platform | ✅ Fixed 2026-06-07 |
 | P1 | HIGH-005 to HIGH-007: Pin all `latest` tags | 3h | ML Platform | Corrected in code; CI/runtime verification pending |
 | P1 | HIGH-011 & HIGH-012: Python fixes | 1h | ML Platform | ✅ Fixed 2026-06-08 |
-| P1 | HIGH-013: Remove `\|\| true` from CI | 1h | DevOps | Open |
+| P1 | HIGH-013: Remove `\|\| true` from CI | 1h | DevOps | ✅ Fixed in `c50a12f`; verified 2026-11-07 |
 | P2 | HIGH-001: Terraform S3 backend (requires AWS account) | 2h | Infrastructure | Open (needs AWS) |
 | P2 | HIGH-002: Upgrade Kubernetes | 4h | Infrastructure | ✅ Fixed 2026-06-09 |
-| P2 | HIGH-003: Node egress restricted to VPC | 30min | Infrastructure | ✅ Fixed 2026-07-13 |
-| P2 | HIGH-004: Production egress no longer hardcoded | 30min | Infrastructure | ✅ Fixed 2026-07-13 |
+| P0 | HIGH-003: Attach the restricted node security group | 1d (needs egress decision) | Infrastructure | Reopened 2026-11-08 |
+| P2 | HIGH-004: Production egress no longer hardcoded | 30min | Infrastructure | ✅ Fixed 2026-07-13; effective with HIGH-003 |
 | P2 | HIGH-008: KServe HTTPS redirect | 2h | Platform | ✅ Fixed 2026-07-13 |
 | P2 | HIGH-009 & HIGH-010: Grafana/Prometheus persistence | 3h | Platform | ✅ Fixed 2026-06-08 |
 

@@ -148,7 +148,7 @@ spec:
 
 - [x] Secrets en AWS Secrets Manager (no hardcodeados)
 - [x] IRSA configurado para cada service account
-- [x] Network policies aplicadas
+- [x] Network policies definidas; EKS aun no las aplica porque `vpc-cni` no activa `enableNetworkPolicy` (backlog #59)
 - [x] VPC endpoints habilitados
 - [x] KMS encryption para datos en reposo
 - [x] TLS habilitado para comunicaciones
@@ -158,7 +158,7 @@ spec:
 - [x] ResourceQuotas y LimitRanges por namespace
 - [x] automountServiceAccountToken: false por defecto
 - [x] Pre-commit hooks con detect-secrets
-- [x] Security Groups egress restringidos a VPC CIDR
+- [ ] Egress de nodos restringido: el SG `eks_nodes` limita la salida a la VPC, pero no esta asociado a los nodos (HIGH-003)
 - [x] EKS API endpoint público deshabilitado por defecto
 - [x] S3 force_destroy eliminado (protección contra borrado)
 

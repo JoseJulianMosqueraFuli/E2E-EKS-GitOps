@@ -614,7 +614,7 @@ A focused security audit was performed across Terraform, Kubernetes manifests, G
 - **Model Monitoring with Evidently** (drift detection + model performance + CronJob)
 - **Grafana dashboards** pre-configured (MLflow, KServe, model metrics, cost estimation, ML monitoring)
 - **Alertmanager + PrometheusRule alerts** (MLflow, PostgreSQL, KServe, drift alerts)
-- **CI/CD hardening** for staging/production (KMS retention, ECR immutable tags, node egress restrictions)
+- **CI/CD hardening** for staging/production (KMS retention, ECR immutable tags)
 - **Documentación sincronizada** (READMEs, guides, SETUP, IMPLEMENTATION_STATUS aligned with repo state)
 - **Feature Store (local)**: Feast feature repo with definitions, Parquet data sources, SQLite online store, and unit tests
 - **Security**: Pre-commit hooks (`detect-secrets`), `.secrets.baseline`, Trivy SARIF scanning
@@ -624,7 +624,7 @@ A focused security audit was performed across Terraform, Kubernetes manifests, G
 **High Priority:**
 
 - **First green serving run in `e2e-kind.yml`** (#52) — the first run (`4494aca`) failed because the predictor NetworkPolicy blocked model downloads from the S3 gateway; the fix waits for a new run
-- **Before the first AWS deployment** — configure and verify the implemented ArgoCD renderer (#48), IRSA roles (#50), unique S3 bucket names (#51) and ECR publishing via GitHub OIDC (#55); EKS 1.37 add-ons (#66), a single EBS CSI owner (#67) and S3 egress for MLflow and predictors (#73)
+- **Before the first AWS deployment** — configure and verify the implemented ArgoCD renderer (#48), IRSA roles (#50), unique S3 bucket names (#51) and ECR publishing via GitHub OIDC (#55); EKS 1.37 add-ons (#66), a single EBS CSI owner (#67), and a decision on node egress so the restricted security group can be attached (HIGH-003). S3 egress for MLflow and predictors (#73) is implemented and needs a real plan
 - **End-to-end AWS test** — Full flow: Terraform apply → EKS deploy → ArgoCD sync → MLflow → KServe inference
 - **Monitoring image** (#53) — `Dockerfile.monitoring` builds from the Poetry lock with a versioned tag; the first published build and a healthy service are pending. Validation, deployment, serving and notification run on `mlops-platform`
 
