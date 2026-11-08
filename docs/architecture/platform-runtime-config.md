@@ -77,8 +77,9 @@ After the cloud configuration is reviewed and applied by the operator:
 
 The Terraform roots declare an unconfigured S3 backend. Local checks use `init -backend=false`.
 `scripts/bootstrap-terraform-backend.sh <env> "$AWS_REGION"` creates an account/region-specific state
-bucket and lock table and writes the ignored `infra/environments/<env>/backend.hcl`. It configures
-versioning, SSE-KMS, public-access blocking and a TLS-only policy. It does not initialize Terraform or
+bucket and writes the ignored `infra/environments/<env>/backend.hcl`. It configures versioning, SSE-KMS,
+public-access blocking and a TLS-only policy. State locking uses S3 lock files (`use_lockfile = true`,
+Terraform 1.11 or later); there is no DynamoDB lock table. It does not initialize Terraform or
 migrate state. Review the file, then initialize explicitly; use `-migrate-state` only after reviewing an
 existing-state migration. HIGH-001 stays open until that operational step succeeds.
 

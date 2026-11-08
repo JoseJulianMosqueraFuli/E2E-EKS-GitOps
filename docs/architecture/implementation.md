@@ -158,7 +158,7 @@ E2E-EKS-GitOps/
 │   └── future/                     # Inactive GitLab CI, CircleCI and Jenkins configs
 │
 ├── scripts/                        # Automation scripts
-│   ├── bootstrap-terraform-backend.sh  # S3 + DynamoDB backend setup
+│   ├── bootstrap-terraform-backend.sh  # S3 state bucket with lock files
 │   └── setup-mlops-stack.sh        # MLOps tools installer
 │
 ├── docs/                           # Documentation
@@ -544,7 +544,7 @@ mlflow:
 
 | Layer                 | Implementation                                  |
 | --------------------- | ----------------------------------------------- |
-| Encryption at rest    | AWS KMS (S3, EBS, DynamoDB)                     |
+| Encryption at rest    | AWS KMS (S3, EBS)                               |
 | Encryption in transit | Istio mTLS (strict mode)                        |
 | Secret management     | External Secrets Operator + AWS Secrets Manager |
 | Container security    | ECR scan-on-push, Gatekeeper admission control  |
