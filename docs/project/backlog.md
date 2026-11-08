@@ -7,9 +7,9 @@ Para detalles técnicos de issues CRÍTICOS y ALTOS (CVSS, fix concreto), ver: [
 
 ---
 
-## Revision operativa — 2026-10-21
+## Revision operativa — 2026-11-08
 
-**Se corrigieron los bloqueos de implementacion de Chaos y varios contratos del despliegue. CI Pipeline ya pasa; falta confirmar el E2E de backup/Chaos y validar el entorno AWS real.** No se aplico Terraform ni se inyectaron fallos en EKS.
+**CI Pipeline pasa y el E2E en kind ya aprueba entrenamiento, backup/restore y Chaos (#22, `991bcd3`). El primer E2E de serving (#23, `4494aca`) fallo; la causa probable esta corregida y falta un nuevo run. El entorno AWS real sigue sin validar.** No se aplico Terraform ni se inyectaron fallos en EKS.
 
 ### Correcciones implementadas
 
@@ -28,6 +28,8 @@ Para detalles técnicos de issues CRÍTICOS y ALTOS (CVSS, fix concreto), ver: [
 
 ### Evidencia en GitHub Actions
 
+- E2E [#23 de `4494aca`](https://github.com/JoseJulianMosqueraFuli/E2E-EKS-GitOps/actions/runs/42413352033): entrenamiento, backup/restore y Litmus vuelven a aprobar. Serving (#52) fallo en `InferenceService declared in Git serves default-model@champion`: el InferenceService no llego a Ready en 420 s. La NetworkPolicy `model-predictors` solo permitia salida a MLflow:5000 y DNS, pero MLflow entrega URLs firmadas hacia el gateway S3 (`dev-mlflow-minio.mlflow.svc.cluster.local:9000`), asi que el predictor no podia descargar `@champion`. Se agrega salida a los pods del gateway (`app: mlflow-minio`) por 9000 en la base; la regresion cruza el endpoint que firma MLflow, el Service y pod del gateway, la salida del predictor y la entrada de MLflow en dev/staging/kind. La causa se deduce de la anotacion de la etapa, la duracion del paso y las politicas; el log del job no se reviso. Falta un nuevo E2E.
+- E2E [#22 de `991bcd3`](https://github.com/JoseJulianMosqueraFuli/E2E-EKS-GitOps/actions/runs/42378504965): primer verde completo en kind 1.37: entrenamiento/gate, backup/restore (#54) y Litmus con pod-delete y cancelacion `Stop` (#62). El serving aun no formaba parte del workflow.
 - E2E [#19 de `cb0d779`](https://github.com/JoseJulianMosqueraFuli/E2E-EKS-GitOps/actions/runs/40104958856): `pre-check` aprobado, confirmando acceso al API y salud de MLflow. `prepare-canary` quedo en `ImagePullBackOff`: sin configuracion de imagenes para WorkflowTemplate, los replacements de cuenta/region deformaban `mlops-platform:0.1.0`. Se agrega el transformer para las rutas Argo y una regresion del nombre ECR completo de prepare/verify en dev/staging. Produccion sigue sin workflows de Chaos. Los timeouts ahora muestran nodos pendientes y sus errores; falta nuevo E2E para validar inyeccion y cancelacion (#62).
 - E2E [#18 de `47b8228`](https://github.com/JoseJulianMosqueraFuli/E2E-EKS-GitOps/actions/runs/40103586835): Litmus y el catalogo reconciliados; RBAC y rechazo por `chaos-mlflow-engine-scope` comprobados en el artefacto. El workflow fallo en `pre-check` y `onExit`: kubectl intento acceder a `http://localhost:8080`. Los scripts de MLflow/AZ ahora seleccionan una configuracion interna explicita con CA y `tokenFile` de la ServiceAccount montada, sin credenciales embebidas ni cambios de permisos. Los fallos del workflow muestran nodos y logs en CI. Regresiones de Chaos: 35 aprobadas; ejecucion de fallos y cancelacion aun pendientes de nuevo E2E (#62). Produccion sigue sin habilitar estos workflows.
 - E2E [#17 de `0626076`](https://github.com/JoseJulianMosqueraFuli/E2E-EKS-GitOps/actions/runs/40102338418): entrenamiento/evaluacion/registro y backup/restore aprobados. Chaos (#62) fallo al crear el Service `litmus-chaos-exporter`: `/metrics` estaba en `metadata.labels`, donde Kubernetes no admite `/`. La configuracion `prometheus.io/*` se mueve a anotaciones en la base compartida; una regresion comprueba etiquetas y anotaciones en dev/staging/produccion. La ejecucion de experimentos y cancelacion sigue pendiente de un nuevo E2E.
@@ -53,7 +55,7 @@ Para detalles técnicos de issues CRÍTICOS y ALTOS (CVSS, fix concreto), ver: [
 
 | Prioridad | Pendiente | Evidencia necesaria |
 |-----------|-----------|---------------------|
-| P0 | Ejecutar la ampliacion de GitHub Actions (#54/#61/#62) | Charts reales reconciliados, backup restaurado, Litmus Pass y limpieza tras Stop |
+| P0 | Primer verde del serving en kind (#52) | v1 servido, v2 promovido y v3 rechazado con rollback verificado a v2 |
 | P0 | Configurar/aplicar AWS (#48/#50/#51/#55, HIGH-001) y completar contratos de otras apps (#49) | Plan revisado, backend activo, secretos disponibles, imagenes publicadas y ArgoCD saludable |
 | P0 antes del primer apply | Add-ons compatibles con EKS 1.37 (#66) y un solo dueno para EBS CSI (#67) | Versiones con soporte declarado para 1.37 renderizadas; plan sin recursos duplicados |
 | P0 antes de fallos de zona | Recuperacion de almacenamiento y afinidades (#64) | Restore/HA entre zonas y capacidad de reubicacion demostrados; el preflight rechaza PVCs por defecto |
@@ -102,12 +104,12 @@ Detalles y comandos: [contrato de configuracion y recuperacion](../architecture/
 
 ## Dashboard de Estado
 
-| Area | Estado verificable al 2026-10-20 |
+| Area | Estado verificable al 2026-11-08 |
 |------|--------------------------------|
 | CRITICAL historicos | 4 corregidos en codigo/manifiestos; permisos efectivos de CRIT-004 pendientes de comprobar en EKS |
 | HIGH historicos | 12 corregidos en codigo; HIGH-001 abierto; HIGH-014 mitigado en manifiestos. HIGH-013 verificado como corregido el 2026-11-07 |
-| GitOps / Chaos | Bootstrap y E2E Chaos implementados; render/pruebas locales aprobados; ejecucion de CI/EKS pendiente |
-| Proceso ML | Pipeline principal y monitoring corregidos; validar la ampliacion data → train → serve y publicacion |
+| GitOps / Chaos | Backup/restore y Chaos verdes en kind (#22, `991bcd3`); ejecucion en EKS pendiente |
+| Proceso ML | Entrenamiento y gate verdes en kind; el primer E2E de serving fallo y su correccion espera un nuevo run (#52); publicacion pendiente |
 | AWS / recuperacion | Validacion dev/staging/prod aprobada; plan real, despliegue, restore y resiliencia por zona pendientes |
 
 Los estados por ID y la evidencia de la revision sustituyen los antiguos totales y puntuaciones estimadas, que mezclaban trabajo resuelto, duplicados y validacion funcional pendiente.
@@ -192,6 +194,7 @@ Los estados por ID y la evidencia de la revision sustituyen los antiguos totales
 | 68 | Exponer predictores fuera del clúster con TLS (Gateway API o Istio). Hoy solo tienen Service interno; KServe 0.21 tambien permite canary por `HTTPRoute` en modo `Standard` | `gitops/applications/apps/kserve/` |
 | 69 | Retirar el chart propio `gitops/charts/kserve` (KServe 0.11), las Applications de charts que apuntan al repo de ejemplo `https://org.github.io/mlops-helm-charts` y los ejemplos de Argo que crean InferenceServices propios (`model-deployment-workflow.yaml`, `ab-test-deployment-workflow.yaml`). `make mlops-install` ya usa la app canonica | `gitops/charts/`, `gitops/applications/projects/mlops-helm-repository.yaml`, `k8s/mlops-stack/argo-workflows/examples/` |
 | 71 | Serializar despliegues del mismo modelo: dos pipelines que promueven a la vez compiten por `@champion` y por la anotacion de rollout. Evaluar `synchronization.mutexes` por modelo en `ml-pipeline-template` | `gitops/applications/apps/argo-workflows/base/workflow-templates/` |
+| 73 | En produccion MLflow firma URLs hacia S3 (`https://s3.AWS_REGION.amazonaws.com`), que se alcanza por el Gateway endpoint: IPs publicas de S3 por 443. La NetworkPolicy de MLflow solo permite `10.0.0.0/8:443` y la del predictor no tiene salida a S3, asi que ambos fallaran cuando el CNI aplique NetworkPolicies (#59). Antes del primer despliegue, elegir un Interface endpoint de S3 (IPs dentro de la VPC) o un `ipBlock` 443 acotado. Dev, staging y kind usan el gateway interno por 9000 | `gitops/applications/apps/{mlflow,model-serving}/base/network-policy.yaml`, `infra/modules/vpc/main.tf` |
 | 47 | argo-server usa `--auth-mode=sso` pero el ConfigMap no define bloque `sso` (issuer, clientId, clientSecret): el server entra en CrashLoopBackOff con `Error: issuer empty` (confirmado en kind 2026-10-10) | `gitops/applications/apps/argo-workflows/base/server-deployment.yaml` | ✅ Cambiado a `--auth-mode=client` (token de Kubernetes + RBAC) 2026-10-10. SSO/OIDC pendiente de proveedor |
 | 10 | `monitoring` en `k8s/` no apunta a `gitops/applications/apps/monitoring/` | `k8s/mlops-stack/monitoring/kustomization.yaml` | ✅ Corregido 2026-06-26 |
 | 11 | `argo-workflows` en `k8s/` no apunta a gitops | `k8s/mlops-stack/argo-workflows/kustomization.yaml` | ✅ Corregido 2026-06-26 |
@@ -237,7 +240,7 @@ Los estados por ID y la evidencia de la revision sustituyen los antiguos totales
 | 32 | `dvc`, `awscli`, `kubernetes` en deps sin uso evidente | `ml-platform/pyproject.toml` | ✅ Corregido 2026-07-13 |
 | 33 | `awscli` como dependencia de libreria (deberia ser dev/extra) | `ml-platform/pyproject.toml` | ✅ Corregido 2026-07-13 |
 | 34 | Feast feature repo: falta backend productivo (Redis/DynamoDB) y deployment server K8s | `ml-platform/feature_repo/`, `k8s/mlops-stack/feast/` |
-| 52 | Serving (decisiones 1 y 2, 2026-11-07): `step serve` en la imagen `mlops-platform` sirve `@champion` con el protocolo de MLflow; KServe v0.21.0 `Standard` y cert-manager v1.21.3 por Flux. El InferenceService esta declarado en Git (app `model-serving`) y `model-deployment-template` ya no construye imagenes: hace rollout por anotacion, verifica `X-Model-Version` y paridad con el registro, y si falla devuelve el alias, hace rollback y termina en fallo. `kind-serve.sh` despliega v1, promueve v2 y rechaza v3. Pendiente: primer run verde del E2E | `ml-platform/src/pipelines/`, `gitops/applications/apps/{kserve,model-serving}/`, `gitops/applications/apps/argo-workflows/base/workflow-templates/model-deployment-template.yaml`, `scripts/e2e/kind-serve.sh` |
+| 52 | Serving (decisiones 1 y 2, 2026-11-07): `step serve` en la imagen `mlops-platform` sirve `@champion` con el protocolo de MLflow; KServe v0.21.0 `Standard` y cert-manager v1.21.3 por Flux. El InferenceService esta declarado en Git (app `model-serving`) y `model-deployment-template` ya no construye imagenes: hace rollout por anotacion, verifica `X-Model-Version` y paridad con el registro, y si falla devuelve el alias, hace rollback y termina en fallo. `kind-serve.sh` despliega v1, promueve v2 y rechaza v3. El primer E2E (#23, `4494aca`) fallo porque la NetworkPolicy del predictor bloqueaba la descarga desde el gateway S3; corregido, pendiente un nuevo run verde | `ml-platform/src/pipelines/`, `gitops/applications/apps/{kserve,model-serving}/`, `gitops/applications/apps/argo-workflows/base/workflow-templates/model-deployment-template.yaml`, `scripts/e2e/kind-serve.sh` |
 | 53 | Dockerfile.monitoring usa Poetry/lock y Evidently compatible; imagen del servicio/CronJob versionada y build en CI. Pendiente primer build publicado y servicio saludable | `ml-platform/Dockerfile.monitoring` |
 
 ### Monitoreo (4)
@@ -248,7 +251,7 @@ Los estados por ID y la evidencia de la revision sustituyen los antiguos totales
 | 36 | Retencion Prometheus muy corta (200h ~ 8.3 dias) | `k8s/mlops-stack/monitoring/prometheus-stack.yaml` |
 | 37 | Prometheus `web.enable-admin-api` habilitado | `gitops/charts/monitoring-stack/values.yaml` |
 | 38 | Evidently image `latest` en monitoring chart | `gitops/charts/monitoring-stack/values.yaml` |
-| 54 | Backup/restore reparado: PostgreSQL client + boto3, host por overlay, IRSA/bucket, contexto restricted y checksum; restore bloquea origen/base ocupada. Pruebas locales aprobadas; ensayo real agregado al kind CI y pendiente en EKS | `gitops/applications/apps/mlflow/base/backup-cronjob.yaml` |
+| 54 | Backup/restore reparado: PostgreSQL client + boto3, host por overlay, IRSA/bucket, contexto restricted y checksum; restore bloquea origen/base ocupada. Verde en kind CI (#22, `991bcd3`); pendiente en EKS | `gitops/applications/apps/mlflow/base/backup-cronjob.yaml` |
 | 63 | Sondas funcionales implementadas: run persistente durante fallo, artefacto antes/despues y prediccion AZ con jq. Falta acordar SLO/RTO/RPO productivos, dashboard y medicion EKS; CI conserva resultados 14 dias | `gitops/applications/apps/chaos/workflows/`, `gitops/applications/apps/monitoring/` |
 | 70 | Metricas y alertas de serving: se eliminaron el `ServiceMonitor` y la `PrometheusRule` de KServe porque Prometheus Operator no esta instalado. Exponer latencia/errores del predictor y alertar desde el Prometheus actual (decision 4 / fase de monitoreo) | `ml-platform/src/pipelines/serving.py`, `gitops/applications/apps/monitoring/` |
 
@@ -264,7 +267,7 @@ Los estados por ID y la evidencia de la revision sustituyen los antiguos totales
 | 44 | Falta pipeline automatizada para Terratest Go | `.github/workflows/ci.yml` |
 | 55 | Rol OIDC por entorno y publicacion inicial dev en `publish-ecr.yml` implementados. Configurar provider/variables del entorno GitHub, aplicar IAM y ejecutar; promocion sin reconstruir en #65 | `.github/workflows/ml-platform-image.yml`, `infra/` |
 | 56 | Primer run verde de `e2e-kind.yml` (entrena, evalua, registra y bloquea por el gate de promocion) | `.github/workflows/e2e-kind.yml`, `scripts/e2e/kind-smoke.sh` | ✅ Verde en `2ca2b2e` (2026-10-11): Secrets sin prefijo en kind, Postgres UID 70, MinIO reemplazado (#57), SQLAlchemy 2.0.49 fijado, `command` explicito para emissary |
-| 62 | E2E de Chaos implementado en GitHub Actions: paths, Flux/Litmus reales, pod-delete, canario, Stop/cleanup, comprobacion de permisos/admision y artefactos. Falta primer run verde; nodos/GPU/AZ siguen reservados a EKS | `.github/workflows/e2e-kind.yml`, `scripts/e2e/`, `gitops/tests/test_chaos_safety.py` |
+| 62 | E2E de Chaos implementado en GitHub Actions: paths, Flux/Litmus reales, pod-delete, canario, Stop/cleanup, comprobacion de permisos/admision y artefactos. Primer verde en kind (#22, `991bcd3`); nodos/GPU/AZ siguen reservados a EKS | `.github/workflows/e2e-kind.yml`, `scripts/e2e/`, `gitops/tests/test_chaos_safety.py` |
 | 65 | Promover el mismo digest desde ECR dev a staging/prod, actualizar overlays y verificar gate por entorno; `publish-ecr.yml` solo hace la publicacion inicial dev | `.github/workflows/`, `gitops/scripts/promotion/` |
 
 ---
@@ -338,6 +341,6 @@ Los estados por ID y la evidencia de la revision sustituyen los antiguos totales
 
 ---
 
-*Ultima actualizacion: 2026-10-20*
+*Ultima actualizacion: 2026-11-08*
 
 *Fuentes: `docs/project/critical.md`, manifiestos y scripts actuales, render de charts/overlays y pruebas locales descritas en la revision operativa. La revision no certifica un despliegue EKS.*

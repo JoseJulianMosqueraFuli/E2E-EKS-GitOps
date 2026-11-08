@@ -5,8 +5,8 @@
 > **Project**: End-to-End MLOps Platform on Amazon EKS  
 > **Author**: Jose Julian Mosquera  
 > **License**: MIT  
-> **Status**: Active development (Phase 2) — training path validated on kind in CI; first AWS deployment (`us-east-1`) pending
-> **Last updated**: 2026-10-10
+> **Status**: Active development (Phase 2) — training, backup/restore and Chaos validated on kind in CI; serving on kind and first AWS deployment (`us-east-1`) pending
+> **Last updated**: 2026-11-08
 
 ---
 
@@ -288,11 +288,13 @@ installs all of them plus tooling) and heavy modules are imported lazily.
 - External Secrets Operator for AWS Secrets Manager integration (deployed via `gitops/applications/apps/external-secrets/`)
 - IRSA roles for least-privilege pod access to AWS services
 
-**IRSA Roles** (created by `setup-mlops-stack.sh`; Terraform-managed roles pending, backlog #50):
+**IRSA Roles** (Terraform `workload-identity` module, one role per workload; trust and access are verified after the first apply, backlog #50):
 
-- `mlops-{env}-mlflow-role`: S3 access for MLflow artifacts
-- `mlops-{env}-kserve-role`: created for compatibility; predictors read models through the MLflow artifact proxy and do not use it
-- The `argo-workflow` service account has no IRSA annotation yet, so pipeline steps have no S3 access on EKS until #50 is done
+- `mlops-{env}-mlflow`: MLflow artifact bucket
+- `mlops-{env}-argo`: pipeline steps, through the `argo-workflow` service account
+- `mlops-{env}-secrets`: External Secrets reads for MLflow
+- `mlops-{env}-backup`: MLflow database backups
+- Predictors have no IRSA role: they resolve `@champion` in the MLflow registry and download the model through the URLs MLflow signs for the artifact store
 
 ### 4.4 GitOps Architecture
 
@@ -621,10 +623,10 @@ A focused security audit was performed across Terraform, Kubernetes manifests, G
 
 **High Priority:**
 
-- **First green run of `e2e-kind.yml`** — MLflow had never been executed before; expect adjustments
-- **Before the first AWS deployment** — ArgoCD injection of `aws.env` (#48), IRSA roles for Argo/MLflow (#50), globally unique S3 bucket names (#51), ECR publishing via GitHub OIDC (#55)
+- **First green serving run in `e2e-kind.yml`** (#52) — the first run (`4494aca`) failed because the predictor NetworkPolicy blocked model downloads from the S3 gateway; the fix waits for a new run
+- **Before the first AWS deployment** — configure and verify the implemented ArgoCD renderer (#48), IRSA roles (#50), unique S3 bucket names (#51) and ECR publishing via GitHub OIDC (#55); EKS 1.37 add-ons (#66), a single EBS CSI owner (#67) and S3 egress for MLflow and predictors (#73)
 - **End-to-end AWS test** — Full flow: Terraform apply → EKS deploy → ArgoCD sync → MLflow → KServe inference
-- **Monitoring image** — broken `Dockerfile.monitoring` (#53). Validation, deployment, serving and notification run on `mlops-platform`
+- **Monitoring image** (#53) — `Dockerfile.monitoring` builds from the Poetry lock with a versioned tag; the first published build and a healthy service are pending. Validation, deployment, serving and notification run on `mlops-platform`
 
 **Medium Priority:**
 
@@ -652,7 +654,7 @@ A focused security audit was performed across Terraform, Kubernetes manifests, G
 2. **Modular Terraform**: Each AWS service has its own module with Go tests, enabling reuse across projects.
 3. **Dual GitOps controllers**: Flux manages infrastructure (cluster-level), ArgoCD manages applications (app-level) — separation of concerns.
 4. **Kustomize + Helm**: Raw K8s manifests use Kustomize for overlays; packaged apps use Helm charts in `gitops/charts/`.
-5. **Joblib over pickle**: Model serialization uses joblib for better numpy/scipy object handling.
+5. **skops for registered models**: pipeline steps log models to MLflow with `skops` and trust only scikit-learn's tree type, so loading a model does not execute arbitrary pickled code. The local `train` command still writes `joblib` files.
 6. **Poetry for Python**: Dependency management uses Poetry (with pip fallback support via `pyproject.toml` setuptools backend).
 7. **Single CI provider**: only GitHub Actions is maintained and validated. GitLab CI, CircleCI, and Jenkins configurations are inactive in `ci-cd/future/` ([decision record](../../ci-cd/future/README.md)).
 8. **One image for all pipeline steps and serving**: steps and the model server share dependencies and code; one image avoids version skew between training, evaluation and inference and keeps CI to one build (`linux/amd64`, EKS nodes are x86).
