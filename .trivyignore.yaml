@@ -1,0 +1,45 @@
+misconfigurations:
+  - id: KSV-0046
+    paths:
+      - "gitops/infrastructure/controllers/flux-system/rbac.yaml"
+    statement: >-
+      Flux reconcilers apply any manifest committed to Git, as in the upstream cluster-reconciler
+      role. Git review is the control; per-tenant service accounts are tracked in backlog #78.
+  - id: KSV-0053
+    paths:
+      - "gitops/applications/apps/argo-workflows/base/rbac.yaml"
+    statement: >-
+      The workflow controller only has create on pods/exec, which the emissary executor uses to
+      signal step containers when a workflow is stopped or terminated.
+  - id: KSV-0053
+    paths:
+      - "gitops/applications/apps/chaos/base/rbac.yaml"
+    statement: >-
+      Litmus stress experiments exec into their target pods in the mlflow namespace only; admission
+      policies restrict which accounts and pods a fault may select (backlog #60).
+  - id: KSV-0041
+    paths:
+      - "gitops/applications/apps/argo-workflows/base/rbac.yaml"
+    statement: >-
+      The workflow controller reads one secret by name (argo-workflows-agent-ca-certificates) and
+      secrets in its own namespace for artifact credentials; it cannot create, update or delete them.
+  - id: KSV-0109
+    paths:
+      - "gitops/applications/apps/monitoring/base/argocd-notifications.yaml"
+    statement: >-
+      The notifications ConfigMap holds the reference $slack-token, resolved from
+      argocd-notifications-secret; it contains no credential value.
+  - id: KSV-0014
+    paths:
+      - "gitops/infrastructure/controllers/argocd/argocd-server-patch.yaml"
+      - "gitops/infrastructure/controllers/argocd/argocd-repo-server-patch.yaml"
+    statement: >-
+      Strategic-merge patches over the upstream Argo CD install; the rendered containers keep the
+      upstream read-only root filesystem, and the plugin sidecar sets it explicitly.
+  - id: KSV-0118
+    paths:
+      - "gitops/infrastructure/controllers/argocd/argocd-server-patch.yaml"
+      - "gitops/infrastructure/controllers/argocd/argocd-repo-server-patch.yaml"
+    statement: >-
+      Strategic-merge patches over the upstream Argo CD install, whose rendered pods run as non-root
+      with RuntimeDefault seccomp and all capabilities dropped.
