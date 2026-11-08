@@ -33,7 +33,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        environment: [dev, staging, prod]
+        environment: [dev, staging, prod, account]
     env:
       TF_IN_AUTOMATION: "true"
       TF_INPUT: "false"

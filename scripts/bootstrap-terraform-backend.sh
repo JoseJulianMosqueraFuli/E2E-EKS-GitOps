@@ -2,7 +2,7 @@
 set -euo pipefail
 ENVIRONMENT="${1:-dev}"
 REGION="${2:-${AWS_REGION:?Pass the AWS region as the second argument or AWS_REGION}}"
-case "$ENVIRONMENT" in dev|staging|prod) ;; *) echo "Environment must be dev, staging or prod" >&2; exit 1 ;; esac
+case "$ENVIRONMENT" in dev|staging|prod|account) ;; *) echo "Environment must be dev, staging, prod or account" >&2; exit 1 ;; esac
 export AWS_DEFAULT_REGION="$REGION"
 ACCOUNT_ID="$(aws sts get-caller-identity --query Account --output text)"
 [[ "$ACCOUNT_ID" =~ ^[0-9]{12}$ ]] || { echo "Invalid AWS account" >&2; exit 1; }
