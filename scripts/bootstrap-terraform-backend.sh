@@ -7,7 +7,6 @@ export AWS_DEFAULT_REGION="$REGION"
 ACCOUNT_ID="$(aws sts get-caller-identity --query Account --output text)"
 [[ "$ACCOUNT_ID" =~ ^[0-9]{12}$ ]] || { echo "Invalid AWS account" >&2; exit 1; }
 BUCKET_NAME="mlops-terraform-state-${ENVIRONMENT}-${ACCOUNT_ID}-${REGION}"
-DYNAMO_TABLE="mlops-terraform-locks-${ENVIRONMENT}"
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 BACKEND_FILE="$ROOT/infra/environments/$ENVIRONMENT/backend.hcl"
 if ! aws s3api head-bucket --bucket "$BUCKET_NAME" --expected-bucket-owner "$ACCOUNT_ID" 2>/dev/null; then
@@ -26,16 +25,12 @@ cat > "$policy" <<EOF
 {"Version":"2012-10-17","Statement":[{"Sid":"DenyInsecureTransport","Effect":"Deny","Principal":"*","Action":"s3:*","Resource":["arn:aws:s3:::$BUCKET_NAME","arn:aws:s3:::$BUCKET_NAME/*"],"Condition":{"Bool":{"aws:SecureTransport":"false"}}}]}
 EOF
 aws s3api put-bucket-policy --bucket "$BUCKET_NAME" --policy "file://$policy"
-if ! aws dynamodb describe-table --table-name "$DYNAMO_TABLE" >/dev/null 2>&1; then
-  aws dynamodb create-table --table-name "$DYNAMO_TABLE" --attribute-definitions AttributeName=LockID,AttributeType=S --key-schema AttributeName=LockID,KeyType=HASH --billing-mode PAY_PER_REQUEST --sse-specification Enabled=true
-fi
-aws dynamodb wait table-exists --table-name "$DYNAMO_TABLE"
 umask 077
 cat > "$BACKEND_FILE" <<EOF
 bucket = "$BUCKET_NAME"
 key = "$ENVIRONMENT/terraform.tfstate"
 region = "$REGION"
-dynamodb_table = "$DYNAMO_TABLE"
+use_lockfile = true
 encrypt = true
 EOF
 echo "Backend prepared. Review $BACKEND_FILE, then initialize explicitly:"
