@@ -66,6 +66,30 @@ Para detalles técnicos de issues CRÍTICOS y ALTOS (CVSS, fix concreto), ver: [
 
 Detalles y comandos: [contrato de configuracion y recuperacion](../architecture/platform-runtime-config.md).
 
+### Prueba en AWS planificada — 2026-11-15
+
+Solo dev, en una ventana de maximo 3 horas desde `terraform apply` hasta `terraform destroy`. Objetivo: entrenar, registrar y servir `@champion` en EKS y obtener una prediccion. Fuera de alcance: Kubeflow, Feast, Istio, Gatekeeper y Litmus.
+
+**Costo estimado** (Price List API, on-demand us-east-1, consultado el 2026-11-08): ~$0.60/h fijo con 3 × `t3.large`: EKS $0.10, nodos $0.25, 6 endpoints de interfaz × 2 AZ $0.12, 2 NAT $0.09, IPv4 $0.01, gp3 $0.025. Con redondeo por hora, la NAT por datos (~$0.45) y los logs, la ventana de 3 h cuesta ~$2–3. Despues del `destroy` solo quedan centavos al mes (estado, ECR, KMS).
+
+**Antes de la ventana** (gratis o centavos):
+
+1. E2E en kind en verde, incluido el serving (#52).
+2. Un solo dueno para EBS CSI (#67) y 3 × `t3.large` en dev; con 2 × `t3.medium` el stack no cabe (~10 GiB de requests, maximo 17 pods por nodo).
+3. Versiones de add-ons compatibles con EKS 1.37 (#66).
+4. Bootstrap del backend de Terraform (HIGH-001), repos ECR creados y la imagen publicada (#55), secretos de MLflow en Secrets Manager.
+5. Alerta de AWS Budgets de ~$20.
+
+**Guion:**
+
+| Tiempo | Paso |
+|--------|------|
+| 0:00–0:30 | `terraform apply` de dev |
+| 0:30–1:15 | Flux, ArgoCD, MLflow, Argo Workflows, cert-manager, KServe y model-serving |
+| 1:15–1:45 | Entrenar → registrar → servir y predecir |
+| 1:45–2:30 | Margen para correcciones |
+| 2:30 | Vaciar buckets S3 y repos ECR (sin `force_destroy`) y ejecutar `terraform destroy`, termine o no la prueba |
+
 ---
 
 ## Completado (historial)
