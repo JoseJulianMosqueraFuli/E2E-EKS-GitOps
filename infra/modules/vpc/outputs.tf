@@ -50,6 +50,11 @@ output "s3_vpc_endpoint_id" {
   value       = aws_vpc_endpoint.s3.id
 }
 
+output "s3_interface_vpc_endpoint_id" {
+  description = "ID of the S3 interface VPC endpoint, or null when it is disabled"
+  value       = one(aws_vpc_endpoint.s3_interface[*].id)
+}
+
 output "ecr_dkr_vpc_endpoint_id" {
   description = "ID of the ECR DKR VPC endpoint"
   value       = aws_vpc_endpoint.ecr_dkr.id

@@ -62,6 +62,8 @@ module "vpc" {
   # HIGH-003: Restrict node egress to VPC only, plus any extra CIDRs.
   node_egress_cidrs = concat([var.vpc_cidr], var.node_egress_cidrs)
 
+  enable_s3_interface_endpoint = true
+
   tags = local.common_tags
 }
 

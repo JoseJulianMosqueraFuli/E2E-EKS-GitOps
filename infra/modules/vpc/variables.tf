@@ -40,6 +40,12 @@ variable "node_egress_cidrs" {
   }
 }
 
+variable "enable_s3_interface_endpoint" {
+  description = "Create an S3 interface endpoint whose private DNS serves all in-VPC S3 traffic, so pods reach S3 at VPC addresses that NetworkPolicies can allow. Billed per AZ-hour and per GB; the gateway endpoint is kept."
+  type        = bool
+  default     = false
+}
+
 variable "tags" {
   description = "Tags to apply to all resources"
   type        = map(string)

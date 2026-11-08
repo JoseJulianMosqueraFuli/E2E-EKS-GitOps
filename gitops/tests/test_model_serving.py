@@ -1,3 +1,5 @@
+import ipaddress
+import re
 import subprocess
 from functools import lru_cache
 from pathlib import Path
@@ -219,22 +221,27 @@ def test_network_policies_select_namespaces_by_their_builtin_label(app, env):
             assert list(labels) == ["kubernetes.io/metadata.name"], policy["metadata"]["name"]
 
 
-def test_predictors_only_reach_mlflow_its_artifact_gateway_and_dns(serving):
-    _, resources, _ = serving
+def egress_destination(rule):
+    (peer,) = rule["to"]
+    if "ipBlock" in peer:
+        return peer["ipBlock"]["cidr"]
+    return peer["namespaceSelector"]["matchLabels"]["kubernetes.io/metadata.name"]
+
+
+def test_predictors_only_reach_mlflow_its_artifact_store_and_dns(serving):
+    env, resources, _ = serving
     policy = by_name(resources, "NetworkPolicy", "model-predictors")
     assert policy["metadata"]["namespace"] == "models"
     assert policy["spec"]["podSelector"] == {
         "matchExpressions": [{"key": "serving.kserve.io/inferenceservice", "operator": "Exists"}]
     }
     egress = {
-        (
-            rule["to"][0]["namespaceSelector"]["matchLabels"]["kubernetes.io/metadata.name"],
-            port["port"],
-        )
+        (egress_destination(rule), port["port"])
         for rule in policy["spec"]["egress"]
         for port in rule["ports"]
     }
-    assert egress == {("mlflow", 5000), ("mlflow", 9000), ("kube-system", 53)}
+    s3 = {("10.0.0.0/8", 443)} if env == "production" else set()
+    assert egress == {("mlflow", 5000), ("mlflow", 9000), ("kube-system", 53)} | s3
     ingress_ports = {port["port"] for rule in policy["spec"]["ingress"] for port in rule["ports"]}
     assert ingress_ports == {8080}
 
@@ -291,6 +298,51 @@ def test_predictors_reach_the_gateway_mlflow_signs_download_urls_for(store):
         {"protocol": "TCP", "port": port} in rule["ports"] and from_models in rule["from"]
         for rule in gateway_policy["spec"]["ingress"]
     )
+
+
+def https_blocks(policy):
+    return {
+        ipaddress.ip_network(peer["ipBlock"]["cidr"])
+        for rule in policy["spec"]["egress"]
+        if {"protocol": "TCP", "port": 443} in rule["ports"]
+        for peer in rule["to"]
+        if "ipBlock" in peer
+    }
+
+
+def terraform_block(text, header):
+    start = text.index(header)
+    end = text.find("\nresource ", start + len(header))
+    return text[start:] if end == -1 else text[start:end]
+
+
+def test_production_predictors_reach_s3_through_the_interface_endpoint():
+    mlflow = render(APPS / "mlflow/overlays/production")
+    endpoint = urlparse(
+        by_name(mlflow, "ConfigMap", "prod-mlflow-config")["data"]["s3_endpoint_url"]
+    )
+    assert endpoint.scheme == "https"
+    assert re.fullmatch(r"s3\.[a-z0-9-]+\.amazonaws\.com", endpoint.hostname)
+
+    predictors = by_name(
+        render(MODEL_SERVING / "overlays/production"), "NetworkPolicy", "model-predictors"
+    )
+    server = by_name(mlflow, "NetworkPolicy", "prod-mlflow-network-policy")
+    blocks = https_blocks(predictors)
+    assert blocks and blocks <= https_blocks(server)
+    variables = (ROOT / "infra/environments/prod/variables.tf").read_text()
+    vpc_cidr = re.search(r'variable "vpc_cidr" \{[^}]*?default\s*=\s*"([^"]+)"', variables)
+    assert all(ipaddress.ip_network(vpc_cidr.group(1)).subnet_of(block) for block in blocks)
+
+    module = (ROOT / "infra/modules/vpc/main.tf").read_text()
+    interface = terraform_block(module, 'resource "aws_vpc_endpoint" "s3_interface"')
+    assert re.search(r'service_name\s*=\s*"com\.amazonaws\.\$\{[^}]+\}\.s3"', interface)
+    assert re.search(r'vpc_endpoint_type\s*=\s*"Interface"', interface)
+    assert re.search(r"private_dns_enabled\s*=\s*true", interface)
+    assert re.search(r"private_dns_only_for_inbound_resolver_endpoint\s*=\s*false", interface)
+    for env in ("staging", "prod"):
+        main = (ROOT / f"infra/environments/{env}/main.tf").read_text()
+        assert re.search(r"enable_s3_interface_endpoint\s*=\s*true", main), env
 
 
 @pytest.fixture(scope="module", params=sorted(PREFIXES))

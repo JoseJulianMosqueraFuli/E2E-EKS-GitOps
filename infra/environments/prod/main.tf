@@ -63,6 +63,8 @@ module "vpc" {
   # Add extra corporate CIDRs via var.node_egress_cidrs if needed.
   node_egress_cidrs = concat([var.vpc_cidr], var.node_egress_cidrs)
 
+  enable_s3_interface_endpoint = true
+
   tags = local.common_tags
 }
 
