@@ -48,7 +48,7 @@ Train Model → Register in MLflow → Deploy to KServe → Monitor with Evident
 
 | Component           | Technology                  | Purpose                        |
 | ------------------- | --------------------------- | ------------------------------ |
-| Experiment Tracking | MLflow 3.17.1 (client = server)         | Model registry (aliases) & experiments |
+| Experiment Tracking | MLflow 3.17.2 (client = server)         | Model registry (aliases) & experiments |
 | Orchestration       | Argo Workflows v4.0.13                  | Training pipeline (split → train → evaluate → register) |
 | Pipelines UI/SDK    | Kubeflow Pipelines 2.17.2 (optional)    | Notebook-style pipelines        |
 | Model Serving       | KServe v0.21.0 (Standard mode)          | Serves `@champion` with `step serve` |
@@ -268,7 +268,7 @@ installs all of them plus tooling) and heavy modules are imported lazily.
 
 **Namespaces**:
 
-- `mlflow`: MLflow tracking server + PostgreSQL + Versity Gateway (S3-compatible artifacts in kind, dev and staging; prod uses S3). The gateway resources keep their `mlflow-minio` names (backlog #57). Runs the project's own `mlflow-server` image (MLflow 3.17.1 + psycopg2 + boto3; the official image has neither driver); init containers derive hosts from the backend URI / S3 endpoint, so they work with any overlay prefix
+- `mlflow`: MLflow tracking server + PostgreSQL + Versity Gateway (S3-compatible artifacts in kind, dev and staging; prod uses S3). The gateway resources keep their `mlflow-minio` names (backlog #57). Runs the project's own `mlflow-server` image (MLflow 3.17.2 + psycopg2 + boto3; the official image has neither driver); init containers derive hosts from the backend URI / S3 endpoint, so they work with any overlay prefix
 - `kubeflow`: Kubeflow Pipelines UI (deployed via manifests in `gitops/applications/apps/kubeflow/`)
 - `kserve`: KServe v0.21.0 in `Standard` mode, installed by Flux HelmReleases from `gitops/applications/apps/kserve/` after the cert-manager addon (`MLOPS_TOOLS=kserve make mlops-install` runs the same steps). Predictors run `step serve` from the `mlops-platform` image
 - `model-serving`: InferenceServices declared in Git (`gitops/applications/apps/model-serving/`, ArgoCD app `model-serving-<env>`). `model-deployment-template` rolls out the version behind `@champion`, verifies it and rolls back on failure; see the [KServe guide](../../k8s/mlops-stack/kserve/README.md#deploy-a-new-version)

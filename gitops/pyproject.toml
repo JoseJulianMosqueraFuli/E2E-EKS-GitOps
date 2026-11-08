@@ -8,9 +8,9 @@ readme = "README.md"
 license = "MIT"
 
 [tool.poetry.dependencies]
-python = "^3.9"
+python = "^3.11"
 # Kubernetes clients (PRODUCTION)
-kubernetes = "^28.1.0"
+kubernetes = "^37.0.2"
 pyyaml = "^6.0.1"
 # Utilities (PRODUCTION)
 requests = "^2.31.0"
@@ -20,23 +20,23 @@ jinja2 = "^3.1.2"
 [tool.poetry.group.test.dependencies]
 # Testing dependencies (only for CI/CD and development)
 hypothesis = "^6.92.0"
-pytest = "^7.4.0"
-pytest-asyncio = "^0.21.0"
-pytest-cov = "^4.1.0"
+pytest = "^9.2.0"
+pytest-asyncio = "^1.4.1.post1"
+pytest-cov = "^7.1.0"
 pytest-xdist = "^3.5.0"
 
 [tool.poetry.group.dev.dependencies]
 # Code quality tools (only for development)
-black = "^23.12.0"
+black = "^26.10.1"
 isort = "^5.13.0"
 flake8 = "^6.1.0"
 mypy = "^1.7.0"
-pylint = "^3.0.3"
+pylint = "^4.1.3"
 
 [tool.poetry.group.docs.dependencies]
 # Documentation tools (only for building docs)
 mkdocs = "^1.5.3"
-mkdocs-material = "^9.5.3"
+mkdocs-material = "^9.8.1"
 
 [build-system]
 requires = ["poetry-core"]
@@ -62,7 +62,7 @@ addopts = [
 
 [tool.black]
 line-length = 100
-target-version = ['py39']
+target-version = ['py311']
 include = '\.pyi?$'
 exclude = '''
 /(
@@ -85,7 +85,7 @@ use_parentheses = true
 ensure_newline_before_comments = true
 
 [tool.mypy]
-python_version = "3.9"
+python_version = "3.11"
 warn_return_any = true
 warn_unused_configs = true
 disallow_untyped_defs = false

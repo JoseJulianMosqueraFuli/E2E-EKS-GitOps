@@ -18,7 +18,7 @@ Each entry links the change that fixed it, so the same symptom can be traced qui
 
 | Symptom | Cause | Fix |
 |---|---|---|
-| Training ends without `model-uri.txt` / `run-id.txt`; MLflow returns 404 for `/api/2.0/mlflow/logged-models` | MLflow client 3.x talking to a 2.x server | Keep the client (`ml-platform/poetry.lock`) and the server (`ml-platform/Dockerfile.mlflow-server`) on the same version, currently 3.17.1. A GitOps test checks the parity |
+| Training ends without `model-uri.txt` / `run-id.txt`; MLflow returns 404 for `/api/2.0/mlflow/logged-models` | MLflow client 3.x talking to a 2.x server | Keep the client (`ml-platform/poetry.lock`) and the server (`ml-platform/Dockerfile.mlflow-server`) on the same version, currently 3.17.2. A GitOps test checks the parity |
 | MLflow pods are `OOMKilled`, restart, and fail with table creation conflicts on first start | Two workers per pod, and several replicas creating the schema at the same time | One worker, 1536 MiB in dev/staging/kind and 2 GiB in prod. The `initialize-mlflow-database` init container serializes schema creation with a PostgreSQL lock (`37f5508`). Existing databases need an explicit migration |
 | `evaluate-model-step` fails downloading the model; signed URLs point to `dev-mlflow-minio:9000` | The short Service name does not resolve from the `argo-workflows` namespace | Use the full name `<prefix>-mlflow-minio.mlflow.svc.cluster.local:9000` (`1159cc1`, `0626076`) |
 | The S3 gateway image cannot be pulled (401 from Docker Hub and quay.io) | MinIO stopped publishing community images | Replaced by Versity Gateway `versity/versitygw:v1.8.0` (`8a07e34`). Resources keep the `mlflow-minio` names (backlog #57) |

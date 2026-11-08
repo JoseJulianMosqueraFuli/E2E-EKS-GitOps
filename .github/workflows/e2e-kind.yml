@@ -76,7 +76,7 @@ jobs:
           context: ml-platform
           file: ml-platform/Dockerfile.mlflow-server
           load: true
-          tags: mlflow-server:3.17.1
+          tags: mlflow-server:3.17.2
           cache-from: type=gha,scope=mlflow-server
           cache-to: type=gha,mode=max,scope=mlflow-server
 
@@ -96,8 +96,8 @@ jobs:
           source gitops/platform/aws.env
           registry="${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com"
           docker tag mlops-platform:0.1.5 "${registry}/mlops-dev-trainer:0.1.5"
-          docker tag mlflow-server:3.17.1 "${registry}/mlops-dev-mlflow-server:3.17.1"
-          kind load docker-image "${registry}/mlops-dev-trainer:0.1.5" "${registry}/mlops-dev-mlflow-server:3.17.1" --name mlops-e2e
+          docker tag mlflow-server:3.17.2 "${registry}/mlops-dev-mlflow-server:3.17.2"
+          kind load docker-image "${registry}/mlops-dev-trainer:0.1.5" "${registry}/mlops-dev-mlflow-server:3.17.2" --name mlops-e2e
 
       - name: Run end-to-end smoke test
         env:

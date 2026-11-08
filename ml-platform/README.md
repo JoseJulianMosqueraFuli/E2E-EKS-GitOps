@@ -39,7 +39,7 @@ Keep the MLflow server image and deployment tags aligned with the client version
 `MLFLOW_TRACKING_URI` must point to the tracking server root URL, without an `/api/2.0` suffix.
 The training CLI writes `model-uri.txt` and `run-id.txt` only after model logging succeeds. If Argo
 reports missing output files, inspect the preceding training exception: the previous client 3.17.1 /
-server 2.22.5 mismatch returned 404 on `/api/2.0/mlflow/logged-models`. Both now use 3.17.1.
+server 2.22.5 mismatch returned 404 on `/api/2.0/mlflow/logged-models`. Both now use 3.17.2.
 
 The server image also includes `src/pipelines/mlflow_bootstrap.py`, invoked by a Kubernetes init
 container. It serializes fresh PostgreSQL schema initialization across replicas with an advisory lock
@@ -82,7 +82,7 @@ with IRSA. Implementation: `src/pipelines/steps.py` and `src/pipelines/serving.p
 | File | Image | Notes |
 |------|-------|-------|
 | `Dockerfile` | `mlops-platform` | Stages `builder` (core deps from `poetry.lock`), `test` (all extras + pytest, including Feast definitions and temporary test data), `runtime` (non-root UID 8737, read-only root filesystem compatible) |
-| `Dockerfile.mlflow-server` | `mlflow-server` | MLflow 3.17.1 + psycopg2 + boto3, UID 1000; matches the locked client |
+| `Dockerfile.mlflow-server` | `mlflow-server` | MLflow 3.17.2 + psycopg2 + boto3, UID 1000; matches the locked client |
 | `Dockerfile.monitoring` | monitoring service | Monitoring extra from `poetry.lock`, UID 8737, import and HTTP health checks |
 
 CI (`.github/workflows/ml-platform-image.yml`) runs the `test` stage and publishes `runtime` to GHCR for

@@ -54,7 +54,7 @@ spec:
             seccompProfile:
               type: RuntimeDefault
         - name: initialize-mlflow-database
-          image: mlflow-server:3.17.1
+          image: mlflow-server:3.17.2
           imagePullPolicy: IfNotPresent
           command: [python, /opt/mlflow/mlflow_bootstrap.py]
           env:
@@ -112,7 +112,7 @@ spec:
               type: RuntimeDefault
       containers:
         - name: mlflow
-          image: mlflow-server:3.17.1
+          image: mlflow-server:3.17.2
           imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 5000

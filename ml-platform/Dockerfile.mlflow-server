@@ -7,7 +7,7 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     HOME=/tmp
 
 RUN pip install \
-        "mlflow==3.17.1" \
+        "mlflow==3.17.2" \
         "pillow==13.0.0" \
         "sqlalchemy==2.0.49" \
         "alembic==1.18.4" \

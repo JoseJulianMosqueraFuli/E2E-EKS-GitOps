@@ -88,7 +88,7 @@ existing-state migration. HIGH-001 stays open until that operational step succee
 Each MLflow pod initializes its backend in an init container before starting HTTP workers. A
 PostgreSQL session advisory lock serializes this work across replicas; closing the dedicated connection
 releases the lock on success or failure. Only an empty database is initialized. An existing database
-must already have the schema expected by MLflow 3.17.1, otherwise startup fails and requires the explicit
+must already have the schema expected by MLflow 3.17.2, otherwise startup fails and requires the explicit
 backup/migration procedure below. Initialization also creates the default experiment before replicas
 can race to create it. The bootstrap uses the pinned MLflow version's schema helpers.
 
@@ -99,7 +99,7 @@ Namespace quotas include room for the configured replicas, their rolling replace
 the artifact gateway. HPA capacity still depends on available nodes and namespace quotas. Probe timeouts
 are five seconds; the startup window remains five minutes. Raising the timeout does not handle OOMs.
 
-The server image and locked client both use MLflow 3.17.1. Before upgrading an existing database,
+The server image and locked client both use MLflow 3.17.2. Before upgrading an existing database,
 take and verify a backup, then run `mlflow db upgrade` with the existing backend URI during a planned
 maintenance window. No live database migration is performed by these repository changes. Follow the
 [MLflow migration guide](https://mlflow.org/docs/latest/self-hosting/migration/).

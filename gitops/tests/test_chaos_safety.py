@@ -4,6 +4,7 @@ import re
 import shutil
 import subprocess
 import sys
+import tomllib
 from pathlib import Path
 
 import pytest
@@ -12,6 +13,9 @@ import yaml
 ROOT = Path(__file__).resolve().parents[2]
 CHAOS = ROOT / "gitops/applications/apps/chaos"
 SCRIPTS = CHAOS / "workflows/scripts"
+PLATFORM_VERSION = tomllib.loads((ROOT / "ml-platform/pyproject.toml").read_text())["project"][
+    "version"
+]
 
 
 @pytest.mark.parametrize("environment", ["dev", "staging", "production"])
@@ -349,7 +353,7 @@ def test_rendered_chaos_workflows_have_safety_dependencies(environment):
             )
             expected_image = (
                 f"{platform['AWS_ACCOUNT_ID']}.dkr.ecr.{platform['AWS_REGION']}"
-                f".amazonaws.com/mlops-{environment}-trainer:0.1.0"
+                f".amazonaws.com/mlops-{environment}-trainer:{PLATFORM_VERSION}"
             )
             for name in ("prepare-canary", "verify-canary"):
                 template = next(t for t in spec["templates"] if t["name"] == name)

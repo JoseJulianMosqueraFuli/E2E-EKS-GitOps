@@ -20,9 +20,9 @@ def test_pipeline_fits_preprocessing_and_selection_only_on_training_data(task):
         {
             "a": np.arange(100, dtype=float),
             "b": np.arange(100, dtype=float) ** 2,
-            "target": np.tile([0, 1], 50)
-            if task == "classification"
-            else np.arange(100, dtype=float),
+            "target": (
+                np.tile([0, 1], 50) if task == "classification" else np.arange(100, dtype=float)
+            ),
         }
     )
     train, validation, test, _, _, _ = pipeline.split_data(data, data["target"])

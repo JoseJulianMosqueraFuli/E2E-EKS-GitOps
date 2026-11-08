@@ -54,7 +54,7 @@ La plataforma conecta las siguientes etapas del ciclo de vida de ML en Kubernete
 | **Plataforma ML**         | Modelos listos para usar, pipelines de training, CLI |
 | **Imagen `mlops-platform`** | Una sola imagen para todos los pasos del pipeline (`step split/train/evaluate/register`) y para el servidor del modelo (`step serve`) |
 | **Argo Workflows v4**     | Pipeline de entrenamiento con gate de promoción contra el modelo `@champion` |
-| **MLflow 3.17.1**         | Experimentos y registro de modelos con aliases (imagen propia con drivers de PostgreSQL y S3) |
+| **MLflow 3.17.2**         | Experimentos y registro de modelos con aliases (imagen propia con drivers de PostgreSQL y S3) |
 | **Kubeflow Pipelines**    | UI/SDK de pipelines opcional (KFP 2.17.2)            |
 | **KServe 0.21**           | Servir el modelo `@champion` declarado en Git (modo Standard, sin Knative); el despliegue hace rollout del alias y rollback si falla |
 | **Prometheus + Grafana**  | Métricas, dashboards y monitoreo de costos           |

@@ -5,7 +5,6 @@ These tests verify data quality validation functionality
 without requiring external services.
 """
 
-
 import numpy as np
 import pandas as pd
 import pytest

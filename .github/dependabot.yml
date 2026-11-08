@@ -1,66 +1,63 @@
-# version: 2
-# updates:
-#   # GitHub Actions versions in CI workflows
-#   - package-ecosystem: "github-actions"
-#     directory: "/"
-#     schedule:
-#       interval: "weekly"
-#       day: "monday"
-#     open-pull-requests-limit: 5
-#     commit-message:
-#       prefix: "chore(ci)"
-#     labels:
-#       - "dependencies"
-#       - "github-actions"
+version: 2
+updates:
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: "chore(ci)"
+    groups:
+      actions:
+        update-types: ["minor", "patch"]
 
-#   # Terraform providers (AWS, kubernetes, etc.)
-#   - package-ecosystem: "terraform"
-#     directory: "/infra"
-#     schedule:
-#       interval: "weekly"
-#       day: "monday"
-#     open-pull-requests-limit: 5
-#     commit-message:
-#       prefix: "chore(terraform)"
-#     labels:
-#       - "dependencies"
-#       - "terraform"
+  - package-ecosystem: "pip"
+    directories:
+      - "/ml-platform"
+      - "/gitops"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: "chore(deps)"
+    groups:
+      python:
+        update-types: ["minor", "patch"]
 
-#   # Base images in Dockerfiles
-#   - package-ecosystem: "docker"
-#     directory: "/ml-platform"
-#     schedule:
-#       interval: "weekly"
-#       day: "monday"
-#     open-pull-requests-limit: 5
-#     commit-message:
-#       prefix: "chore(docker)"
-#     labels:
-#       - "dependencies"
-#       - "docker"
+  - package-ecosystem: "gomod"
+    directories:
+      - "/infra/modules/*/test"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: "chore(terratest)"
+    groups:
+      terratest:
+        patterns: ["*"]
 
-#   # Python dependencies for ML platform (pyproject.toml)
-#   - package-ecosystem: "pip"
-#     directory: "/ml-platform"
-#     schedule:
-#       interval: "weekly"
-#       day: "monday"
-#     open-pull-requests-limit: 5
-#     commit-message:
-#       prefix: "chore(deps)"
-#     labels:
-#       - "dependencies"
-#       - "python"
+  - package-ecosystem: "terraform"
+    directories:
+      - "/infra/environments/*"
+      - "/infra/modules/*"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: "chore(terraform)"
+    groups:
+      terraform:
+        update-types: ["minor", "patch"]
 
-#   # Python dependencies for GitOps tooling (pyproject.toml)
-#   - package-ecosystem: "pip"
-#     directory: "/gitops"
-#     schedule:
-#       interval: "weekly"
-#       day: "monday"
-#     open-pull-requests-limit: 5
-#     commit-message:
-#       prefix: "chore(deps)"
-#     labels:
-#       - "dependencies"
-#       - "python"
+  - package-ecosystem: "docker"
+    directory: "/ml-platform"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: "chore(docker)"
