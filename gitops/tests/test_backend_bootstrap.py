@@ -68,7 +68,7 @@ def test_backend_names_are_unique_and_failures_are_not_hidden(tmp_path, region, 
         assert "dynamodb_table" not in settings
 
 
-@pytest.mark.parametrize("environment", ["dev", "staging", "prod"])
+@pytest.mark.parametrize("environment", ["dev", "staging", "prod", "account"])
 def test_roots_require_a_terraform_version_with_s3_lockfiles(environment):
     main = (ROOT / f"infra/environments/{environment}/main.tf").read_text()
     assert 'required_version = ">= 1.11"' in main

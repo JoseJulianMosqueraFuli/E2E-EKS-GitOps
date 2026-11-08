@@ -340,9 +340,15 @@ def test_production_predictors_reach_s3_through_the_interface_endpoint():
     assert re.search(r'vpc_endpoint_type\s*=\s*"Interface"', interface)
     assert re.search(r"private_dns_enabled\s*=\s*true", interface)
     assert re.search(r"private_dns_only_for_inbound_resolver_endpoint\s*=\s*false", interface)
-    for env in ("staging", "prod"):
-        main = (ROOT / f"infra/environments/{env}/main.tf").read_text()
-        assert re.search(r"enable_s3_interface_endpoint\s*=\s*true", main), env
+
+
+@pytest.mark.parametrize("env", ["dev", "staging", "prod"])
+def test_enforced_network_policies_still_reach_s3_at_vpc_addresses(env):
+    eks = (ROOT / "infra/modules/eks/main.tf").read_text()
+    cni = terraform_block(eks, 'resource "aws_eks_addon" "vpc_cni"')
+    assert re.search(r"enableNetworkPolicy\s*=\s*\"true\"", cni)
+    main = (ROOT / f"infra/environments/{env}/main.tf").read_text()
+    assert re.search(r"enable_s3_interface_endpoint\s*=\s*true", main)
 
 
 @pytest.fixture(scope="module", params=sorted(PREFIXES))
