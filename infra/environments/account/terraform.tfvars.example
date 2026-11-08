@@ -1,0 +1,8 @@
+# Account baseline: apply once per AWS account and keep it when dev is destroyed.
+# Copy to terraform.tfvars (ignored) and set your own address.
+
+aws_region           = "us-east-1"
+enable_guardduty     = true
+trail_retention_days = 365
+monthly_budget_usd   = 20
+budget_alert_emails  = ["you@example.com"]

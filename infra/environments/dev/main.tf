@@ -62,7 +62,7 @@ module "vpc" {
   # HIGH-003: Restrict node egress to VPC only, plus any extra CIDRs.
   node_egress_cidrs = concat([var.vpc_cidr], var.node_egress_cidrs)
 
-  enable_s3_interface_endpoint = false
+  enable_s3_interface_endpoint = true
 
   tags = local.common_tags
 }
@@ -77,8 +77,8 @@ module "eks" {
   public_subnet_ids  = module.vpc.public_subnet_ids
   private_subnet_ids = module.vpc.private_subnet_ids
 
-  endpoint_public_access = false
-  public_access_cidrs    = []
+  endpoint_public_access = var.endpoint_public_access
+  public_access_cidrs    = var.public_access_cidrs
 
   kms_key_arn = aws_kms_key.main.arn
 

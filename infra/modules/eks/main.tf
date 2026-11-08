@@ -2,7 +2,7 @@
 # Creates EKS cluster with managed node groups and IRSA configuration
 
 terraform {
-  required_version = ">= 1.0"
+  required_version = ">= 1.11"
   required_providers {
     aws = {
       source  = "hashicorp/aws"
@@ -58,6 +58,11 @@ resource "aws_eks_cluster" "main" {
     endpoint_private_access = true
     endpoint_public_access  = var.endpoint_public_access
     public_access_cidrs     = var.public_access_cidrs
+  }
+
+  access_config {
+    authentication_mode                         = "API"
+    bootstrap_cluster_creator_admin_permissions = true
   }
 
   encryption_config {
@@ -201,12 +206,29 @@ resource "aws_iam_policy" "cluster_autoscaler" {
           "autoscaling:DescribeAutoScalingGroups",
           "autoscaling:DescribeAutoScalingInstances",
           "autoscaling:DescribeLaunchConfigurations",
+          "autoscaling:DescribeScalingActivities",
           "autoscaling:DescribeTags",
-          "autoscaling:SetDesiredCapacity",
-          "autoscaling:TerminateInstanceInAutoScalingGroup",
-          "ec2:DescribeLaunchTemplateVersions"
+          "ec2:DescribeImages",
+          "ec2:DescribeInstanceTypes",
+          "ec2:DescribeLaunchTemplateVersions",
+          "ec2:GetInstanceTypesFromInstanceRequirements",
+          "eks:DescribeNodegroup"
         ]
         Resource = "*"
+      },
+      {
+        Effect = "Allow"
+        Action = [
+          "autoscaling:SetDesiredCapacity",
+          "autoscaling:TerminateInstanceInAutoScalingGroup"
+        ]
+        Resource = "*"
+        Condition = {
+          StringEquals = {
+            "aws:ResourceTag/k8s.io/cluster-autoscaler/${var.cluster_name}" = "owned"
+            "aws:ResourceTag/k8s.io/cluster-autoscaler/enabled"             = "true"
+          }
+        }
       }
     ]
   })
@@ -464,6 +486,7 @@ resource "aws_eks_addon" "vpc_cni" {
   addon_version               = var.vpc_cni_version
   resolve_conflicts_on_create = "OVERWRITE"
   resolve_conflicts_on_update = "OVERWRITE"
+  configuration_values        = jsonencode({ enableNetworkPolicy = "true" })
 
   tags = var.tags
 }

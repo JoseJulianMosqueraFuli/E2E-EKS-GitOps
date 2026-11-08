@@ -52,6 +52,11 @@ variable "public_access_cidrs" {
     condition     = length(var.public_access_cidrs) == 0 || alltrue([for cidr in var.public_access_cidrs : cidr != "0.0.0.0/0"])
     error_message = "Public access CIDRs must not contain 0.0.0.0/0. Specify your exact IP ranges."
   }
+
+  validation {
+    condition     = !var.endpoint_public_access || length(var.public_access_cidrs) > 0
+    error_message = "A public EKS endpoint needs explicit public_access_cidrs; an empty list makes AWS allow 0.0.0.0/0."
+  }
 }
 
 variable "cluster_log_types" {

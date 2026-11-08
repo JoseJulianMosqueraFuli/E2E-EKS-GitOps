@@ -109,3 +109,15 @@ variable "github_oidc_provider_arn" {
   description = "Existing account GitHub OIDC provider; null creates it in dev and reuses it in staging/prod"
   default     = null
 }
+
+variable "endpoint_public_access" {
+  description = "Expose the EKS API endpoint publicly, limited to public_access_cidrs. Keep false unless an operator needs access without a VPN."
+  type        = bool
+  default     = false
+}
+
+variable "public_access_cidrs" {
+  description = "Operator CIDRs, such as a single /32, allowed on the public EKS endpoint. Required when endpoint_public_access is true."
+  type        = list(string)
+  default     = []
+}
