@@ -45,6 +45,13 @@ spec:
         app.kubernetes.io/component: server
         app.kubernetes.io/part-of: mlops-platform
     spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+        fsGroup: 10001
+        seccompProfile:
+          type: RuntimeDefault
       containers:
         - name: feast
           image: feastdev/feature-server:latest
@@ -56,6 +63,8 @@ spec:
           env:
             - name: FEAST_FEATURE_STORE_YAML
               value: /feast-config/feature_store.yaml
+            - name: HOME
+              value: /tmp
           resources:
             requests:
               memory: "512Mi"
@@ -63,7 +72,15 @@ spec:
             limits:
               memory: "1Gi"
               cpu: "1000m"
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
           volumeMounts:
+            - name: tmp
+              mountPath: /tmp
             - name: feast-config
               mountPath: /feast-config
               readOnly: true
@@ -86,6 +103,8 @@ spec:
           configMap:
             name: feast-config
         - name: feast-data
+          emptyDir: {}
+        - name: tmp
           emptyDir: {}
 
 ---

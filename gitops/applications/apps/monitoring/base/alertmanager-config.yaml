@@ -186,6 +186,12 @@ spec:
             - name: cluster-udp
               containerPort: 9094
               protocol: UDP
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
           volumeMounts:
             - name: config
               mountPath: /etc/alertmanager/alertmanager.yml

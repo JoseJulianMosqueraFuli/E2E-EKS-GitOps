@@ -10,6 +10,11 @@ variable "repositories" {
     repository_policy    = optional(string)
     lifecycle_policy     = optional(string)
   }))
+
+  validation {
+    condition     = alltrue([for repo in var.repositories : repo.image_tag_mutability == "IMMUTABLE" && repo.scan_on_push])
+    error_message = "ECR repositories must use immutable tags and scan on push."
+  }
 }
 
 variable "kms_key_arn" {

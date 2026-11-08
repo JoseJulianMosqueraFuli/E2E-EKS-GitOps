@@ -19,6 +19,10 @@ spec:
         app.kubernetes.io/component: argo-server
     spec:
       serviceAccountName: argo-server
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
       containers:
       - name: argo-server
         image: quay.io/argoproj/argocli:v4.0.13

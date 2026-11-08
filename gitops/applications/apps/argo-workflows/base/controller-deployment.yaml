@@ -19,6 +19,10 @@ spec:
         app.kubernetes.io/component: workflow-controller
     spec:
       serviceAccountName: argo-workflow-controller
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
       containers:
       - name: workflow-controller
         image: quay.io/argoproj/workflow-controller:v4.0.13

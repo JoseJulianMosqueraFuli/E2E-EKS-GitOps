@@ -27,6 +27,12 @@ spec:
         spec:
           serviceAccountName: evidently-monitoring
           restartPolicy: OnFailure
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 8737
+            fsGroup: 8737
+            seccompProfile:
+              type: RuntimeDefault
           containers:
             - name: drift-detector
               image: ml-monitoring:0.1.5
@@ -60,13 +66,23 @@ spec:
                 limits:
                   memory: "4Gi"
                   cpu: "2000m"
+              securityContext:
+                allowPrivilegeEscalation: false
+                readOnlyRootFilesystem: true
+                capabilities:
+                  drop:
+                    - ALL
               volumeMounts:
                 - name: data
                   mountPath: /data
+                - name: tmp
+                  mountPath: /tmp
           volumes:
             - name: data
               persistentVolumeClaim:
                 claimName: evidently-data-pvc
+            - name: tmp
+              emptyDir: {}
 
 ---
 # ConfigMap for drift detection settings

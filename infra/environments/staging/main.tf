@@ -172,19 +172,19 @@ module "ecr" {
   repositories = {
     trainer = {
       name                 = "${local.name_prefix}-trainer"
-      image_tag_mutability = "MUTABLE"
+      image_tag_mutability = "IMMUTABLE"
       scan_on_push         = true
       tags                 = { Purpose = "ml-training" }
     }
     inference = {
       name                 = "${local.name_prefix}-inference"
-      image_tag_mutability = "MUTABLE"
+      image_tag_mutability = "IMMUTABLE"
       scan_on_push         = true
       tags                 = { Purpose = "ml-inference" }
     }
     feature_transformer = {
       name                 = "${local.name_prefix}-feature-transformer"
-      image_tag_mutability = "MUTABLE"
+      image_tag_mutability = "IMMUTABLE"
       scan_on_push         = true
       tags                 = { Purpose = "feature-processing" }
     }
@@ -196,7 +196,7 @@ module "ecr" {
     }
     mlflow_server = {
       name                 = "${local.name_prefix}-mlflow-server"
-      image_tag_mutability = "MUTABLE"
+      image_tag_mutability = "IMMUTABLE"
       scan_on_push         = true
       tags                 = { Purpose = "experiment-tracking" }
     }

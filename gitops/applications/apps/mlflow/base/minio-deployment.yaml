@@ -59,6 +59,8 @@ spec:
           volumeMounts:
             - name: minio-data
               mountPath: /data
+            - name: tmp
+              mountPath: /tmp
           resources:
             requests:
               cpu: 100m
@@ -87,10 +89,12 @@ spec:
             capabilities:
               drop:
                 - ALL
-            readOnlyRootFilesystem: false
+            readOnlyRootFilesystem: true
             seccompProfile:
               type: RuntimeDefault
       volumes:
         - name: minio-data
           persistentVolumeClaim:
             claimName: mlflow-minio-pvc
+        - name: tmp
+          emptyDir: {}

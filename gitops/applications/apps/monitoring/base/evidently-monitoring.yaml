@@ -74,6 +74,12 @@ spec:
         prometheus.io/path: "/metrics"
     spec:
       serviceAccountName: evidently-monitoring
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 8737
+        fsGroup: 8737
+        seccompProfile:
+          type: RuntimeDefault
       containers:
         - name: evidently-monitoring
           image: ml-monitoring:0.1.5
@@ -95,11 +101,19 @@ spec:
             limits:
               memory: "2Gi"
               cpu: "1000m"
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
           volumeMounts:
             - name: data
               mountPath: /data
             - name: config
               mountPath: /app/config
+            - name: tmp
+              mountPath: /tmp
           livenessProbe:
             httpGet:
               path: /health
@@ -119,6 +133,8 @@ spec:
         - name: config
           configMap:
             name: evidently-config
+        - name: tmp
+          emptyDir: {}
 
 ---
 # Service for the monitoring API

@@ -21,7 +21,7 @@ func TestECRModule(t *testing.T) {
 			"repositories": map[string]interface{}{
 				"test_trainer": map[string]interface{}{
 					"name":                 "test-trainer",
-					"image_tag_mutability": "MUTABLE",
+					"image_tag_mutability": "IMMUTABLE",
 					"scan_on_push":         true,
 					"tags": map[string]interface{}{
 						"Purpose": "ml-training",
@@ -86,7 +86,7 @@ func TestECRModuleMinimalConfig(t *testing.T) {
 			"repositories": map[string]interface{}{
 				"test_minimal": map[string]interface{}{
 					"name":                 "test-minimal-repo",
-					"image_tag_mutability": "MUTABLE",
+					"image_tag_mutability": "IMMUTABLE",
 					"scan_on_push":         false,
 					"tags": map[string]interface{}{
 						"Environment": "test",
@@ -116,7 +116,7 @@ func TestECRModuleWithReplication(t *testing.T) {
 			"repositories": map[string]interface{}{
 				"test_replicated": map[string]interface{}{
 					"name":                 "test-replicated-repo",
-					"image_tag_mutability": "MUTABLE",
+					"image_tag_mutability": "IMMUTABLE",
 					"scan_on_push":         true,
 					"tags": map[string]interface{}{
 						"Replication": "enabled",

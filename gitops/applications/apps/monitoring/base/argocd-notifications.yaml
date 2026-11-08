@@ -51,6 +51,12 @@ spec:
                 secretKeyRef:
                   name: argocd-notifications-secret
                   key: argocd-token
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
           volumeMounts:
             - name: templates
               mountPath: /app/config/templates
