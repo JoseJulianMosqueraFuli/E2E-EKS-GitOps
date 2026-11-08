@@ -5,7 +5,6 @@ resources:
   - external-secrets-operator.yaml
   - cluster-secret-store.yaml
   - external-secrets.yaml
-  - irsa-policies.yaml
 
 labels:
   - pairs:

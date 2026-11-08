@@ -37,7 +37,6 @@ rules:
   - ""
   resources:
   - pods
-  - pods/exec
   verbs:
   - create
   - get
@@ -46,6 +45,12 @@ rules:
   - update
   - patch
   - delete
+- apiGroups:
+  - ""
+  resources:
+  - pods/exec
+  verbs:
+  - create
 - apiGroups:
   - ""
   resources:
@@ -264,7 +269,6 @@ rules:
   - ""
   resources:
   - pods
-  - pods/exec
   - pods/log
   verbs:
   - get
@@ -277,7 +281,6 @@ rules:
   - secrets
   verbs:
   - get
-  - create
 - apiGroups:
   - ""
   resources:
