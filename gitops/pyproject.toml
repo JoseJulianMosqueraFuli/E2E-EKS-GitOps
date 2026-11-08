@@ -29,7 +29,7 @@ pytest-xdist = "^3.5.0"
 # Code quality tools (only for development)
 black = "^26.10.1"
 isort = "^5.13.0"
-flake8 = "^6.1.0"
+flake8 = ">=6.1,<8.0"
 mypy = "^1.7.0"
 pylint = "^4.1.3"
 
