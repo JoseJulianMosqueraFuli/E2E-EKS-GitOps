@@ -219,7 +219,7 @@ def test_network_policies_select_namespaces_by_their_builtin_label(app, env):
             assert list(labels) == ["kubernetes.io/metadata.name"], policy["metadata"]["name"]
 
 
-def test_predictors_only_reach_mlflow_and_dns(serving):
+def test_predictors_only_reach_mlflow_its_artifact_gateway_and_dns(serving):
     _, resources, _ = serving
     policy = by_name(resources, "NetworkPolicy", "model-predictors")
     assert policy["metadata"]["namespace"] == "models"
@@ -234,9 +234,63 @@ def test_predictors_only_reach_mlflow_and_dns(serving):
         for rule in policy["spec"]["egress"]
         for port in rule["ports"]
     }
-    assert egress == {("mlflow", 5000), ("kube-system", 53)}
+    assert egress == {("mlflow", 5000), ("mlflow", 9000), ("kube-system", 53)}
     ingress_ports = {port["port"] for rule in policy["spec"]["ingress"] for port in rule["ports"]}
     assert ingress_ports == {8080}
+
+
+IN_CLUSTER_ARTIFACT_STORES = {
+    "dev": APPS / "mlflow/overlays/dev",
+    "staging": APPS / "mlflow/overlays/staging",
+    "kind": ROOT / "scripts/e2e/kind/mlflow",
+}
+
+
+@pytest.mark.parametrize("store", sorted(IN_CLUSTER_ARTIFACT_STORES))
+def test_predictors_reach_the_gateway_mlflow_signs_download_urls_for(store):
+    env = "dev" if store == "kind" else store
+    prefix = PREFIXES[env]
+    mlflow = render(IN_CLUSTER_ARTIFACT_STORES[store])
+    config = by_name(mlflow, "ConfigMap", prefix + "mlflow-config")
+    endpoint = urlparse(config["data"]["s3_endpoint_url"])
+    service_name, namespace = endpoint.hostname.split(".")[:2]
+    service = by_name(mlflow, "Service", service_name)
+    (target,) = [p["targetPort"] for p in service["spec"]["ports"] if p["port"] == endpoint.port]
+    gateway = next(
+        r
+        for r in mlflow
+        if r["kind"] == "Deployment"
+        and service["spec"]["selector"].items()
+        <= r["spec"]["template"]["metadata"]["labels"].items()
+    )
+    pod_labels = gateway["spec"]["template"]["metadata"]["labels"]
+    (port,) = [
+        p["containerPort"]
+        for c in gateway["spec"]["template"]["spec"]["containers"]
+        for p in c.get("ports", [])
+        if target in (p.get("name"), p["containerPort"])
+    ]
+
+    predictors = by_name(
+        render(MODEL_SERVING / "overlays" / env), "NetworkPolicy", "model-predictors"
+    )
+    assert any(
+        {"protocol": "TCP", "port": port} in rule["ports"]
+        and any(
+            peer["namespaceSelector"]["matchLabels"] == {"kubernetes.io/metadata.name": namespace}
+            and peer.get("podSelector", {}).get("matchLabels", {}).items() <= pod_labels.items()
+            for peer in rule["to"]
+        )
+        for rule in predictors["spec"]["egress"]
+    )
+
+    gateway_policy = by_name(mlflow, "NetworkPolicy", prefix + "mlflow-network-policy")
+    assert gateway_policy["spec"]["podSelector"]["matchLabels"].items() <= pod_labels.items()
+    from_models = {"namespaceSelector": {"matchLabels": {"kubernetes.io/metadata.name": "models"}}}
+    assert any(
+        {"protocol": "TCP", "port": port} in rule["ports"] and from_models in rule["from"]
+        for rule in gateway_policy["spec"]["ingress"]
+    )
 
 
 @pytest.fixture(scope="module", params=sorted(PREFIXES))
