@@ -121,7 +121,7 @@ jobs:
 
       - name: Retain Chaos evidence
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: chaos-kind-evidence
           path: test-results/chaos/
@@ -130,7 +130,7 @@ jobs:
 
       - name: Retain serving evidence
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: serving-kind-evidence
           path: test-results/serving/
