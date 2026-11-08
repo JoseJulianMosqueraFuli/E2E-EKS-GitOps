@@ -16,7 +16,7 @@ spec:
         maxSurge: 1
     containers:
       - name: kserve-container
-        image: mlops-platform:0.1.0
+        image: mlops-platform:0.1.5
         args: [step, serve, --model-name, default-model, --alias, champion, --port, "8080"]
         env:
           - name: MLFLOW_TRACKING_URI

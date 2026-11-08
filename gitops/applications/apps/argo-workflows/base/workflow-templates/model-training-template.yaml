@@ -153,7 +153,7 @@ spec:
         valueFrom:
           path: /tmp/test-data-path.txt
     container:
-      image: mlops-platform:0.1.0
+      image: mlops-platform:0.1.5
       command: [python, -m, src.cli]
       args:
       - step
@@ -204,7 +204,7 @@ spec:
         valueFrom:
           path: /tmp/run-id.txt
     container:
-      image: mlops-platform:0.1.0
+      image: mlops-platform:0.1.5
       command: [python, -m, src.cli]
       args:
       - step
@@ -263,7 +263,7 @@ spec:
         valueFrom:
           path: /tmp/evaluation-metrics.json
     container:
-      image: mlops-platform:0.1.0
+      image: mlops-platform:0.1.5
       command: [python, -m, src.cli]
       args:
       - step
@@ -319,7 +319,7 @@ spec:
           path: /tmp/previous-version.txt
           default: ""
     container:
-      image: mlops-platform:0.1.0
+      image: mlops-platform:0.1.5
       command: [python, -m, src.cli]
       args:
       - step

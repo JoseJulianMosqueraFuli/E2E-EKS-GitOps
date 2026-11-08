@@ -41,7 +41,7 @@ spec:
         valueFrom:
           path: /tmp/validation-report.json
     container:
-      image: mlops-platform:0.1.0
+      image: mlops-platform:0.1.5
       command:
       - python
       - -m

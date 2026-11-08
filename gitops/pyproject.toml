@@ -1,7 +1,7 @@
 [tool.poetry]
 package-mode = false
 name = "gitops-mlops-platform"
-version = "0.1.0"
+version = "0.1.5"
 description = "GitOps implementation for MLOps platform using ArgoCD and Flux v2"
 authors = ["MLOps Platform Team"]
 readme = "README.md"

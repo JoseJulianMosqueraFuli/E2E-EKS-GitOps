@@ -367,7 +367,7 @@ spec:
         readOnly: true
   - name: prepare-canary
     container:
-      image: mlops-platform:0.1.0
+      image: mlops-platform:0.1.5
       command:
       - python
       - -m
@@ -401,7 +401,7 @@ spec:
           path: /tmp/canary-run-id.txt
   - name: verify-canary
     container:
-      image: mlops-platform:0.1.0
+      image: mlops-platform:0.1.5
       command:
       - python
       - -m

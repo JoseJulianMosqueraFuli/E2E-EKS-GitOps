@@ -24,7 +24,7 @@ spec:
           restartPolicy: Never
           containers:
           - name: postgres-backup
-            image: mlops-platform:0.1.0
+            image: mlops-platform:0.1.5
             command:
             - python
             - -m

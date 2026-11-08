@@ -93,7 +93,7 @@ spec:
       - name: deployment-status
       - name: model-version
     container:
-      image: mlops-platform:0.1.0
+      image: mlops-platform:0.1.5
       command:
       - python
       - -m

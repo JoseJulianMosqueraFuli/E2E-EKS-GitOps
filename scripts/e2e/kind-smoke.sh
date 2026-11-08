@@ -7,7 +7,7 @@ KIND_DIR="${ROOT}/scripts/e2e/kind"
 source "${ROOT}/gitops/platform/aws.env"
 ECR_REGISTRY="${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com"
 CONTEXT="${KUBE_CONTEXT:-kind-mlops-e2e}"
-ML_IMAGE="${ML_IMAGE:-${ECR_REGISTRY}/mlops-dev-trainer:0.1.0}"
+ML_IMAGE="${ML_IMAGE:-${ECR_REGISTRY}/mlops-dev-trainer:0.1.5}"
 WORKFLOW_TIMEOUT="${WORKFLOW_TIMEOUT:-900}"
 MODEL_NAME="default-model"
 

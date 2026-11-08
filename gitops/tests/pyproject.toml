@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "gitops-tests"
-version = "0.1.0"
+version = "0.1.5"
 description = "Property-based tests for GitOps implementation"
 authors = ["MLOps Platform Team"]
 readme = "README.md"

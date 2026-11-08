@@ -5,7 +5,7 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 source "${ROOT}/gitops/platform/aws.env"
 CONTEXT="${KUBE_CONTEXT:-kind-mlops-e2e}"
 case "$CONTEXT" in kind-*) ;; *) echo "A disposable kind context is required" >&2; exit 1 ;; esac
-ML_IMAGE="${ML_IMAGE:-${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/mlops-dev-trainer:0.1.0}"
+ML_IMAGE="${ML_IMAGE:-${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/mlops-dev-trainer:0.1.5}"
 MODEL_NAME="default-model"
 TRACKING_URI="http://dev-mlflow-server.mlflow:5000"
 WORKFLOW_TIMEOUT="${WORKFLOW_TIMEOUT:-900}"

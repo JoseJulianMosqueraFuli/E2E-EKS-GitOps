@@ -29,7 +29,7 @@ spec:
           restartPolicy: OnFailure
           containers:
             - name: drift-detector
-              image: ml-monitoring:0.1.0
+              image: ml-monitoring:0.1.5
               command:
                 - python
                 - -m

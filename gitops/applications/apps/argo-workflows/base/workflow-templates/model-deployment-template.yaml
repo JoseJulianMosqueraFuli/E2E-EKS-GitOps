@@ -154,7 +154,7 @@ spec:
       - name: validation-data
       - name: timeout
     container:
-      image: mlops-platform:0.1.0
+      image: mlops-platform:0.1.5
       command:
       - python
       - -m
@@ -203,7 +203,7 @@ spec:
       - name: version
       - name: mlflow-tracking-uri
     container:
-      image: mlops-platform:0.1.0
+      image: mlops-platform:0.1.5
       command:
       - python
       - -m
@@ -246,7 +246,7 @@ spec:
       - name: model-version
       - name: previous-version
     container:
-      image: mlops-platform:0.1.0
+      image: mlops-platform:0.1.5
       command:
       - sh
       - -c

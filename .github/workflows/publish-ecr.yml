@@ -12,7 +12,7 @@ on:
       platform_version:
         description: New semantic version for the platform and monitoring images
         type: string
-        default: 0.1.0
+        default: 0.1.5
         required: true
 
 permissions:
