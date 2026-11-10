@@ -55,3 +55,4 @@ Each entry links the change that fixed it, so the same symptom can be traced qui
 |---|---|---|
 | Feast tests fail inside the Docker `test` stage with `FileNotFoundError` | `.dockerignore` excluded `feature_store.yaml` and `feature_definitions.py` | Both files are copied into the `test` stage (`104e203`) |
 | `poetry install` in `gitops/` tries to install a package that does not exist | Poetry treated the tooling directory as a package | `package-mode = false` in `gitops/pyproject.toml` |
+| Docker build reports Python 3.15 is not allowed (`>=3.11,<3.13`) | Dependabot PR #7 changes the base image to `python:3.15.0-slim-bookworm`; Poetry correctly rejects it | Keep a supported Python image (the current Dockerfiles use 3.11). Dependabot excludes Python images `>=3.13` until the project and lock are migrated together. Re-running the same PR commit will fail again |

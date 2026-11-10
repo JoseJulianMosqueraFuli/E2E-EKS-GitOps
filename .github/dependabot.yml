@@ -55,6 +55,9 @@ updates:
 
   - package-ecosystem: "docker"
     directory: "/ml-platform"
+    ignore:
+      - dependency-name: "python"
+        versions: [">=3.13"]
     schedule:
       interval: "weekly"
       day: "monday"
