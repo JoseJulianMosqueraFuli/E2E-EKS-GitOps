@@ -84,7 +84,8 @@ This document lists all **CRITICAL** and **HIGH** severity findings identified d
 ### CRIT-004: ArgoCD AppProject Excessively Permissive
 
 - **File**: `gitops/applications/projects/mlops-core.yaml`
-- **Status (2026-10-20)**: Corrected in the current manifests. The project restricts the source repository, enumerates cluster/namespace destinations, and lists permitted resource types. The remaining kind wildcard is scoped to `constraints.gatekeeper.sh`, not all API groups. All 30 application overlays pass the repository's AppProject validation. Effective permissions in EKS remain unverified.
+- **Status (2026-10-20)**: Corrected in the current manifests. The project restricts the source repository, enumerates cluster/namespace destinations, and lists permitted resource types. The remaining kind wildcard is scoped to `constraints.gatekeeper.sh`, not all API groups. The validation recorded on 2026-10-20 covered the 30 application overlays present at that time. Effective permissions in EKS remain unverified.
+- **Inventory update (2026-11-09)**: The ApplicationSet now declares 11 applications across three environments (33 app/environment combinations), including `model-serving`. This is a manifest count, not a new validation result. Gatekeeper controller installation is missing (backlog #79); declared constraints alone do not establish admission enforcement.
 - **Original issue**: The `mlops-core` AppProject allowed:
   - `sourceRepos: "*"` (any Git repository)
   - `destinations: namespace: "*"` (any namespace)

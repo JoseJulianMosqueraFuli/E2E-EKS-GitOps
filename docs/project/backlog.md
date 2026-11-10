@@ -123,13 +123,14 @@ Los estados por ID y la evidencia de la revision sustituyen los antiguos totales
 | 5 | Falta allow `argo-workflows` -> MLflow y `kubeflow` -> KServe | `k8s/security/istio/authorization-policies.yaml` |
 | 6 | DestinationRule catch-all muy amplio (`*.svc.cluster.local`) | `k8s/security/istio/destination-rules.yaml` |
 
-### Gatekeeper / OPA (3)
+### Gatekeeper / OPA
 
 | # | Issue | Archivo(s) |
 |---|-------|------------|
 | 7 | No cubre namespaces: `feast`, `models`, `ml-monitoring`, `external-secrets`, `knative-serving` | `k8s/security/gatekeeper/constraints/*.yaml` |
 | 8 | PodSecurity template no verifica initContainers, runAsUser, seccompProfile a nivel pod | `k8s/security/gatekeeper/templates/pod-security.yaml` |
 | 9 | IngressHosts permite `*.example.com` | `k8s/security/gatekeeper/constraints/ingress-hosts.yaml` |
+| 79 | Falta instalar el controlador y los CRDs de Gatekeeper: la base solo declara ConstraintTemplates y constraints. Definir bootstrap versionado y orden de reconciliacion antes de contar con enforcement; verificar rechazo real de un pod que incumpla una politica | `gitops/applications/apps/gatekeeper/base/kustomization.yaml`, `gitops/infrastructure/` |
 
 ### GitOps / ArgoCD (8)
 
@@ -180,7 +181,7 @@ Los estados por ID y la evidencia de la revision sustituyen los antiguos totales
 | 26 | Glue table schema hardcodeado | `infra/environments/*/main.tf` |
 | 27 | Glue crawlers schedule hardcodeado en los 3 ambientes | `infra/environments/*/main.tf` |
 | 51 | Nombres de buckets de datos, artefactos, backups y state incluyen cuenta/region. Revisar replacements/migracion en un plan real si existen buckets previos; otros contratos de apps siguen en #49 | `infra/`, `gitops/applications/apps/*`, `scripts/bootstrap-terraform-backend.sh` |
-| 66 | EKS 1.37 exige actualizar add-ons fijados antes de 1.32: Istio `1.20.x` (fin de vida), AWS Load Balancer Controller `1.7.x`, EBS CSI `2.28.x` y External Secrets `0.9.13`. Como no hay nada desplegado, se puede instalar directamente la version actual sin migracion. Cluster Autoscaler ya usa el chart `9.60.0` (CA 1.37.0, publicado 2026-11-06): revisar si hay un parche 1.37.x antes del primer apply | `gitops/infrastructure/`, `gitops/applications/apps/external-secrets/` |
+| 66 | EKS 1.37 exige actualizar add-ons fijados antes de 1.32: Istio `1.20.x` (fin de vida), AWS Load Balancer Controller `1.7.x`, EBS CSI `2.28.x` y External Secrets `0.9.13`. Los tres rangos `x` no fijan una version exacta: sustituirlos por versiones concretas verificadas al resolver la compatibilidad. Como no hay nada desplegado, se puede instalar directamente la version actual sin migracion. Cluster Autoscaler ya usa el chart `9.60.0` (CA 1.37.0, publicado 2026-11-06): revisar si hay un parche 1.37.x antes del primer apply | `gitops/infrastructure/`, `gitops/applications/apps/external-secrets/` |
 | 67 | EBS CSI tiene dos duenos: `aws_eks_addon.ebs_csi_driver` en Terraform y el HelmRelease de Flux en `addons/ebs-csi-driver`. Elegir una capa y eliminar la otra antes del primer apply | `infra/modules/eks/main.tf`, `gitops/infrastructure/addons/` |
 | 72 | El repositorio ECR `mlops-<env>-inference` quedo sin uso con la decision 2 (no se construyen imagenes por modelo). Decidir antes del primer apply si se elimina o se reserva para runtimes propios | `infra/environments/*/main.tf` |
 
@@ -209,6 +210,8 @@ Los estados por ID y la evidencia de la revision sustituyen los antiguos totales
 | 54 | Backup/restore reparado: PostgreSQL client + boto3, host por overlay, IRSA/bucket, contexto restricted y checksum; restore bloquea origen/base ocupada. Verde en kind CI (#22, `991bcd3`); pendiente en EKS | `gitops/applications/apps/mlflow/base/backup-cronjob.yaml` |
 | 63 | Sondas funcionales implementadas: run persistente durante fallo, artefacto antes/despues y prediccion AZ con jq. Falta acordar SLO/RTO/RPO productivos, dashboard y medicion EKS; CI conserva resultados 14 dias | `gitops/applications/apps/chaos/workflows/`, `gitops/applications/apps/monitoring/` |
 | 70 | Metricas y alertas de serving: se eliminaron el `ServiceMonitor` y la `PrometheusRule` de KServe porque Prometheus Operator no esta instalado. Exponer latencia/errores del predictor y alertar desde el Prometheus actual (decision 4 / fase de monitoreo) | `ml-platform/src/pipelines/serving.py`, `gitops/applications/apps/monitoring/` |
+| 80 | El CronJob de drift y Evidently apuntan a `prometheus-pushgateway.monitoring:9091`, pero no existe un despliegue/Service de Pushgateway en los manifiestos. Definir la ruta de ingestion, desplegar sus dependencias y verificar que Prometheus recibe las metricas | `gitops/applications/apps/monitoring/base/drift-cronjob.yaml`, `gitops/applications/apps/monitoring/base/evidently-monitoring.yaml` |
+| 81 | Prometheus `v2.48.0` y Grafana `10.2.2` siguen declarados en la base; la correccion de desincronizacion #16/#17 no actualizo esas versiones. Revisar soporte, compatibilidad y migraciones, y actualizar con versiones exactas antes del despliegue | `gitops/applications/apps/monitoring/base/prometheus-statefulset.yaml`, `gitops/applications/apps/monitoring/base/grafana-deployment.yaml` |
 
 ### CI/CD (5)
 
@@ -228,6 +231,7 @@ Los estados por ID y la evidencia de la revision sustituyen los antiguos totales
 | 76 | Argo CD esta fijado en v2.9.3 (`gitops/infrastructure/controllers/argocd/kustomization.yaml` y el sidecar del plugin), una version sin soporte con CVEs criticas publicadas. Actualizar a una version soportada antes del primer despliegue y revisar los cambios incompatibles de 3.x. La kustomization no renderizaba (parches con namespace y `argocd-rbac-cm` duplicado); corregido el 2026-11-08 | `gitops/infrastructure/controllers/argocd/` |
 | 77 | La app `monitoring` despliega un segundo `argocd-notifications-controller` aunque Argo CD 2.3+ ya trae el suyo; su ConfigMap `dev-argocd-notifications-cm` nunca se lee por el prefijo. Quitar el duplicado y configurar `argocd-notifications-cm` del controlador oficial | `gitops/applications/apps/monitoring/base/argocd-notifications.yaml`, `gitops/infrastructure/controllers/argocd/` |
 | 78 | Los controladores de Flux aplican cualquier recurso con un rol amplio (excepcion KSV-0046). Evaluar `serviceAccountName` por Kustomization/HelmRelease con roles por capa y `--no-cross-namespace-refs` | `gitops/infrastructure/controllers/flux-system/` |
+| 82 | Quedan YAML locales de los cuatro controladores de Flux con imagenes antiguas; la kustomization activa solo referencia el instalador v2.7.5. Retirar archivos sin uso y ajustar las pruebas que aun exigen su existencia, comprobando que el bootstrap conserva todos los controladores | `gitops/infrastructure/controllers/flux-system/`, `gitops/tests/test_gitops_checkpoint.py`, `gitops/tests/test_repository_structure.py` |
 | 65 | Promover el mismo digest desde ECR dev a staging/prod, actualizar overlays y verificar gate por entorno; `publish-ecr.yml` solo hace la publicacion inicial dev | `.github/workflows/`, `gitops/scripts/promotion/` |
 
 ---
