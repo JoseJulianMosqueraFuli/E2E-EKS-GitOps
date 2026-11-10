@@ -36,7 +36,7 @@ dependencies = [
     "pyarrow>=14",
 
     "mlflow>=3.17.2,<3.18",
-    "sqlalchemy>=2,<2.1",
+    "sqlalchemy>=2.0.57,<2.1",
     "tenacity>=7,<9",
 
     "click>=8.1",
@@ -44,36 +44,36 @@ dependencies = [
     "python-dotenv>=1.0",
     "requests>=2.31",
 
-    "boto3>=1.28",
+    "boto3>=1.43.126",
 
     "pillow (==13.0.0)",
 ]
 
 [project.optional-dependencies]
 validation = [
-    "great-expectations>=1.0,<2",
+    "great-expectations>=1.24.1,<2",
 ]
 monitoring = [
     "evidently>=0.7,<0.8",
     "prometheus-client>=0.20,<0.25",
-    "fastapi>=0.100",
+    "fastapi>=0.162.2",
     "uvicorn[standard]>=0.23",
 ]
 features = [
     "feast>=0.67,<0.68",
 ]
 dev = [
-    "great-expectations>=1.0,<2",
+    "great-expectations>=1.24.1,<2",
     "evidently>=0.7,<0.8",
     "prometheus-client>=0.20,<0.25",
-    "fastapi>=0.100",
+    "fastapi>=0.162.2",
     "uvicorn[standard]>=0.23",
     "feast>=0.67,<0.68",
     "pytest>=9.0.3,<10",
     "pytest-cov>=7,<8",
     "pytest-mock>=3.14,<4",
     "black>=26.10.1,<27",
-    "flake8>=7.1,<8",
+    "flake8>=7.5.0,<8",
     "isort==5.12.0",
     "mypy==1.5.1",
     "pre-commit>=3.5,<4",
