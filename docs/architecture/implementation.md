@@ -20,6 +20,8 @@ End-to-end MLOps platform that enables ML workflows from **training to productio
 Train Model → Register in MLflow → Deploy to KServe → Monitor with Evidently + Grafana
 ```
 
+See the [basic Mermaid flows](flows.md) for architecture, training, model rollout, inference and CI/CD.
+
 **Key Goals:**
 
 - Reusable Terraform infrastructure modules (VPC, EKS, S3, ECR, Glue)

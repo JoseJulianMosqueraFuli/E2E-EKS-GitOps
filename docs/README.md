@@ -41,6 +41,9 @@ Guides are available in English or Spanish, depending on the topic.
 
 ## Architecture diagrams
 
+[Basic flows in Mermaid](architecture/flows.md): architecture, training, model rollout,
+inference and CI/CD, based on the current implementation.
+
 [Editable diagram](architecture.drawio) and previews:
 [AWS](diagrams/architecture-01.svg) · [EKS](diagrams/architecture-02.svg) ·
 [ML flow](diagrams/architecture-03.svg) · [GitOps](diagrams/architecture-04.svg) · [Python](diagrams/architecture-05.svg).
