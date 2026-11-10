@@ -1,13 +1,14 @@
 # ML platform
 
 Python components for training, inference, feature management, data validation and model monitoring.
-Requires Python 3.11–3.12.
+Supports Python 3.11–3.14; ML CI and container images use Python 3.14.10.
 
 ## Local setup
 
 Run from this directory:
 
 ```bash
+poetry env use python3.14
 poetry install -E dev            # or: python -m pip install -e '.[dev]'
 poetry run python -m src.cli create-sample data/sample.csv --n-samples 1000
 poetry run pytest tests/ -v
@@ -29,8 +30,8 @@ SQLAlchemy stays on 2.0 and Tenacity below 9 so the core and all extras resolve 
 version of each dependency, including Feast's Tenacity requirement.
 Pillow is pinned to 13.0.0 in the lock and the standalone MLflow server image to fix
 [CVE-2026-112403](https://github.com/python-pillow/Pillow/security/advisories/GHSA-8g5g-8vmr-9782).
-This security update requires Python 3.11 or newer; all CI runners and Python images already use
-3.11 or 3.12. Training and monitoring images install the same locked dependency.
+This security update requires Python 3.11 or newer. Training and monitoring images install the same
+locked dependency on Python 3.14.10.
 MLflow models use the `skops` serialization format. Logging allows only the internal
 `sklearn.tree._tree.Tree` type needed by the models fitted in this process; arbitrary types discovered in
 external artifacts are not automatically trusted.
