@@ -81,7 +81,7 @@ jobs:
           cache-from: type=gha,scope=mlflow-server
 
       - name: Scan runtime image
-        uses: aquasecurity/trivy-action@0.35.0
+        uses: aquasecurity/trivy-action@v0.36.0
         with:
           image-ref: mlops-platform:scan
           scanners: vuln
@@ -90,7 +90,7 @@ jobs:
           exit-code: "1"
 
       - name: Scan monitoring image
-        uses: aquasecurity/trivy-action@0.35.0
+        uses: aquasecurity/trivy-action@v0.36.0
         with:
           image-ref: ml-monitoring:scan
           scanners: vuln
@@ -100,7 +100,7 @@ jobs:
           skip-setup-trivy: true
 
       - name: Scan MLflow server image
-        uses: aquasecurity/trivy-action@0.35.0
+        uses: aquasecurity/trivy-action@v0.36.0
         with:
           image-ref: mlflow-server:scan
           scanners: vuln
