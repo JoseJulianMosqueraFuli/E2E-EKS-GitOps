@@ -9,6 +9,7 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 RUN apt-get update && apt-get upgrade -y && rm -rf /var/lib/apt/lists/*
 
 RUN pip install \
+        "setuptools==80.10.2" \
         "mlflow==3.17.2" \
         "pillow==13.0.0" \
         "sqlalchemy==2.0.49" \

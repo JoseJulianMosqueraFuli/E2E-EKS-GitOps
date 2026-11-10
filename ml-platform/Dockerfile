@@ -5,13 +5,16 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     PIP_NO_CACHE_DIR=1 \
     PIP_DISABLE_PIP_VERSION_CHECK=1
 
+RUN python -m pip install --no-cache-dir "setuptools==80.10.2"
+
 FROM base AS builder
 
 ARG POETRY_VERSION=2.5.1
 
 RUN python -m venv /opt/poetry \
     && /opt/poetry/bin/pip install "poetry==${POETRY_VERSION}" \
-    && python -m venv /opt/venv
+    && python -m venv /opt/venv \
+    && /opt/venv/bin/python -m pip install --no-cache-dir "setuptools==80.10.2"
 
 ENV VIRTUAL_ENV=/opt/venv \
     PATH=/opt/venv/bin:$PATH \

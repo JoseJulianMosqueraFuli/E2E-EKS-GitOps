@@ -1,9 +1,14 @@
-FROM python:3.11.17-slim-bookworm AS builder
+FROM python:3.11.17-slim-bookworm AS base
+
+RUN python -m pip install --no-cache-dir "setuptools==80.10.2"
+
+FROM base AS builder
 
 ARG POETRY_VERSION=2.5.1
 RUN python -m venv /opt/poetry \
     && /opt/poetry/bin/pip install "poetry==${POETRY_VERSION}" \
-    && python -m venv /opt/venv
+    && python -m venv /opt/venv \
+    && /opt/venv/bin/python -m pip install --no-cache-dir "setuptools==80.10.2"
 ENV VIRTUAL_ENV=/opt/venv \
     PATH=/opt/venv/bin:$PATH \
     POETRY_NO_INTERACTION=1
@@ -12,7 +17,7 @@ COPY pyproject.toml poetry.lock README.md ./
 RUN /opt/poetry/bin/poetry check --lock \
     && /opt/poetry/bin/poetry install --only main --no-root -E monitoring
 
-FROM python:3.11.17-slim-bookworm AS runtime
+FROM base AS runtime
 RUN apt-get update && apt-get upgrade -y && rm -rf /var/lib/apt/lists/* \
     && useradd --uid 8737 --gid 0 --home-dir /tmp --no-create-home --shell /usr/sbin/nologin monitoring \
     && mkdir -p /data/reports /data/reference /app/config \

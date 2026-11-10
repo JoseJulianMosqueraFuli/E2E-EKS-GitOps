@@ -13,6 +13,7 @@ Para detalles técnicos de issues CRÍTICOS y ALTOS (CVSS, fix concreto), ver: [
 
 ### Correcciones implementadas
 
+- Seguridad de imagenes (#74), 2026-11-09: los tres Dockerfiles fijan `setuptools==80.10.2` en el Python global y, para training/monitoring, en el entorno virtual de runtime. El paquete oficial incluye `wheel 0.46.3` y `jaraco.context 6.1.0`, corrigiendo CVE-2026-24049 y CVE-2026-23949 en las copias de `setuptools/_vendor` que actualizar los paquetes independientes no reemplaza. Contenido del paquete verificado; pendiente reconstruccion y escaneo completo de imagenes en CI.
 - CI GitOps: Poetry usa `package-mode = false` y un lock versionado; la instalacion ya no intenta instalar un paquete inexistente. El formato actual de todos los archivos `ml-platform/src` y `ml-platform/tests` pasa los comandos `flake8` y `black --check` del workflow.
 - Bootstrap completo de Flux 2.7.5, APIs estables, rutas reales del repositorio y reconciliacion por capas sin doble propiedad. ArgoCD espera el application-controller como StatefulSet. El plugin `platform-kustomize` inyecta la configuracion fuera de Git y rechaza valores ficticios.
 - Roles IRSA separados para Argo, MLflow, secretos de MLflow y backup. Buckets con sufijo de cuenta/region, backend bootstrap con nombre unico y publicacion inicial dev en ECR por OIDC. La activacion y el plan AWS siguen pendientes.
