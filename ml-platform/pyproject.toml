@@ -39,7 +39,7 @@ dependencies = [
     "sqlalchemy>=2.0.57,<2.1",
     "tenacity>=7,<9",
 
-    "click>=8.1",
+    "click>=8.5.1",
     "pyyaml>=6.0",
     "python-dotenv>=1.0",
     "requests>=2.31",
