@@ -57,7 +57,7 @@ updates:
     directory: "/ml-platform"
     ignore:
       - dependency-name: "python"
-        versions: [">=3.13"]
+        versions: [">=3.15"]
     schedule:
       interval: "weekly"
       day: "monday"
