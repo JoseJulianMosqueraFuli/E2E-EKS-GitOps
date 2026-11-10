@@ -214,7 +214,7 @@ restore-mlflow: ## Restore BACKUP_KEY from S3 into a separate empty RESTORE_DATA
 docs: ## Generate documentation
 	@echo "Generating documentation..."
 	@echo "Infrastructure documentation available in docs/"
-	@echo "MLOps recommendations available in docs/mlops-enterprise-recommendations.md"
+	@echo "MLOps recommendations available in docs/proposals/enterprise-recommendations.md"
 
 .PHONY: e2e-kind-smoke e2e-kind-backup e2e-kind-chaos e2e-kind-serve
 

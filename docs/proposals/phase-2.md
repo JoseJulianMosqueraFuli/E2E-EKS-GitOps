@@ -1,15 +1,15 @@
-# 🚀 MLOps Platform: Next-Phase Implementation Guide
+# Next-phase implementation proposal
 
 > **Date**: May 16, 2026  
 > **Project**: E2E MLOps Platform on EKS  
-> **Current State**: Core platform validated (9.2/10) — ready for advanced features
+> **Status**: Historical proposal, not deployment validation. Current priorities: [backlog](../project/backlog.md).
 
 This document maps out the implementation plan for three advanced capabilities:
 **GitOps for Infrastructure**, **Chaos Engineering**, and **Platform Administration & Monitoring**.
 
 ---
 
-## 📋 Table of Contents
+## Contents
 
 1. [GitOps for Infrastructure](#1-gitops-for-infrastructure)
 2. [Chaos Engineering](#2-chaos-engineering)

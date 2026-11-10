@@ -348,7 +348,7 @@ La partición de red permanece detenida hasta demostrar el aislamiento (#59). Lo
 y la recuperación tras abortos aún necesitan validación en EKS (#60).
 
 El [runbook de Chaos](../gitops/applications/apps/chaos/README.md) contiene requisitos, comandos,
-criterios de éxito y limpieza. El [plan de adopción](chaos-engineering-proposal.md) desarrolla las fases siguientes.
+criterios de éxito y limpieza. El [plan de adopción](proposals/chaos-engineering.md) desarrolla las fases siguientes.
 
 ## Contribuir
 

@@ -4,7 +4,7 @@
 **Namespace**: `litmus` (experiments) + `argo-workflows` (validation workflows)  
 **Tool**: LitmusChaos (`litmus-core` operator + `kubernetes-chaos` experiment catalog)  
 **Deployed via**: ArgoCD ApplicationSet `mlops-applications`  
-**High-level proposal**: see [`docs/chaos-engineering-proposal.md`](../../../../docs/chaos-engineering-proposal.md)
+**High-level proposal**: see [`docs/proposals/chaos-engineering.md`](../../../../docs/proposals/chaos-engineering.md)
 
 ---
 
@@ -405,4 +405,4 @@ kubectl get chaosexperiments -n litmus
 
 ---
 
-*For strategic context, phased plan, and SLO prerequisites, see [`docs/chaos-engineering-proposal.md`](../../../../docs/chaos-engineering-proposal.md).*
+*For strategic context, phased plan, and SLO prerequisites, see [`docs/proposals/chaos-engineering.md`](../../../../docs/proposals/chaos-engineering.md).*

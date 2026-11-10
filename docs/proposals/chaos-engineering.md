@@ -202,4 +202,4 @@ This is the smallest experiment that validates the most important assumption: *M
 
 ---
 
-*Operational runbook: [`gitops/applications/apps/chaos/README.md`](../gitops/applications/apps/chaos/README.md). Run experiments only after SLOs and backups are in place.*
+*Operational runbook: [`gitops/applications/apps/chaos/README.md`](../../gitops/applications/apps/chaos/README.md). Run experiments only after SLOs and backups are in place.*

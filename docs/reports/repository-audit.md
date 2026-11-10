@@ -1,5 +1,7 @@
 # Auditoría del repositorio E2E-EKS-GitOps
 
+Historical audit. Current findings and priorities are maintained in the [backlog](../project/backlog.md).
+
 **Fecha:** 2026-10-01  
 **Alcance:** fases 1 a 4: arquitectura, Terraform/AWS, Kubernetes/GitOps y CI/CD  
 **Tipo:** análisis estático del repositorio; no se aplicaron recursos en AWS ni en Kubernetes.

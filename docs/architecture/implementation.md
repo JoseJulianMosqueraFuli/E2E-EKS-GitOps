@@ -170,9 +170,7 @@ E2E-EKS-GitOps/
 │   ├── quick-start-guide.md
 │   ├── ml-platform-guide.md
 │   ├── model-monitoring-guide.md
-│   ├── security-best-practices.md
-│   ├── mlops-enterprise-recommendations.md
-│   └── PHASE2_IMPLEMENTATION_GUIDE.md
+│   └── security-best-practices.md
 │
 ├── .github/workflows/             # GitHub Actions (only active CI/CD)
 │   ├── ci.yml                      # CI pipeline (Terraform, K8s, Python, Helm, Security)
@@ -582,71 +580,14 @@ A focused security audit was performed across Terraform, Kubernetes manifests, G
 
 ## 10. Documentation Index
 
-> **📚 Central hub**: [`docs/README.md`](../README.md) is the single entry point for all documentation. The table below is a quick reference; the hub has the full, categorized index and names the canonical source per topic.
-
-| Document        | Location                                   | Description                 |
-| --------------- | ------------------------------------------ | --------------------------- |
-| Quick Start     | `docs/quick-start-guide.md`                | 5-minute setup guide        |
-| ML Platform     | `docs/ml-platform-guide.md`                | ML code details             |
-| Monitoring      | `docs/model-monitoring-guide.md`           | Drift detection setup       |
-| Security        | `docs/security-best-practices.md`          | mTLS, Gatekeeper guidelines |
-| Enterprise Recs | `docs/mlops-enterprise-recommendations.md` | Production recommendations  |
-| Phase 2 Guide   | `docs/PHASE2_IMPLEMENTATION_GUIDE.md`      | Implementation roadmap      |
-| Backlog         | `docs/project/backlog.md`                               | Canonical backlog & status  |
-| GitOps Setup    | `gitops/SETUP.md`                          | GitOps installation         |
-| GitOps README   | `gitops/README.md`                         | GitOps architecture         |
-
----
+The [documentation hub](../README.md) groups setup, operation, development, proposals and reports.
 
 ## 11. Known Limitations & Pending Items
 
-### Implemented ✅
-
-- **Flux v2 + ArgoCD controllers** (infrastructure + applications separation)
-- **MLOps applications** with multi-environment overlays (dev/staging/production): MLflow, Kubeflow, KServe, Monitoring, Argo Workflows, Feast
-- **Security / platform applications** managed by ArgoCD: External Secrets, Gatekeeper, Istio
-- **External Secrets Operator** integrated with MLflow and monitoring stacks
-- **ArgoCD Notifications** (Slack: `mlops-deployments`, `mlops-alerts` channels)
-- **ApplicationSet** for auto-generating all applications across environments
-- **Promotion pipeline** (`promote.py` + GitHub Actions)
-- **A/B Testing workflow templates** (7-step Argo Workflows DAG with statistical metrics and auto-promotion)
-- **GPU Operator support** (optional manifests in `gitops/applications/apps/gpu-operator/`)
-- **Model Monitoring with Evidently** (drift detection + model performance + CronJob)
-- **Grafana dashboards** pre-configured (MLflow, KServe, model metrics, cost estimation, ML monitoring)
-- **Alertmanager + PrometheusRule alerts** (MLflow, PostgreSQL, KServe, drift alerts)
-- **CI/CD hardening** for staging/production (KMS retention, ECR immutable tags)
-- **Documentación sincronizada** (READMEs, guides, SETUP, IMPLEMENTATION_STATUS aligned with repo state)
-- **Feature Store (local)**: Feast feature repo with definitions, Parquet data sources, SQLite online store, and unit tests
-- **Security**: Pre-commit hooks (`detect-secrets`), `.secrets.baseline`, Trivy SARIF scanning
-
-### Pending ⏳ (from `docs/project/backlog.md`)
-
-**High Priority:**
-
-- **First green serving run in `e2e-kind.yml`** (#52) — the first run (`4494aca`) failed because the predictor NetworkPolicy blocked model downloads from the S3 gateway; the fix waits for a new run
-- **Before the first AWS deployment** — configure and verify the implemented ArgoCD renderer (#48), IRSA roles (#50), unique S3 bucket names (#51) and ECR publishing via GitHub OIDC (#55); EKS 1.37 add-ons (#66), a single EBS CSI owner (#67), and a decision on node egress so the restricted security group can be attached (HIGH-003). S3 egress for MLflow and predictors (#73) is implemented and needs a real plan
-- **End-to-end AWS test** — Full flow: Terraform apply → EKS deploy → ArgoCD sync → MLflow → KServe inference
-- **Monitoring image** (#53) — `Dockerfile.monitoring` builds from the Poetry lock with a versioned tag; the first published build and a healthy service are pending. Validation, deployment, serving and notification run on `mlops-platform`
-
-**Medium Priority:**
-
-- **Kubecost / OpenCost** — Replace estimated cost dashboard with real exporter
-- **Feature Store with Feast** — Production backend hardening (ElastiCache/DynamoDB), full server deployment on K8s (local feature repo + Redis server deployment implemented)
-- **ACM certificate for Ingress** — Real TLS certificate for MLflow/KServe/Grafana
-- **Terraform S3 backend** — Uncomment and configure `backend "s3"` in all environments when AWS account is available
-- **Terratest execution** — Run Go tests in `infra/modules/*/test/`
-
-**Low Priority:**
-
-- **Model Governance** — Approval workflows (CRDs, OPA/Gatekeeper policies, ArgoCD approval gates)
-- **Multi-cluster deployment** — ArgoCD ApplicationSet with cluster generator
-- **Full mTLS enforcement** — Istio strict mTLS policies managed by ArgoCD; sidecar injection and default-deny rollout pending
-- **Advanced OPA/Gatekeeper policies** — Managed by ArgoCD; pod security templates and namespace coverage pending hardening
-- **Microsoft Teams notifications** — In addition to Slack
-- **Integration tests for ML Platform** — Expand `ml-platform/tests/` coverage
-- **Troubleshooting documentation** — Based on real deployment experience
-
----
+The [backlog](../project/backlog.md) is the canonical status and priority list.
+[Critical and high findings](../project/critical.md) contain the security details;
+[implementation history](../reports/implementation-history.md) preserves past validation evidence.
+Implemented manifests do not establish that the first AWS deployment is validated.
 
 ## 12. Key Architectural Decisions
 

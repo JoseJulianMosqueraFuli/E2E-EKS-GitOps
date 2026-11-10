@@ -583,4 +583,4 @@ Los modelos entrenados pueden ser desplegados usando:
 
 ---
 
-Esta guía cubre todos los aspectos del código ML implementado. Para más detalles sobre la infraestructura y deployment, consulta el [README principal](../README.md) y la [documentación de recomendaciones MLOps](mlops-enterprise-recommendations.md).
+Esta guía cubre todos los aspectos del código ML implementado. Para más detalles sobre la infraestructura y deployment, consulta el [README principal](../README.md) y la [documentación de recomendaciones MLOps](proposals/enterprise-recommendations.md).

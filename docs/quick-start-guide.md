@@ -325,7 +325,7 @@ poetry run python -m src.cli validate data/my_data.csv --create-suite
 ### Recursos Adicionales
 
 - 📚 [Documentación completa](ml-platform-guide.md)
-- 🏢 [Recomendaciones Enterprise](mlops-enterprise-recommendations.md)
+- 🏢 [Recomendaciones Enterprise](proposals/enterprise-recommendations.md)
 - 🔧 [Troubleshooting Guide](troubleshooting.md)
 - 💬 [Community Discussions](https://github.com/JoseJulianMosqueraFuli/E2E-EKS-GitOps/discussions)
 

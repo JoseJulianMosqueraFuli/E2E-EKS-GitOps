@@ -36,8 +36,8 @@ Guides are available in English or Spanish, depending on the topic.
 
 - [GitOps Python tooling and Poetry](../gitops/POETRY_GUIDE.md)
 - [GitOps test suite](../gitops/tests/README.md)
-- [Make commands](../Makefile) and [CI workflows](../.github/workflows/) (GitHub Actions only; [inactive providers](../ci-cd/future/README.md))
-- [Agent instructions](../AGENTS.md), [agent configuration](../.agents/README.md), and [canonical rules shared by all agents](../.agents/rules/)
+- [Make commands](../Makefile) and [CI workflows](../.github/workflows) (GitHub Actions only; [inactive providers](../ci-cd/future/README.md))
+- [Agent instructions](../AGENTS.md), [agent configuration](../.agents/README.md), and [canonical rules shared by all agents](../.agents/rules)
 
 ## Architecture diagrams
 
@@ -49,7 +49,6 @@ Guides are available in English or Spanish, depending on the topic.
 
 - [Backlog](project/backlog.md): canonical record of completed and pending work.
 - [Critical and high findings](project/critical.md): detailed issues tracked in the backlog.
-- [GitOps implementation status](../gitops/IMPLEMENTATION_STATUS.md): component details; check the backlog for current priorities.
 
 ## Proposals and historical reports
 
@@ -57,13 +56,14 @@ These provide design context and past findings. They do not establish current de
 
 | Document | Purpose |
 |---|---|
-| [Enterprise recommendations](mlops-enterprise-recommendations.md) | Production readiness recommendations |
-| [Phase 2 guide](PHASE2_IMPLEMENTATION_GUIDE.md) | Implementation roadmap |
-| [Chaos engineering](chaos-engineering-proposal.md) | Design and rollout plan |
+| [Enterprise recommendations](proposals/enterprise-recommendations.md) | Production readiness recommendations |
+| [Phase 2 guide](proposals/phase-2.md) | Implementation roadmap |
+| [Chaos engineering](proposals/chaos-engineering.md) | Design and rollout plan |
 | [Resilience and recovery](proposals/resilience-recovery.md) | Proposed recovery experiments |
 | [Validation report](reports/validation-report.md) | Historical validation snapshot |
-| [Repository audit](repository-audit-report.md) | Historical audit snapshot |
-| [GitOps task summary](../gitops/TASK_1_SUMMARY.md) | Historical implementation record |
+| [Repository audit](reports/repository-audit.md) | Historical audit snapshot |
+| [GitOps foundation](reports/gitops-foundation.md) | Consolidated implementation milestones |
+| [Implementation history](reports/implementation-history.md) | Past corrections, CI runs and local validation |
 
 ## Maintaining these docs
 

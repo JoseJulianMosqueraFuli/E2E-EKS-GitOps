@@ -347,7 +347,7 @@ or storage. Network partition is stopped until isolation is demonstrated (#59). 
 and recovery after aborts still need verification on EKS (#60).
 
 See the [Chaos runbook](../gitops/applications/apps/chaos/README.md) for prerequisites, commands,
-pass/fail criteria, cleanup, and the [adoption plan](chaos-engineering-proposal.md) for later phases.
+pass/fail criteria, cleanup, and the [adoption plan](proposals/chaos-engineering.md) for later phases.
 
 ## Contributing
 
