@@ -172,6 +172,8 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          persist-credentials: false
 
       - name: Run Trivy vulnerability scanner
         uses: aquasecurity/trivy-action@0.35.0
@@ -188,6 +190,30 @@ jobs:
         if: github.event_name == 'pull_request' || github.ref == 'refs/heads/main'
         with:
           sarif_file: "trivy-results.sarif"
+
+      - name: Fail on fixable dependency vulnerabilities
+        uses: aquasecurity/trivy-action@0.35.0
+        env:
+          TRIVY_INCLUDE_DEV_DEPS: "true"
+        with:
+          scan-type: "fs"
+          scan-ref: "."
+          scanners: "vuln"
+          severity: "CRITICAL,HIGH"
+          ignore-unfixed: true
+          exit-code: "1"
+          skip-setup-trivy: true
+
+      - name: Fail on Kubernetes and Terraform misconfigurations
+        uses: aquasecurity/trivy-action@0.35.0
+        with:
+          scan-type: "config"
+          scan-ref: "."
+          severity: "CRITICAL,HIGH"
+          trivyignores: ".trivyignore.yaml"
+          skip-dirs: "gitops/charts,gitops/tests,ci-cd,infra/modules/ecr/test,infra/modules/eks/test,infra/modules/glue/test,infra/modules/s3/test,infra/modules/vpc/test"
+          exit-code: "1"
+          skip-setup-trivy: true
 
   # Helm Chart Validation
   helm-lint:

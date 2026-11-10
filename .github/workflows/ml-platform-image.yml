@@ -52,8 +52,62 @@ jobs:
           file: ml-platform/Dockerfile.monitoring
           target: runtime
           push: false
+          load: true
+          tags: ml-monitoring:scan
           cache-from: type=gha,scope=ml-monitoring
           cache-to: type=gha,mode=max,scope=ml-monitoring
+
+      - name: Build runtime image for scanning
+        uses: docker/build-push-action@v6
+        with:
+          context: ml-platform
+          file: ml-platform/Dockerfile
+          target: runtime
+          push: false
+          load: true
+          tags: mlops-platform:scan
+          cache-from: |
+            type=gha,scope=ml-platform-runtime
+            type=gha,scope=ml-platform-test
+
+      - name: Build MLflow server image for scanning
+        uses: docker/build-push-action@v6
+        with:
+          context: ml-platform
+          file: ml-platform/Dockerfile.mlflow-server
+          push: false
+          load: true
+          tags: mlflow-server:scan
+          cache-from: type=gha,scope=mlflow-server
+
+      - name: Scan runtime image
+        uses: aquasecurity/trivy-action@0.35.0
+        with:
+          image-ref: mlops-platform:scan
+          scanners: vuln
+          severity: CRITICAL,HIGH
+          ignore-unfixed: true
+          exit-code: "1"
+
+      - name: Scan monitoring image
+        uses: aquasecurity/trivy-action@0.35.0
+        with:
+          image-ref: ml-monitoring:scan
+          scanners: vuln
+          severity: CRITICAL,HIGH
+          ignore-unfixed: true
+          exit-code: "1"
+          skip-setup-trivy: true
+
+      - name: Scan MLflow server image
+        uses: aquasecurity/trivy-action@0.35.0
+        with:
+          image-ref: mlflow-server:scan
+          scanners: vuln
+          severity: CRITICAL,HIGH
+          ignore-unfixed: true
+          exit-code: "1"
+          skip-setup-trivy: true
 
   publish:
     name: Build and publish

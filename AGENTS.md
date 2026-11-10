@@ -120,7 +120,7 @@ These references replace per-tool rule files. MCP servers are read-only by polic
 
 ## Sensitive areas — be careful
 
-- **CI failures**: GitHub Actions is the only active CI. Its test/lint steps fail the pipeline (HIGH-013 fixed in `c50a12f`). Don't reintroduce `|| true`, `continue-on-error` or soft-fail options on them. Don't update `ci-cd/future/` alongside GitHub changes; reactivating a provider follows its README.
+- **CI failures**: GitHub Actions is the only active CI. Its test/lint steps fail the pipeline (HIGH-013 fixed in `c50a12f`). Don't reintroduce `|| true`, `continue-on-error` or soft-fail options on them, nor on the Trivy security gates; scanner exceptions go in `.trivyignore.yaml` with a justification. Don't update `ci-cd/future/` alongside GitHub changes; reactivating a provider follows its README.
 - **Terraform state**: backend configuration is supplied through ignored `backend.hcl` files. Run the bootstrap explicitly with an AWS account; do not initialize or migrate state during validation.
 - **Argo Workflows** (`k8s/mlops-stack/argo-workflows/`): already hardened (TLS + `--auth-mode=client` + emissary executor; SSO pending an OIDC provider). Don't reintroduce `docker.sock` mounts or `containerRuntimeExecutor: docker`.
 - **Gatekeeper**: `no-latest-tag` constraint is active for production namespaces. Pin image tags.

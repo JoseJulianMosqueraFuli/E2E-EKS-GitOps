@@ -35,7 +35,7 @@ FROM base AS runtime
 ARG GIT_COMMIT=unknown
 ARG IMAGE_REF=mlops-platform
 
-RUN apt-get update && apt-get install -y --no-install-recommends postgresql-client-15 \
+RUN apt-get update && apt-get upgrade -y && apt-get install -y --no-install-recommends postgresql-client-15 \
     && rm -rf /var/lib/apt/lists/*
 
 RUN useradd --uid 8737 --gid 0 --home-dir /tmp --no-create-home --shell /usr/sbin/nologin mlops

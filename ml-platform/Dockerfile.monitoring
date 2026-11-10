@@ -13,7 +13,8 @@ RUN /opt/poetry/bin/poetry check --lock \
     && /opt/poetry/bin/poetry install --only main --no-root -E monitoring
 
 FROM python:3.11.17-slim-bookworm AS runtime
-RUN useradd --uid 8737 --gid 0 --home-dir /tmp --no-create-home --shell /usr/sbin/nologin monitoring \
+RUN apt-get update && apt-get upgrade -y && rm -rf /var/lib/apt/lists/* \
+    && useradd --uid 8737 --gid 0 --home-dir /tmp --no-create-home --shell /usr/sbin/nologin monitoring \
     && mkdir -p /data/reports /data/reference /app/config \
     && chown -R 8737:0 /data /app
 COPY --from=builder /opt/venv /opt/venv

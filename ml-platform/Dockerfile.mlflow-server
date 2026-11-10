@@ -6,6 +6,8 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     PIP_DISABLE_PIP_VERSION_CHECK=1 \
     HOME=/tmp
 
+RUN apt-get update && apt-get upgrade -y && rm -rf /var/lib/apt/lists/*
+
 RUN pip install \
         "mlflow==3.17.2" \
         "pillow==13.0.0" \
