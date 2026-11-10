@@ -6,7 +6,7 @@ Registro histórico trasladado del backlog el 2026-11-09. Los resultados, versio
 se conservan como evidencia de cada revisión; no representan necesariamente el estado actual.
 El backlog mantiene las prioridades y el estado por ID.
 
-### Correcciones implementadas
+## Correcciones implementadas
 
 - Seguridad de imagenes (#74), 2026-11-09: los tres Dockerfiles fijan `setuptools==80.10.2` en el Python global y, para training/monitoring, en el entorno virtual de runtime. El paquete oficial incluye `wheel 0.46.3` y `jaraco.context 6.1.0`, corrigiendo CVE-2026-24049 y CVE-2026-23949 en las copias de `setuptools/_vendor` que actualizar los paquetes independientes no reemplaza. Contenido del paquete verificado; pendiente reconstruccion y escaneo completo de imagenes en CI.
 - CI GitOps: Poetry usa `package-mode = false` y un lock versionado; la instalacion ya no intenta instalar un paquete inexistente. El formato actual de todos los archivos `ml-platform/src` y `ml-platform/tests` pasa los comandos `flake8` y `black --check` del workflow.
@@ -22,7 +22,7 @@ El backlog mantiene las prioridades y el estado por ID.
 - Arranque MLflow: un worker por pod, jobs internos desactivados, memoria reservada/limitada a 1536 MiB en dev/staging/kind y 2 GiB en produccion; cuotas ajustadas para el rollout. Un init container serializa la creacion del esquema y del experimento por defecto mediante un bloqueo PostgreSQL. Las bases existentes se validan y requieren migracion explicita si estan desactualizadas. Se conservan dos replicas en kind y probes con timeout de cinco segundos.
 - Seguridad de dependencias: Pillow 13.0.0 fijado en el lock de ML y en la imagen independiente del servidor MLflow para corregir [CVE-2026-112403](https://github.com/python-pillow/Pillow/security/advisories/GHSA-8g5g-8vmr-9782). Trivy detectaba 12.3.0 en la rama del lock para Python 3.10; las ramas 3.11/3.12 ya resolvian 13.0.0. El minimo de Python sube a 3.11 porque la version corregida ya no soporta 3.10. CI e imagenes usan 3.11/3.12; training y monitoring heredan el lock actualizado.
 
-### Evidencia en GitHub Actions
+## Evidencia en GitHub Actions
 
 - E2E [#23 de `4494aca`](https://github.com/JoseJulianMosqueraFuli/E2E-EKS-GitOps/actions/runs/42413352033): entrenamiento, backup/restore y Litmus vuelven a aprobar. Serving (#52) fallo en `InferenceService declared in Git serves default-model@champion`: el InferenceService no llego a Ready en 420 s. La NetworkPolicy `model-predictors` solo permitia salida a MLflow:5000 y DNS, pero MLflow entrega URLs firmadas hacia el gateway S3 (`dev-mlflow-minio.mlflow.svc.cluster.local:9000`), asi que el predictor no podia descargar `@champion`. Se agrega salida a los pods del gateway (`app: mlflow-minio`) por 9000 en la base; la regresion cruza el endpoint que firma MLflow, el Service y pod del gateway, la salida del predictor y la entrada de MLflow en dev/staging/kind. La causa se deduce de la anotacion de la etapa, la duracion del paso y las politicas; el log del job no se reviso. Falta un nuevo E2E.
 - E2E [#22 de `991bcd3`](https://github.com/JoseJulianMosqueraFuli/E2E-EKS-GitOps/actions/runs/42378504965): primer verde completo en kind 1.37: entrenamiento/gate, backup/restore (#54) y Litmus con pod-delete y cancelacion `Stop` (#62). El serving aun no formaba parte del workflow.
@@ -35,7 +35,7 @@ El backlog mantiene las prioridades y el estado por ID.
 - El [E2E de `ceb25bd`](https://github.com/JoseJulianMosqueraFuli/E2E-EKS-GitOps/actions/runs/39694031972) fallo en el rollout de MLflow: OOMKilled, reinicios y conflicto de creacion de tablas. La correccion de recursos e inicializacion serializada requiere una nueva ejecucion de kind antes de considerar validados backup y Chaos.
 - El [E2E anterior](https://github.com/JoseJulianMosqueraFuli/E2E-EKS-GitOps/actions/runs/39523282574), commit `f9da9d6`, tenia cliente MLflow 3.17.1 y servidor 2.22.5. El endpoint `/api/2.0/mlflow/logged-models` devolvia 404 y el entrenamiento no producia `model-uri.txt`/`run-id.txt`; backup y Chaos no llegaron a ejecutarse.
 
-### Evidencia local
+## Evidencia local
 
 - 421 pruebas GitOps aprobadas con el lock actual, incluidas las 32 de Chaos, el bootstrap del backend, la paridad cliente/servidor MLflow y el contrato de arranque en dev/staging/produccion/kind; siete pruebas que requieren cluster excluidas por `-m "not integration"`.
 - Instalacion limpia `poetry install --with test,dev` aprobada con Python 3.12 y Poetry 2.5.1; lock validado y 64 paquetes instalados compatibles. Flake8 y Black aprobados sobre los 48 archivos de `ml-platform/src/` y `ml-platform/tests/`.

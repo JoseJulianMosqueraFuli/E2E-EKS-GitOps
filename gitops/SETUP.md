@@ -130,29 +130,7 @@ Helm charts available in `gitops/charts/`:
 
 ## Repository Structure
 
-```
-gitops/
-├── infrastructure/          # Flux-managed infrastructure
-│   ├── addons/             # EKS addons (ALB, EBS CSI, Autoscaler)
-│   ├── clusters/           # Per-cluster bootstrap (dev, staging, production)
-│   ├── controllers/        # GitOps controllers
-│   ├── environments/       # Environment-specific overlays
-│   ├── flux-config/        # Flux Kustomization resources
-│   ├── networking/         # Ingress, Istio, Network Policies
-│   ├── security/           # RBAC, IRSA, Pod Security
-│   ├── sources/            # Git and Helm repository sources
-│   └── base/              # Base configurations
-├── applications/          # ArgoCD-managed applications
-│   ├── projects/          # ArgoCD projects + ApplicationSet
-│   └── apps/             # Application definitions with base/ + overlays/ (mlflow, kubeflow, kserve, monitoring, argo-workflows, feast, external-secrets, gatekeeper, istio, gpu-operator)
-├── charts/               # Helm charts (mlflow, kserve, kubeflow-pipelines, monitoring-stack)
-├── scripts/              # Installation and management scripts
-│   ├── install-gitops-controllers.sh
-│   ├── package-helm-charts.sh
-│   ├── promotion/        # promote.py, notifications.py
-│   └── validation/
-└── tests/               # Property-based and unit tests (8 test files)
-```
+See the [GitOps layout](README.md#layout) for the directory map and component guides.
 
 ## Verification
 
@@ -227,15 +205,8 @@ argocd app sync <app-name>
 
 ## Next Steps
 
-After completing this setup:
-
-1. **Run an end-to-end test on AWS**: Terraform apply → EKS deploy → ArgoCD sync → MLflow → KServe inference
-2. **Configure ArgoCD Image Updater**: Automate image bumps from ECR / GHCR
-3. **Replace estimated cost dashboard with Kubecost or OpenCost**
-4. **Add Feature Store (Feast)**: Definitions, server, and online/offline backends
-5. **Multi-cluster deployment**: ArgoCD ApplicationSet with cluster generator
-
-See [docs/project/backlog.md](../docs/project/backlog.md) for the prioritized backlog.
+Follow the [prioritized backlog](../docs/project/backlog.md) and
+[AWS runtime contract](../docs/architecture/platform-runtime-config.md) before deployment.
 
 ## Security Considerations
 

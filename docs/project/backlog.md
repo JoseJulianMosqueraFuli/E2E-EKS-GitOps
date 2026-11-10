@@ -275,7 +275,7 @@ Los estados por ID y la evidencia de la revision sustituyen los antiguos totales
 | 10 | Troubleshooting guide | ✅ [`docs/troubleshooting.md`](../troubleshooting.md) con los fallos reales del E2E en kind (2026-11-07). Ampliar con los del primer despliegue en EKS | Baja |
 | 11 | Actualizar pre-commit hooks | detect-secrets, terraform_fmt, etc. | Baja |
 | 12 | Actualizar versiones EKS addons | Fijar versiones de EBS CSI, VPC CNI, etc. | Baja |
-| 13 | Chaos Engineering | Phase 1 y 2 implementadas (sin ejecutar en EKS): `litmus-core` 3.31.1 + `kubernetes-chaos` 3.31.0 (antes el chart `litmus` = ChaosCenter, sin `ChaosExperiment`), exporter propio, `appkind: statefulset` para ArgoCD, WorkflowTemplates `mlflow-resilience-test` y `az-failure-test` (solo dev/staging), node-drain worker/GPU y simulacion de desalojo por zona con preflight. Particion KServe->MLflow desactivada (#59). Pendiente: ejecucion y recuperacion EKS, EC2 stop (#58), separacion de roles (#60), dashboard Grafana, SLOs, Phase 3-4. Ver [`chaos-engineering-proposal.md`](../proposals/chaos-engineering.md). | Media |
+| 13 | Chaos Engineering | Phase 1 y 2 implementadas (sin ejecutar en EKS): `litmus-core` 3.31.1 + `kubernetes-chaos` 3.31.0 (antes el chart `litmus` = ChaosCenter, sin `ChaosExperiment`), exporter propio, `appkind: statefulset` para ArgoCD, WorkflowTemplates `mlflow-resilience-test` y `az-failure-test` (solo dev/staging), node-drain worker/GPU y simulacion de desalojo por zona con preflight. Particion KServe->MLflow desactivada (#59). Pendiente: ejecucion y recuperacion EKS, EC2 stop (#58), separacion de roles (#60), dashboard Grafana, SLOs, Phase 3-4. Ver [propuesta de Chaos](../proposals/chaos-engineering.md). | Media |
 
 ---
 
