@@ -148,7 +148,7 @@ spec:
 
 - [x] Secrets en AWS Secrets Manager (no hardcodeados)
 - [x] IRSA configurado para cada service account
-- [x] Network policies definidas; EKS aun no las aplica porque `vpc-cni` no activa `enableNetworkPolicy` (backlog #59)
+- [x] Network policies definidas y aplicadas desde el primer despliegue (`vpc-cni` con `enableNetworkPolicy`); falta verificar el enforcement en EKS (backlog #59) y corregir las de `mlflow` (#90)
 - [x] VPC endpoints habilitados
 - [x] KMS encryption para datos en reposo
 - [x] TLS habilitado para comunicaciones

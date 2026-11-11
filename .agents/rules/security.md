@@ -28,7 +28,7 @@ See `SECURITY.md`, `docs/security-best-practices.md` and open items in `docs/pro
 
 ## Data and encryption
 
-- S3: block public access, SSE-KMS, versioning on artifact/state buckets, TLS-only bucket policy.
+- S3: block public access, default SSE-KMS encryption, versioning on artifact/state buckets, TLS-only bucket policy. Do not deny uploads that omit the SSE header: no client sends it, default encryption already applies, and `aws:kms` without a key ID selects the AWS managed key instead of the CMK (#89).
 - EKS: secrets envelope encryption with KMS, private endpoint for prod, control-plane logging enabled.
 - ML data: treat training data and model artifacts as sensitive. No PII in logs, metrics labels or MLflow params.
 

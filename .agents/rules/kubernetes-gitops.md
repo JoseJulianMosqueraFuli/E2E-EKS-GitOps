@@ -9,14 +9,16 @@ globs: k8s/**, gitops/applications/**, gitops/charts/**, gitops/infrastructure/*
 
 - `gitops/applications/apps/<app>/base/` is canonical. Environment differences go in `overlays/{dev,staging,prod}/` as patches, never as copied manifests.
 - `k8s/mlops-stack/<app>/` must reference the GitOps base (ref-bound), not duplicate it.
-- Cluster infrastructure (controllers, addons, networking, security) is Flux-managed in `gitops/infrastructure/`; applications are ArgoCD-managed. Do not mix the two for the same resource.
+- Cluster infrastructure (controllers, addons, networking, security) is Flux-managed in `gitops/infrastructure/`; applications are ArgoCD-managed. Do not mix the two for the same resource, Namespaces and NetworkPolicies included (#90).
 - Adding an app: follow the checklist in `AGENTS.md` ("When adding a new MLOps app").
 
 ## Manifests
 
 - Always set: resource `requests` and `limits` (memory limit = request for critical workloads), `readinessProbe` and `livenessProbe` (plus `startupProbe` for slow starters), `securityContext` per the security rule.
 - Standard labels: `app.kubernetes.io/name`, `app.kubernetes.io/instance`, `app.kubernetes.io/version`, `app.kubernetes.io/component`, `app.kubernetes.io/part-of: mlops-platform`, `app.kubernetes.io/managed-by`.
-- Images pinned by semver or digest. `:latest` is rejected by Gatekeeper in prod (HIGH-006, HIGH-007 still open).
+- Images pinned by semver or digest. Gatekeeper's `no-latest-tag` constraint targets prod but enforces nothing until its controller is installed (#79).
+- Use only CRDs whose controller a lower layer installs before the app syncs. Prometheus Operator is not installed, so no `ServiceMonitor` or `PrometheusRule` (#88). Deleting a kind in the kind overlay hides this from the E2E.
+- A NetworkPolicy `podSelector` must match labels on the pod template. Kustomize `labels` with `includeSelectors: false` do not reach pods (#90).
 - Never hardcode the AWS account ID or region. Use the `AWS_ACCOUNT_ID` / `AWS_REGION` placeholders and resolve them per overlay with `replacements` from `gitops/platform/` (`aws.env` is gitignored). Run `make validate-platform-config`.
 - ECR images: base manifests use neutral names (`mlops-platform`, `mlflow-server`); overlays map them to `AWS_ACCOUNT_ID.dkr.ecr.AWS_REGION.amazonaws.com/mlops-<env>-<repo>`.
 - Prod: `replicas >= 2`, PodDisruptionBudget, topology spread across zones, HPA where load varies.
@@ -33,7 +35,8 @@ globs: k8s/**, gitops/applications/**, gitops/charts/**, gitops/infrastructure/*
 
 - Applications use automated sync with `prune: true` and `selfHeal: true` only after the app is stable; use sync waves for ordering (CRDs → operators → instances).
 - AppProjects restrict `sourceRepos`, `destinations` and cluster resource whitelists (CRIT-004).
-- Reference a pinned `targetRevision` (tag/branch per environment), not `HEAD` in prod.
+- Reference a pinned `targetRevision` (tag/branch per environment), not `HEAD` in prod. Every branch named by a Flux `ref.branch` or ArgoCD `targetRevision` must exist on the remote (#84).
+- Flux replaces `${VAR}` only in Kustomizations that declare `postBuild.substituteFrom`. Elsewhere the literal reaches the API server and fails the whole Kustomization (#85).
 - Never fix drift with `kubectl edit`; change Git.
 
 ## Validation

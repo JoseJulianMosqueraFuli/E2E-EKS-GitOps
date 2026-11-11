@@ -114,10 +114,10 @@ node_group_instance_types = ["t3.small"]
 
 Keep most traffic inside the VPC. Use VPC endpoints for S3 and ECR.
 
-Staging and prod also create an S3 interface endpoint (`enable_s3_interface_endpoint`) so NetworkPolicies
-can allow S3 by VPC address. All their S3 traffic then uses it, billed per AZ-hour and per GB processed
-([AWS PrivateLink pricing](https://aws.amazon.com/privatelink/pricing/)); the gateway endpoint is free.
-Dev keeps only the gateway endpoint.
+All three environments also create an S3 interface endpoint (`enable_s3_interface_endpoint`) so
+NetworkPolicies can allow S3 by VPC address. All their S3 traffic then uses it, billed per AZ-hour and per
+GB processed ([AWS PrivateLink pricing](https://aws.amazon.com/privatelink/pricing/)); the gateway
+endpoint is free. Dev turned it on in `b2f76b5` (2026-11-08).
 
 ---
 

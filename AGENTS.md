@@ -15,8 +15,9 @@ End-to-end MLOps platform on Amazon EKS: Terraform infra → EKS cluster → Git
 
 | Path | Purpose |
 |------|---------|
-| `infra/modules/` | Reusable Terraform modules (vpc, eks, s3, ecr, glue) |
+| `infra/modules/` | Reusable Terraform modules (vpc, eks, s3, ecr, glue, workload-identity, ecr-publisher) |
 | `infra/environments/{dev,staging,prod}/` | Per-environment Terraform roots |
+| `infra/environments/account/` | Account baseline applied once per account (CloudTrail, GuardDuty, Access Analyzer, Budgets, S3 public access block) |
 | `k8s/mlops-stack/` | Operational K8s overlays (MLflow, KServe, monitoring, argo-workflows, feast) |
 | `k8s/security/` | Istio mTLS, Gatekeeper/OPA policies |
 | `gitops/applications/apps/<app>/base/` | **GitOps source of truth** — ArgoCD apps (base + overlays) |
@@ -47,7 +48,7 @@ End-to-end MLOps platform on Amazon EKS: Terraform infra → EKS cluster → Git
 - **Resilience and recovery proposal**: [`docs/proposals/resilience-recovery.md`](docs/proposals/resilience-recovery.md).
 - **GitOps manifests**: `gitops/applications/apps/<app>/base/` is canonical. `k8s/mlops-stack/<app>/kustomization.yaml` should point to it (ref-bound, not duplicated; argo-workflows and mlflow point to the `dev` overlay so the AWS placeholders are resolved).
 - **Documentation hub**: `docs/README.md`.
-- **Image tags**: pin to semantic versions or SHAs. Gatekeeper enforces no `:latest` in production namespaces.
+- **Image tags**: pin to semantic versions or SHAs. Gatekeeper declares a no-`:latest` constraint for production namespaces; it is enforced only after the controller is installed (#79).
 
 ## Documentation placement
 
@@ -97,7 +98,7 @@ poetry run pytest tests/ -v
 # Validation (lint/format/typecheck/k8s/tf)
 make validate-all
 make validate-python                     # flake8 + black --check + isort --check
-make dev-lint                            # + mypy
+make dev-lint                            # + mypy (currently aborts on numpy 2 stubs, #98)
 make dev-format                          # black + isort (writes)
 ```
 
@@ -123,7 +124,8 @@ These references replace per-tool rule files. MCP servers are read-only by polic
 - **CI failures**: GitHub Actions is the only active CI. Its test/lint steps fail the pipeline (HIGH-013 fixed in `c50a12f`). Don't reintroduce `|| true`, `continue-on-error` or soft-fail options on them, nor on the Trivy security gates; scanner exceptions go in `.trivyignore.yaml` with a justification. Don't update `ci-cd/future/` alongside GitHub changes; reactivating a provider follows its README.
 - **Terraform state**: backend configuration is supplied through ignored `backend.hcl` files. Run the bootstrap explicitly with an AWS account; do not initialize or migrate state during validation.
 - **Argo Workflows** (`k8s/mlops-stack/argo-workflows/`): already hardened (TLS + `--auth-mode=client` + emissary executor; SSO pending an OIDC provider). Don't reintroduce `docker.sock` mounts or `containerRuntimeExecutor: docker`.
-- **Gatekeeper**: `no-latest-tag` constraint is active for production namespaces. Pin image tags.
+- **Gatekeeper**: the `no-latest-tag` constraint is declared for production namespaces, but no manifest installs the Gatekeeper controller yet (#79). Pin image tags regardless.
+- **Flux / ArgoCD ownership**: one layer per resource, including Namespaces and NetworkPolicies. Today Flux and ArgoCD both declare the `mlflow`, `kubeflow`, `kserve` and `monitoring` Namespaces and policies in `mlflow` (#90).
 - **AWS account / region**: never write them literally in manifests or docs. Use the `AWS_ACCOUNT_ID` / `AWS_REGION` placeholders and resolve them with Kustomize `replacements` from `gitops/platform/` (see its README). `gitops/platform/aws.env` is gitignored.
 - **Images**: pipeline steps and model serving run on the single `mlops-platform` image (`ml-platform/Dockerfile`); add a `step` subcommand instead of a new image. Deployments move the `@champion` alias; do not reintroduce per-model image builds. CI builds only `linux/amd64` (EKS nodes are x86).
 - **AWS costs**: `make test` and `make apply` hit real AWS. Prefer `test-terraform-plan` for CI/local validation.
@@ -133,7 +135,8 @@ These references replace per-tool rule files. MCP servers are read-only by polic
 - CRIT-004: ArgoCD `mlops-core` AppProject is restricted in current manifests (verified 2026-10-20); effective permissions in EKS still need verification.
 - HIGH-006 / HIGH-007 are corrected in code: monitoring and pipeline images are versioned; CI image builds and the full KServe path still need verification (#52/#53).
 - HIGH-001: Terraform S3 backend activation (account available; run `scripts/bootstrap-terraform-backend.sh <env> "$AWS_REGION"`).
-- HIGH-003 (reopened): the restricted `eks_nodes` security group is not attached to the nodes; attaching it needs a node egress decision. EKS does not enforce NetworkPolicies yet (`vpc-cni` without `enableNetworkPolicy`, #59).
+- HIGH-003 (reopened): the restricted `eks_nodes` security group is not attached to the nodes; attaching it needs a node egress decision. The `vpc-cni` add-on sets `enableNetworkPolicy` (since `b2f76b5`), so NetworkPolicies apply from the first deployment; enforcement still needs an EKS test (#59).
+- First-deploy blockers from the static audit of 2026-11-11 (#84–#91): dev Flux and ArgoCD follow a `develop` branch that does not exist on origin; the ArgoCD Ingress keeps unresolved `${...}` values; no cluster registration and an ApplicationSet that generates every app and environment; no `gp3` StorageClass; `ServiceMonitor`/`PrometheusRule` without Prometheus Operator; an S3 bucket policy that denies uploads without the SSE header; `mlflow` NetworkPolicies that block the predictor; and a `publish-ecr.yml` that cannot run twice against immutable tags.
 - Before the first AWS deployment: apply/configure the implemented ArgoCD renderer (#48), IRSA roles (#50), unique buckets (#51), ECR OIDC publisher (#55) and controller bootstrap (#61). Other app AWS contracts remain open (#49). Chaos and backup pass in kind CI (#54/#62, `991bcd3`); the serving E2E (#52) needs a green run, then EKS data probes (#63) and zone recovery (#64). Promotion of the same ECR digest is tracked in #65.
 - Many MEDIUM/LOW items in `docs/project/backlog.md` (Istio mTLS gaps, Gatekeeper coverage, Helm chart hardening, ML platform debt).
 
@@ -143,7 +146,7 @@ These references replace per-tool rule files. MCP servers are read-only by polic
 2. Add per-env overlays under `gitops/applications/apps/<app>/overlays/{dev,staging,prod}/`.
 3. Register the app in the ApplicationSet (`gitops/applications/projects/mlops-applicationset.yaml`).
 4. If the app has an ArgoCD AppProject, restrict `sourceRepos`, `destinations`, and resource whitelists (don't repeat CRIT-004).
-5. Add the app to `Makefile` `validate-kubernetes` target's `kustomize build` list.
+5. Run `make validate-kubernetes`: it renders every application the ApplicationSet generates, so there is no list to update.
 6. If it needs the AWS account or region, use the placeholders + `replacements` (see `gitops/platform/README.md`) and add the app to `validate-platform-config`.
 7. Update `docs/project/backlog.md` / `docs/project/critical.md` if security-relevant.
 
@@ -155,4 +158,4 @@ These references replace per-tool rule files. MCP servers are read-only by polic
 - `.agents/` — source of truth for AI agent rules (`rules/`) and MCP servers (`mcp/servers.json`). See `.agents/README.md`.
 - `CLAUDE.md`, `.github/copilot-instructions.md`, `.kiro/settings/mcp.json`, `.vscode/mcp.json`, `.mcp.json` — **generated** by `make agents-sync`; do not edit by hand. Shared rules stay in `.agents/`; per-tool rule copies are not generated.
 
-*Last updated: 2026-11-08*
+*Last updated: 2026-11-11*

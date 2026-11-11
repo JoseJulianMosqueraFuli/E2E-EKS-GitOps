@@ -31,14 +31,16 @@ for in-VPC clients.
 
 **Decision.** `enable_s3_interface_endpoint` creates the interface endpoint with
 `private_dns_only_for_inbound_resolver_endpoint = false`, so regional S3 names resolve to endpoint
-addresses inside the VPC for all workloads. It is on in staging and prod, where pipeline steps already use
-S3, and off in dev, where MLflow uses the in-cluster gateway. The gateway endpoint stays.
+addresses inside the VPC for all workloads. It is on in all three environments. Dev enabled it in
+`b2f76b5` (2026-11-08), in the same change that turned on NetworkPolicy enforcement; there MLflow still
+uses the in-cluster gateway, but the backup job, whose egress allows only `10.0.0.0/8:443`, reaches the
+backups bucket through the endpoint. The gateway endpoint stays.
 
-**Consequences.** S3 traffic in staging and prod is billed per AZ-hour and per GB processed
+**Consequences.** S3 traffic in every environment is billed per AZ-hour and per GB processed
 ([AWS PrivateLink pricing](https://aws.amazon.com/privatelink/pricing/)); the gateway endpoint is free.
 The interface endpoint does not support TLS 1.3, so clients negotiate TLS 1.2. The production predictor
-NetworkPolicy allows 443 to the same block as MLflow. These rules take effect once the VPC CNI enforces
-NetworkPolicies (backlog #59).
+NetworkPolicy allows 443 to the same block as MLflow. The `vpc-cni` add-on sets `enableNetworkPolicy`, so
+these rules apply from the first deployment; enforcement still needs an EKS test (backlog #59).
 
 ## AWS resources
 
@@ -74,6 +76,13 @@ After the cloud configuration is reviewed and applied by the operator:
    owner; child Flux Kustomizations reconcile actual `gitops/infrastructure/...` paths.
 5. Register the environment cluster in ArgoCD, publish dev images and verify application health before
    starting a fault.
+
+This sequence has not run yet. The static audit of 2026-11-11 found blockers in it: dev follows a
+`develop` branch that does not exist on origin (backlog #84); the ArgoCD Ingress keeps unresolved
+`${...}` values, which stops step 2 and the Flux `infrastructure-controllers` layer (#85); and no command
+or manifest performs the cluster registration in step 5 (#86). The applications then need a `gp3`
+StorageClass (#87), no Prometheus Operator kinds (#88), an S3 policy that accepts uploads without the SSE
+header (#89) and one owner for the `mlflow` NetworkPolicies (#90).
 
 The Terraform roots declare an unconfigured S3 backend. Local checks use `init -backend=false`.
 `scripts/bootstrap-terraform-backend.sh <env> "$AWS_REGION"` creates an account/region-specific state

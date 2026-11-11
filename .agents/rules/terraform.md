@@ -10,6 +10,8 @@ globs: **/*.tf, **/*.tfvars.example, infra/**
 - Reusable logic lives in `infra/modules/<name>/` with `main.tf`, `variables.tf`, `outputs.tf` (add `versions.tf` / `locals.tf` when they grow). Environment roots in `infra/environments/<env>/` only compose modules and set variables.
 - Modules must not configure providers or backends; roots do.
 - One concern per module. Do not create resources of another module's domain (e.g. IAM roles for EKS workloads belong with the workload/IRSA definition, not the VPC module).
+- Account- or registry-wide resources (CloudTrail, GuardDuty, Budgets, account public access block, ECR registry scanning) belong in `infra/environments/account/`, never in an environment root: a second environment conflicts with them and its `destroy` resets them for all (#93).
+- Each environment's sizing lives in its own `variables.tf` defaults. `*.tfvars` is ignored by Git, so an apply without it must not fall back to dev sizes (#92).
 
 ## Code style
 
@@ -28,7 +30,7 @@ globs: **/*.tf, **/*.tfvars.example, infra/**
 
 ## State and safety
 
-- Backend is local by design until HIGH-001 is resolved; do not uncomment the S3 backend without running `scripts/bootstrap-terraform-backend.sh` and an AWS account.
+- Roots declare an unconfigured S3 backend (`backend "s3" {}`). `scripts/bootstrap-terraform-backend.sh <env> "$AWS_REGION"` creates the state bucket and the ignored `backend.hcl`; HIGH-001 stays open until that runs against the account. Validation uses `init -backend=false`.
 - Never commit `*.tfstate`, `*.tfvars` (only `*.tfvars.example`), or plan files.
 - Use `lifecycle { prevent_destroy = true }` on stateful resources in prod (state buckets, KMS keys, RDS, artifact buckets).
 - Review every `plan` for unexpected `destroy` / `replace`; call them out explicitly when proposing changes.

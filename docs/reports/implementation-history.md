@@ -37,6 +37,7 @@ El backlog mantiene las prioridades y el estado por ID.
 
 ## Evidencia local
 
+- Auditoria estatica del 2026-11-11 sobre `20fb795`: `terraform validate` aprobado en dev, staging y prod (`account` no se valido); los 33 overlays renderizan con kustomize 5.8.3; `trivy config` sin HIGH/CRITICAL con las exclusiones de CI (48 MEDIUM); 609 pruebas GitOps aprobadas y las 7 de integracion fallan sin cluster, como se espera (CI las excluye), en un entorno Python 3.12; 203 pruebas ML aprobadas en Python 3.14.10 con flake8, black e isort limpios; mypy aborta (#98). Hallazgos en el backlog (#84–#98, LOW 21–22).
 - 421 pruebas GitOps aprobadas con el lock actual, incluidas las 32 de Chaos, el bootstrap del backend, la paridad cliente/servidor MLflow y el contrato de arranque en dev/staging/produccion/kind; siete pruebas que requieren cluster excluidas por `-m "not integration"`.
 - Instalacion limpia `poetry install --with test,dev` aprobada con Python 3.12 y Poetry 2.5.1; lock validado y 64 paquetes instalados compatibles. Flake8 y Black aprobados sobre los 48 archivos de `ml-platform/src/` y `ml-platform/tests/`.
 - Seis pruebas nuevas del inicializador PostgreSQL aprobadas: bloqueo antes de crear tablas, validacion de bases existentes, rechazo de esquemas antiguos, timeout de bloqueo, rechazo de otros backends y mensajes sin credenciales.

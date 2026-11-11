@@ -7,6 +7,12 @@ Para detalles técnicos de issues CRÍTICOS y ALTOS (CVSS, fix concreto), ver: [
 
 ---
 
+## Auditoria estatica — 2026-11-11
+
+Revision completa del repositorio en `20fb795`, sin AWS ni cluster. Terraform valida en dev, staging y prod; los 33 overlays renderizan; Trivy no reporta HIGH/CRITICAL; las pruebas GitOps y ML aprueban ([evidencia](../reports/implementation-history.md#evidencia-local)). Aun asi, ocho fallos impedirian la prueba del 2026-11-15 aunque `terraform apply` termine bien (#84–#91). Se agregan tambien deuda sin bloqueo (#92–#98, LOW 21–22) y correcciones de documentos que contradecian al codigo (#59, #73, HIGH-001). Los fallos de sync y de red (#85, #86, #88, #90) se deducen de los manifiestos renderizados; no se probaron contra un API server.
+
+---
+
 ## Revision operativa — 2026-11-08
 
 **CI Pipeline pasa y el E2E en kind ya aprueba entrenamiento, backup/restore y Chaos (#22, `991bcd3`). El primer E2E de serving (#23, `4494aca`) fallo; la causa probable esta corregida y falta un nuevo run. El entorno AWS real sigue sin validar.** No se aplico Terraform ni se inyectaron fallos en EKS.
@@ -23,6 +29,7 @@ los resultados locales y los enlaces a ejecuciones de CI. El estado por ID se ma
 | P0 | Primer verde del serving en kind (#52) | v1 servido, v2 promovido y v3 rechazado con rollback verificado a v2 |
 | P0 | Configurar/aplicar AWS (#48/#50/#51/#55, HIGH-001) y completar contratos de otras apps (#49) | Plan revisado, backend activo, secretos disponibles, imagenes publicadas y ArgoCD saludable |
 | P0 antes del primer apply | Add-ons compatibles con EKS 1.37 (#66), un solo dueno para EBS CSI (#67) salida de los nodos (HIGH-003) y Argo CD soportado (#76) | Versiones con soporte declarado para 1.37 renderizadas; plan sin recursos duplicados; nodos con el SG restringido que siguen descargando imagenes |
+| P0 antes del primer apply | Arranque GitOps en dev (#84–#90) y publicacion repetible de imagenes (#91) | Flux y ArgoCD reconcilian desde una rama existente; existe la StorageClass `gp3`; MLflow y monitoring sincronizan sin CRDs ausentes; los pasos del pipeline escriben en S3; el predictor llega a MLflow con NetworkPolicies activas; `publish-ecr.yml` se puede repetir |
 | P0 antes de fallos de zona | Recuperacion de almacenamiento y afinidades (#64) | Restore/HA entre zonas y capacidad de reubicacion demostrados; el preflight rechaza PVCs por defecto |
 | P1 | Confirmar permisos, SLO/RTO/RPO y evidencia en EKS (#60/#63) | Permisos efectivos, predicciones/datos conservados, panel de resultados y tiempos medidos |
 | P1 | Promocion del mismo digest ECR y ciclo completo (#65/#52/#53) | dev → staging → prod sin reconstruir; train → register → serve → monitor comprobado |
@@ -35,7 +42,7 @@ Detalles y comandos: [contrato de configuracion y recuperacion](../architecture/
 
 Solo dev, en una ventana de maximo 3 horas desde `terraform apply` hasta `terraform destroy`. Objetivo: entrenar, registrar y servir `@champion` en EKS y obtener una prediccion. Fuera de alcance: Kubeflow, Feast, Istio, Gatekeeper y Litmus.
 
-**Costo estimado** (Price List API, on-demand us-east-1, consultado el 2026-11-08): ~$0.60/h fijo con 3 × `t3.large`: EKS $0.10, nodos $0.25, 6 endpoints de interfaz × 2 AZ $0.12, 2 NAT $0.09, IPv4 $0.01, gp3 $0.025. Con redondeo por hora, la NAT por datos (~$0.45) y los logs, la ventana de 3 h cuesta ~$2–3. Despues del `destroy` solo quedan centavos al mes (estado, ECR, KMS).
+**Costo estimado** (Price List API, on-demand us-east-1, consultado el 2026-11-08; recalculado el 2026-11-11 con las mismas tarifas): ~$0.62/h fijo con 3 × `t3.large`: EKS $0.10, nodos $0.25, 7 endpoints de interfaz × 2 AZ $0.14 (incluye el de S3, que dev tambien crea; ver #73), 2 NAT $0.09, IPv4 $0.01, gp3 $0.025. El endpoint de S3 cobra ademas por GB procesado, y el escaneo ENHANCED de ECR lo factura Amazon Inspector (#93). Con redondeo por hora, la NAT por datos (~$0.45) y los logs, la ventana de 3 h cuesta ~$2–3. Despues del `destroy` solo quedan centavos al mes (estado, ECR, KMS y el log group del control plane, #94).
 
 **Antes de la ventana** (gratis o centavos):
 
@@ -44,6 +51,9 @@ Solo dev, en una ventana de maximo 3 horas desde `terraform apply` hasta `terraf
 3. Versiones de add-ons compatibles con EKS 1.37 (#66).
 4. Bootstrap del backend de Terraform (HIGH-001), repos ECR creados y la imagen publicada (#55), secretos de MLflow en Secrets Manager.
 5. Alerta de AWS Budgets de ~$20.
+6. Arranque GitOps sin bloqueos (#84–#90): rama de dev existente, Ingress de ArgoCD fuera o con valores reales, cluster registrado en ArgoCD y solo las apps del alcance, StorageClass `gp3`, sin `ServiceMonitor`/`PrometheusRule`, sin el `Deny` de subidas sin cabecera SSE y NetworkPolicies de `mlflow` con un solo dueno.
+7. `publish-ecr.yml` repetible con tags inmutables (#91), o una sola publicacion con una version nueva.
+8. Acceso al API de EKS: el endpoint es privado por defecto. Sin VPN, poner `endpoint_public_access = true` y la IP del operador (/32) en `public_access_cidrs` en el `terraform.tfvars` de dev.
 
 **Guion:**
 
@@ -53,14 +63,15 @@ Solo dev, en una ventana de maximo 3 horas desde `terraform apply` hasta `terraf
 | 0:30–1:15 | Flux, ArgoCD, MLflow, Argo Workflows, cert-manager, KServe y model-serving |
 | 1:15–1:45 | Entrenar → registrar → servir y predecir |
 | 1:45–2:30 | Margen para correcciones |
-| 2:30 | Vaciar buckets S3 y repos ECR (sin `force_destroy`) y ejecutar `terraform destroy`, termine o no la prueba |
+| 2:30 | Vaciar buckets S3 y repos ECR (sin `force_destroy`) y ejecutar `terraform destroy`, termine o no la prueba. Despues, borrar el log group `/aws/eks/mlops-dev-cluster/cluster`, que EKS crea fuera de Terraform (#94) |
 
 ---
 
 ## Dashboard de Estado
 
-| Area | Estado verificable al 2026-11-08 |
+| Area | Estado verificable al 2026-11-11 |
 |------|--------------------------------|
+| Arranque en AWS | Auditoria estatica: ocho bloqueos de arranque en dev sin corregir (#84–#91) |
 | CRITICAL historicos | 4 corregidos en codigo/manifiestos; permisos efectivos de CRIT-004 pendientes de comprobar en EKS |
 | HIGH historicos | 11 corregidos en codigo; HIGH-001 abierto y HIGH-003 reabierto el 2026-11-08 (el SG restringido no esta asociado a los nodos); HIGH-014 mitigado en manifiestos. HIGH-013 verificado como corregido el 2026-11-07 |
 | GitOps / Chaos | Backup/restore y Chaos verdes en kind (#22, `991bcd3`); ejecucion en EKS pendiente |
@@ -88,7 +99,7 @@ Los estados por ID y la evidencia de la revision sustituyen los antiguos totales
 
 | ID | Issue | Archivo(s) | Fix |
 |----|-------|------------|-----|
-| HIGH-001 | Backend local Terraform | `infra/environments/*/main.tf` | Seguir checklist de activacion en `main.tf` (requiere cuenta AWS) |
+| HIGH-001 | Backend local Terraform | `infra/environments/*/main.tf` | Los roots declaran `backend "s3" {}` sin configurar. Ejecutar `scripts/bootstrap-terraform-backend.sh <env> "$AWS_REGION"`, revisar el `backend.hcl` generado y correr `terraform -chdir=infra/environments/<env> init -backend-config=backend.hcl` (requiere cuenta AWS) |
 | HIGH-002 | Kubernetes 1.28 near EOL | `infra/modules/eks/variables.tf` | ✅ Actualizado a 1.32 (2026-06-09) y a 1.37 en los tres entornos (2026-11-07), con minimo 1.35, soporte `STANDARD` y nodos AL2023. Add-ons pendientes en #66/#67 |
 | HIGH-003 | Node egress sin restriccion | `infra/modules/vpc/main.tf`, `infra/modules/eks/main.tf` | Reabierto 2026-11-08: el SG `eks_nodes` restringido a `var.vpc_cidr` no esta asociado. El cluster no declara `security_group_ids` y el node group no usa launch template, asi que los nodos usan el SG que crea EKS, con salida abierta. Asociarlo exige decidir como se llega a GitHub, ghcr.io, quay.io y Docker Hub (NAT con lista de destinos o cache pull-through de ECR) y permitir el prefix list del Gateway de S3, del que ECR sirve las capas |
 | HIGH-004 | CIDR hardcoded en prod | `infra/environments/prod/main.tf` | ✅ Parametrizado con `var.vpc_cidr` + `var.node_egress_cidrs` (2026-07-13); sin efecto hasta cerrar HIGH-003 |
@@ -143,14 +154,20 @@ Los estados por ID y la evidencia de la revision sustituyen los antiguos totales
 | 50 | Roles IRSA de Argo, MLflow, backup y lectura de secretos implementados en `workload-identity`; verificar trust y acceso S3/KMS/Secrets Manager tras aplicar Terraform. Desde la decision 2 el rol de Argo ya no publica en ECR | `infra/`, `gitops/applications/apps/argo-workflows/base/rbac.yaml` |
 | 57 | MinIO dejo de publicar imagenes (Docker Hub y quay.io responden 401; repo archivado): reemplazado por Versity Gateway `versity/versitygw:v1.8.0` (S3 compatible, Apache-2). Quedan los nombres `mlflow-minio*` (Service, Secret, PVC) y menciones en docs/diagramas; renombrar a `mlflow-s3` y evaluar S3 real en dev | `gitops/applications/apps/mlflow/base/minio-*.yaml`, `docs/` |
 | 58 | EC2 stop/termination sigue diferido: requiere catalogo `kube-aws`, una identidad exclusiva con alcance por tags y recuperacion demostrada. El rol de nodos actual solo modifica recursos Kubernetes | `infra/modules/eks/`, `gitops/applications/apps/chaos/base/` |
-| 59 | Particion KServe→MLflow desactivada: `NAMESPACE_SELECTOR` era una allow list y las NetworkPolicies son aditivas. El add-on `vpc-cni` no define `enableNetworkPolicy`, asi que EKS hoy no aplica ninguna NetworkPolicy: activarlo, verificar el enforcement, aislar un workload desechable y probar conectividad antes/durante/despues junto con disponibilidad de inferencia | `gitops/applications/apps/chaos/experiments/pod-network-partition-kserve-mlflow.yaml`, `infra/modules/eks/` |
+| 59 | Particion KServe→MLflow desactivada: `NAMESPACE_SELECTOR` era una allow list y las NetworkPolicies son aditivas. El add-on `vpc-cni` define `enableNetworkPolicy` desde `b2f76b5` (2026-11-08), asi que las NetworkPolicies se aplican desde el primer despliegue (ver #90): verificar el enforcement, aislar un workload desechable y probar conectividad antes/durante/despues junto con disponibilidad de inferencia | `gitops/applications/apps/chaos/experiments/pod-network-partition-kserve-mlflow.yaml`, `infra/modules/eks/` |
 | 60 | Roles separados por fallo/namespace y workflows MLflow/nodo; politicas de admision restringen seleccion de cuentas y pods del fallo de borrado. Validacion efectiva y abort/cleanup incluidos en kind CI; EKS y frontera del operador privilegiado pendientes | `gitops/applications/apps/chaos/base/`, `workflows/` |
 | 61 | Bootstrap completo/versionado de Flux, APIs v1/v2, rutas corregidas y espera StatefulSet de ArgoCD implementados. Runtime config obligatorio y dependencias de capas corregidas. Falta instalacion/sync desde cluster vacio verificados | `gitops/scripts/install-gitops-controllers.sh`, `gitops/infrastructure/controllers/` |
 | 64 | Preflight AZ bloquea workloads con PVC en la zona objetivo y falta de CPU/memoria/GPU fuera de ella. Sigue pendiente HA/restore entre zonas y viabilidad por afinidades; PostgreSQL/gateway siguen con una replica y gp3 | `gitops/applications/apps/mlflow/`, `gitops/applications/apps/chaos/workflows/az-failure-test.yaml` |
 | 68 | Exponer predictores fuera del clúster con TLS (Gateway API o Istio). Hoy solo tienen Service interno; KServe 0.21 tambien permite canary por `HTTPRoute` en modo `Standard` | `gitops/applications/apps/kserve/` |
 | 69 | Retirar el chart propio `gitops/charts/kserve` (KServe 0.11), las Applications de charts que apuntan al repo de ejemplo `https://org.github.io/mlops-helm-charts` y los ejemplos de Argo que crean InferenceServices propios (`model-deployment-workflow.yaml`, `ab-test-deployment-workflow.yaml`). `make mlops-install` ya usa la app canonica | `gitops/charts/`, `gitops/applications/projects/mlops-helm-repository.yaml`, `k8s/mlops-stack/argo-workflows/examples/` |
 | 71 | Serializar despliegues del mismo modelo: dos pipelines que promueven a la vez compiten por `@champion` y por la anotacion de rollout. Evaluar `synchronization.mutexes` por modelo en `ml-pipeline-template` | `gitops/applications/apps/argo-workflows/base/workflow-templates/` |
-| 73 | En produccion MLflow firma URLs hacia S3 (`https://s3.AWS_REGION.amazonaws.com`). Por el Gateway endpoint eso son IPs publicas, fuera del `10.0.0.0/8:443` que permite la NetworkPolicy de MLflow, y el predictor no tenia salida a S3. Corregido en codigo el 2026-11-08: staging y prod crean un Interface endpoint de S3 con DNS privado para todo el trafico de la VPC (`enable_s3_interface_endpoint`), asi S3 responde en IPs de la VPC; el predictor de produccion recibe salida 443 al mismo bloque que MLflow. Dev conserva solo el Gateway. Ver la [decision](../architecture/platform-runtime-config.md#decision-s3-traffic-inside-the-vpc-2026-11-08). Pendiente: plan revisado y descarga real en EKS con NetworkPolicies activas (#59) | `infra/modules/vpc/main.tf`, `gitops/applications/apps/model-serving/overlays/production/` |
+| 73 | En produccion MLflow firma URLs hacia S3 (`https://s3.AWS_REGION.amazonaws.com`). Por el Gateway endpoint eso son IPs publicas, fuera del `10.0.0.0/8:443` que permite la NetworkPolicy de MLflow, y el predictor no tenia salida a S3. Corregido en codigo el 2026-11-08: staging y prod crean un Interface endpoint de S3 con DNS privado para todo el trafico de la VPC (`enable_s3_interface_endpoint`), asi S3 responde en IPs de la VPC; el predictor de produccion recibe salida 443 al mismo bloque que MLflow. Desde `b2f76b5` (2026-11-08) dev tambien crea el Interface endpoint; alli MLflow sigue usando el gateway del cluster, pero el backup, cuya salida solo permite `10.0.0.0/8:443`, llega por el endpoint al bucket de backups. Ver la [decision](../architecture/platform-runtime-config.md#decision-s3-traffic-inside-the-vpc-2026-11-08). Pendiente: plan revisado y descarga real en EKS con NetworkPolicies activas (#59) | `infra/modules/vpc/main.tf`, `gitops/applications/apps/model-serving/overlays/production/` |
+| 84 | Flux de dev (`gotk-sync.yaml` y el parche de rama de `clusters/dev/infrastructure/`) y el ApplicationSet de dev siguen la rama `develop`, que no existe en origin (2026-11-11: solo `main`). `reconcile` agotaria su espera y ArgoCD no podria generar manifiestos. Decidir antes del primer apply: crear `develop` o apuntar dev a `main`. `ci.yml` y `environment-promotion.yml` tambien se disparan con `develop` | `gitops/infrastructure/clusters/dev/`, `gitops/applications/projects/mlops-applicationset.yaml` |
+| 85 | El Ingress de ArgoCD conserva `${CERTIFICATE_ARN}` y `argocd.${DOMAIN_NAME}` literales: nada los define y la Kustomization `infrastructure-controllers` no tiene `postBuild`. Un host con `$` no es un nombre DNS valido, asi que `install-gitops-controllers.sh argocd` abortaria y Flux no aplicaria `infrastructure-controllers`, de la que dependen addons, security y networking. Quitar el Ingress hasta tener dominio y certificado (#68, roadmap 4) o sustituir valores reales; un ALB interno tambien necesita #95 | `gitops/infrastructure/controllers/argocd/ingress.yaml`, `gitops/infrastructure/flux-config/infrastructure-kustomization.yaml` |
+| 86 | Los destinos `mlops-<env>-cluster` del ApplicationSet y del AppProject necesitan un Secret de cluster de ArgoCD con ese nombre; el paso 5 del bootstrap ("Register the environment cluster") no tiene comando ni manifiesto. El ApplicationSet genera los tres entornos en una sola instalacion y, en dev, las 11 apps con sync automatico, incluidas kubeflow (#49), feast, istio, gatekeeper (#79) y chaos, fuera del alcance de la prueba del 2026-11-15. Definir el registro (o usar `in-cluster`) y que apps genera cada entorno | `gitops/applications/projects/`, `docs/architecture/platform-runtime-config.md` |
+| 88 | La app `mlflow` declara 2 `ServiceMonitor` y 1 `PrometheusRule`, y `monitoring` 2 `PrometheusRule`, pero ningun manifiesto instala Prometheus Operator ni sus CRDs, asi que ArgoCD no podria sincronizar esas apps. El overlay de kind los elimina y por eso el E2E no lo detecta. Quitarlos como en KServe (#70) o instalar el operador | `gitops/applications/apps/mlflow/base/monitoring.yaml`, `gitops/applications/apps/monitoring/base/{alertmanager-config,mlops-alerts}.yaml`, `scripts/e2e/kind/mlflow/kustomization.yaml` |
+| 90 | NetworkPolicies de `mlflow` con dos duenos. Flux aplica `default-deny-all-ingress` y `mlflow-allow-internal`, que solo admite a `app: mlflow-server` desde argo-workflows, istio-system, kubeflow, kserve y monitoring, sin `models`. La app declara `mlflow-network-policy`, que si admite `models`, pero su selector `app.kubernetes.io/name: mlflow` no incluye al servidor: sus pods solo llevan `app: mlflow-server`. Con `enableNetworkPolicy` activo (#59), el predictor no llegaria a MLflow:5000. Flux (`security/pod-security/`) y ArgoCD tambien declaran los Namespaces `mlflow`, `kubeflow`, `kserve` y `monitoring`. Dejar cada recurso en una sola capa | `gitops/infrastructure/networking/network-policies/`, `gitops/infrastructure/security/pod-security/namespaces-pss.yaml`, `gitops/applications/apps/mlflow/base/network-policy.yaml` |
+| 97 | Las WorkflowTemplates usan por defecto `mlflow-tracking-uri: http://mlflow-server.mlflow:5000`, y el ConfigMap de MLflow `tracking_uri` apunta a `mlflow-server.mlflow.svc.cluster.local`, pero el Service real es `<env>-mlflow-server`. Kind pasa el parametro explicito; en EKS cualquier envio sin el fallaria. Resolverlo por overlay | `gitops/applications/apps/argo-workflows/base/workflow-templates/`, `gitops/applications/apps/mlflow/base/configmap.yaml` |
 | 47 | argo-server usa `--auth-mode=sso` pero el ConfigMap no define bloque `sso` (issuer, clientId, clientSecret): el server entra en CrashLoopBackOff con `Error: issuer empty` (confirmado en kind 2026-10-10) | `gitops/applications/apps/argo-workflows/base/server-deployment.yaml` | ✅ Cambiado a `--auth-mode=client` (token de Kubernetes + RBAC) 2026-10-10. SSO/OIDC pendiente de proveedor |
 | 10 | `monitoring` en `k8s/` no apunta a `gitops/applications/apps/monitoring/` | `k8s/mlops-stack/monitoring/kustomization.yaml` | ✅ Corregido 2026-06-26 |
 | 11 | `argo-workflows` en `k8s/` no apunta a gitops | `k8s/mlops-stack/argo-workflows/kustomization.yaml` | ✅ Corregido 2026-06-26 |
@@ -184,6 +201,13 @@ Los estados por ID y la evidencia de la revision sustituyen los antiguos totales
 | 66 | EKS 1.37 exige actualizar add-ons fijados antes de 1.32: Istio `1.20.x` (fin de vida), AWS Load Balancer Controller `1.7.x`, EBS CSI `2.28.x` y External Secrets `0.9.13`. Los tres rangos `x` no fijan una version exacta: sustituirlos por versiones concretas verificadas al resolver la compatibilidad. Como no hay nada desplegado, se puede instalar directamente la version actual sin migracion. Cluster Autoscaler ya usa el chart `9.60.0` (CA 1.37.0, publicado 2026-11-06): revisar si hay un parche 1.37.x antes del primer apply | `gitops/infrastructure/`, `gitops/applications/apps/external-secrets/` |
 | 67 | EBS CSI tiene dos duenos: `aws_eks_addon.ebs_csi_driver` en Terraform y el HelmRelease de Flux en `addons/ebs-csi-driver`. Elegir una capa y eliminar la otra antes del primer apply | `infra/modules/eks/main.tf`, `gitops/infrastructure/addons/` |
 | 72 | El repositorio ECR `mlops-<env>-inference` quedo sin uso con la decision 2 (no se construyen imagenes por modelo). Decidir antes del primer apply si se elimina o se reserva para runtimes propios | `infra/environments/*/main.tf` |
+| 87 | No se crea la StorageClass `gp3`: el chart EBS CSI `2.28.x` (resuelve 2.28.1) no tiene el valor `defaultStorageClass` y su render no produce ninguna StorageClass (`helm template`, 2026-11-11). Quedarian `Pending` los PVC con `gp3` (PostgreSQL y gateway de MLflow, Evidently, Alertmanager) y los que dependen de una clase por defecto que nada declara (Grafana, Prometheus, Feast). Declarar la StorageClass en la capa que conserve EBS CSI (#67) y comprobarla con las versiones de #66 | `gitops/infrastructure/addons/ebs-csi-driver/helm-release.yaml` |
+| 89 | La politica por defecto del modulo S3 (`DenyUnencryptedObjectUploads`) deniega todo `PutObject` sin la cabecera `x-amz-server-side-encryption: aws:kms`, y ningun cliente la envia: `write_table` de los pasos, la subida del backup y MLflow en staging/prod. En dev fallarian con AccessDenied la validacion, el split y el backup (alli MLflow usa el gateway del cluster). El cifrado SSE-KMS por defecto del bucket ya cubre las subidas, y enviar solo `aws:kms` sin id de clave haria que S3 use la clave administrada por AWS en vez de la CMK ([guia de S3](https://docs.aws.amazon.com/AmazonS3/latest/userguide/UsingKMSEncryption.html#require-sse-kms)). Eliminar la sentencia y conservar la de TLS | `infra/modules/s3/main.tf`, `ml-platform/src/pipelines/steps.py`, `ml-platform/src/pipelines/database_backup.py` |
+| 92 | Los `variables.tf` de staging y prod tienen los mismos valores por defecto que dev (2 subredes, `t3.medium`, 2 nodos); los tamanos de cada entorno solo estan en `terraform.tfvars.example`. Sin un `terraform.tfvars` (ignorado por Git), un apply de prod crea un cluster del tamano de dev en dos zonas. Llevar los valores de cada entorno a su `variables.tf` | `infra/environments/{staging,prod}/variables.tf` |
+| 93 | `aws_ecr_registry_scanning_configuration` (ENHANCED) es un recurso unico por cuenta y region, pero lo declaran dev, staging y prod: dos entornos en la misma cuenta compiten por el y el `destroy` de uno restablece la configuracion del registro para todos. Moverlo al root `account`; el escaneo ENHANCED lo factura Amazon Inspector | `infra/modules/ecr/main.tf`, `infra/environments/*/main.tf`, `infra/environments/account/` |
+| 94 | Con los cinco tipos de log del control plane activos, EKS crea el log group `/aws/eks/<cluster>/cluster` sin retencion ni KMS. Terraform no lo gestiona, asi que `destroy` no lo borra. Declararlo antes del cluster con retencion y la clave KMS | `infra/modules/eks/main.tf` |
+| 95 | Las subredes no llevan `kubernetes.io/role/elb` ni `kubernetes.io/role/internal-elb`: el AWS Load Balancer Controller no las descubriria para el Ingress interno de ArgoCD (#85) ni para #68 | `infra/modules/vpc/main.tf` |
+| 96 | VPC sin Flow Logs (Trivy AWS-0178, MEDIUM) | `infra/modules/vpc/main.tf` |
 
 ### Python / ML Platform (7)
 
@@ -234,10 +258,12 @@ Los estados por ID y la evidencia de la revision sustituyen los antiguos totales
 | 82 | Quedan YAML locales de los cuatro controladores de Flux con imagenes antiguas; la kustomization activa solo referencia el instalador v2.7.5. Retirar archivos sin uso y ajustar las pruebas que aun exigen su existencia, comprobando que el bootstrap conserva todos los controladores | `gitops/infrastructure/controllers/flux-system/`, `gitops/tests/test_gitops_checkpoint.py`, `gitops/tests/test_repository_structure.py` |
 | 83 | Migracion a Python 3.14.10 implementada en las tres imagenes y CI de ML; proyecto y lock admiten `>=3.11,<3.15`. Servidor MLflow usa `psycopg2-binary==2.9.11`, con wheel compatible. Dependabot excluye `>=3.15` por incompatibilidades del stack. Instalacion del lock y resolucion de binarios Linux amd64 verificadas; 203 pruebas ML aprobadas en Python 3.14.10 con backend grafico Agg, tres pruebas del contrato imagen/proyecto/CI aprobadas y Black/Flake8 sin errores. Pendiente: build completo y E2E en GitHub Actions | `ml-platform/Dockerfile*`, `ml-platform/pyproject.toml`, `ml-platform/poetry.lock`, `.github/workflows/ci.yml`, `.github/dependabot.yml`, `gitops/tests/test_python_runtime_contract.py` |
 | 65 | Promover el mismo digest desde ECR dev a staging/prod, actualizar overlays y verificar gate por entorno; `publish-ecr.yml` solo hace la publicacion inicial dev | `.github/workflows/`, `gitops/scripts/promotion/` |
+| 91 | `publish-ecr.yml` empuja `mlflow-server:3.17.2` en cada ejecucion y los repos ECR son inmutables. Una nueva ejecucion con otra `platform_version` sube `trainer` y falla en `mlflow-server`, dejando la publicacion a medias; con la misma version falla en la primera imagen. Omitir los tags que ya existen o versionar la imagen de MLflow por ejecucion | `.github/workflows/publish-ecr.yml`, `infra/modules/ecr/` |
+| 98 | `make dev-lint` falla: `mypy==1.5.1` con `python_version = "3.11"` aborta en los stubs de numpy 2 (`Type statement is only supported in Python 3.12 and greater`). El CI de ML no ejecuta mypy ni isort, aunque `make validate-python` incluye isort. Actualizar mypy, alinear `python_version` y llamar a los targets de `make` desde CI | `ml-platform/pyproject.toml`, `.github/workflows/ci.yml` |
 
 ---
 
-## LOW (20)
+## LOW (22)
 
 | # | Issue | Archivo(s) |
 |---|-------|------------|
@@ -261,6 +287,8 @@ Los estados por ID y la evidencia de la revision sustituyen los antiguos totales
 | 18 | `import numpy as np` redundante en `feature_store_client.py` | `ml-platform/src/features/feature_store_client.py` |
 | 19 | `roc_auc_score` calculado con etiquetas duras (incorrecto) | `ml-platform/src/models/classification_model.py` |
 | 20 | `validate_config` no incluye `"ridge"` ni `"lasso"` | `ml-platform/src/utils/config_manager.py` |
+| 21 | Labels del node group GPU con prefijo `k8s.io/` (`k8s.io/cluster-autoscaler/...`). Ese prefijo esta reservado y EKS podria rechazarlos (sin verificar); las mismas claves ya estan en los tags | `infra/modules/eks/main.tf` |
+| 22 | `Dockerfile.mlflow-server` instala con `pip` sin lock: fija las dependencias directas, pero las transitivas cambian entre builds | `ml-platform/Dockerfile.mlflow-server` |
 
 ---
 
@@ -284,6 +312,6 @@ Los estados por ID y la evidencia de la revision sustituyen los antiguos totales
 
 ---
 
-*Última revisión editorial: 2026-11-09. Estados técnicos conservados de la revisión operativa.*
+*Última revisión: 2026-11-11 (auditoría estática; hallazgos #84–#98 y LOW 21–22). Estados técnicos anteriores conservados de la revisión operativa.*
 
 *Fuentes: `docs/project/critical.md`, manifiestos y scripts actuales, render de charts/overlays y pruebas locales descritas en la revision operativa. La revision no certifica un despliegue EKS.*

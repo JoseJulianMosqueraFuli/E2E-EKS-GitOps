@@ -3,7 +3,7 @@
 [← Documentation index](../README.md)
 
 **Report Date**: 2026-06-06
-**Last Updated**: 2026-11-08
+**Last Updated**: 2026-11-11
 **Project**: E2E MLOps Platform on Amazon EKS
 **Reviewer**: OpenCode AI
 **Status**: OPEN - Requires immediate action before production deployment
@@ -121,14 +121,14 @@ This document lists all **CRITICAL** and **HIGH** severity findings identified d
 ### HIGH-001: Backend Local Terraform (All Environments)
 
 - **Files**: `infra/environments/*/main.tf`
-- **Issue**: All three environments use local Terraform backend (S3 backend is commented out).
+- **Issue**: The environment roots, including `account`, declare an unconfigured S3 backend (`backend "s3" {}`); no remote state exists yet.
 - **Impact**: Risk of state file loss, no state locking, no collaboration safety.
-- **Fix**: Follow the activation checklist in each `main.tf` (requires AWS account):
-  1. Run `aws configure`
-  2. Run `./scripts/bootstrap-terraform-backend.sh <env> us-east-1`
-  3. Uncomment the backend block
-  4. Run `terraform init -migrate-state`
-- **Status**: Procedure documented; pending AWS account setup.
+- **Fix** (requires the AWS account):
+  1. Authenticate the AWS CLI.
+  2. Run `./scripts/bootstrap-terraform-backend.sh <env> "$AWS_REGION"`. It creates the state bucket and writes the ignored `infra/environments/<env>/backend.hcl`.
+  3. Review `backend.hcl`, then run `terraform -chdir=infra/environments/<env> init -backend-config=backend.hcl`.
+  4. Add `-migrate-state` only when local state already exists and the migration was reviewed.
+- **Status**: Procedure implemented (state locking with `use_lockfile`); pending its first run against the account. Updated 2026-11-11: the earlier steps referred to a commented backend block that no longer exists.
 - **Owner**: Infrastructure Team
 
 ---
