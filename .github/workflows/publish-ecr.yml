@@ -34,7 +34,7 @@ jobs:
       PLATFORM_VERSION: ${{ inputs.platform_version }}
       DEPLOY_ENV: ${{ inputs.environment }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Validate release inputs
         env:
           ROLE: ${{ vars.AWS_ROLE_ARN }}
