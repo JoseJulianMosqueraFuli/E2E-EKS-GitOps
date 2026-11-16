@@ -36,7 +36,7 @@ jobs:
         uses: docker/setup-buildx-action@v4
 
       - name: Run tests (Dockerfile test stage)
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: ml-platform
           file: ml-platform/Dockerfile
@@ -46,7 +46,7 @@ jobs:
           cache-to: type=gha,mode=max,scope=ml-platform-test
 
       - name: Build and verify monitoring image
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: ml-platform
           file: ml-platform/Dockerfile.monitoring
@@ -58,7 +58,7 @@ jobs:
           cache-to: type=gha,mode=max,scope=ml-monitoring
 
       - name: Build runtime image for scanning
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: ml-platform
           file: ml-platform/Dockerfile
@@ -71,7 +71,7 @@ jobs:
             type=gha,scope=ml-platform-test
 
       - name: Build MLflow server image for scanning
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: ml-platform
           file: ml-platform/Dockerfile.mlflow-server
@@ -141,7 +141,7 @@ jobs:
             type=match,pattern=ml-platform-v(.*),group=1
 
       - name: Build and push runtime image
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: ml-platform
           file: ml-platform/Dockerfile
